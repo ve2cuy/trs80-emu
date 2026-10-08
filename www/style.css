@@ -81,7 +81,7 @@ button, .button {
 }
 
 .button.secondary, button:disabled { background: var(--panel); color: var(--text); }
-button:disabled { cursor: default; opacity: 0.6; }
+button:disabled, select:disabled, .button.disabled { cursor: not-allowed; opacity: 0.5; }
 
 .speed { color: var(--muted); font-size: 0.9rem; margin-left: auto; }
 .status { color: var(--muted); font-size: 0.9rem; min-height: 1.4em; margin: 8px 0 0; }

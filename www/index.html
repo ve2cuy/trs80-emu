@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>TRS-80 Model I</title>
-  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="style.css?v=dev">
 </head>
 <body>
   <main>
@@ -41,10 +41,11 @@
         <select id="program-list" disabled>
           <option value="">Choose…</option>
         </select>
-        <label class="button secondary">Load CMD file…
+        <label id="cmd-button" class="button secondary disabled">Load CMD file…
           <input id="cmd-file" type="file" accept=".cmd,.CMD" hidden disabled>
         </label>
       </div>
+      <p id="programs-hint" class="small">Load the Level II ROM first.</p>
       <div id="program-info" class="program-info" hidden></div>
     </section>
 
@@ -69,6 +70,6 @@
       <a href="https://ve2cuy.github.io/blog/">VE2CUY's blog</a>
     </p>
   </main>
-  <script type="module" src="main.js"></script>
+  <script type="module" src="main.js?v=dev"></script>
 </body>
 </html>

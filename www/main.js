@@ -2,7 +2,13 @@
 // fait tourner la boucle d'affichage. Toute l'émulation est dans Rust (crates/web).
 // Les textes de l'interface sont en anglais.
 
-import init, { Emulator } from './pkg/trs80_web.js';
+// Version de déploiement (?v=<commit> inscrit par GitHub Actions dans index.html) : ajoutée
+// à chaque fichier chargé, pour qu'une mise à jour ne mélange jamais anciens et nouveaux
+// fichiers gardés en cache. En développement (?v=dev), on ne met rien en cache.
+const BUILD = new URL(import.meta.url).searchParams.get('v') ?? 'dev';
+const V = `?v=${BUILD === 'dev' ? Date.now() : BUILD}`;
+
+const { default: init, Emulator } = await import(`./pkg/trs80_web.js${V}`);
 
 const canvas = document.getElementById('screen');
 const ctx = canvas.getContext('2d');
@@ -15,6 +21,8 @@ const turbo = document.getElementById('turbo');
 const programList = document.getElementById('program-list');
 const programInfo = document.getElementById('program-info');
 const cmdFile = document.getElementById('cmd-file');
+const cmdButton = document.getElementById('cmd-button');
+const programsHint = document.getElementById('programs-hint');
 
 // Toute erreur imprévue est affichée sous l'écran plutôt que de figer la page en silence.
 function showStatus(message, isError = false) {
@@ -25,7 +33,7 @@ window.addEventListener('error', (e) => showStatus(`Error: ${e.message}`, true))
 window.addEventListener('unhandledrejection', (e) =>
   showStatus(`Error: ${e.reason?.message ?? e.reason}`, true));
 
-const wasm = await init();
+const wasm = await init({ module_or_path: `pkg/trs80_web_bg.wasm${V}` });
 const WIDTH = Emulator.width();
 const HEIGHT = Emulator.height();
 
@@ -80,6 +88,8 @@ function setRunning(running) {
   resetButton.disabled = !running;
   programList.disabled = !running;
   cmdFile.disabled = !running;
+  cmdButton.classList.toggle('disabled', !running);
+  programsHint.hidden = running;
 }
 
 function start(bytes) {
@@ -116,7 +126,7 @@ let programs = [];
 
 async function loadProgramIndex() {
   try {
-    const res = await fetch('programs/index.json');
+    const res = await fetch(`programs/index.json${V}`);
     programs = res.ok ? await res.json() : [];
   } catch {
     programs = [];
@@ -165,7 +175,7 @@ async function runProgram(id) {
   showProgramInfo(p);
   if (!p) return;
   try {
-    const res = await fetch(`programs/${p.file}`);
+    const res = await fetch(`programs/${p.file}${V}`);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     runCmd(new Uint8Array(await res.arrayBuffer()), p.title);
   } catch (e) {
