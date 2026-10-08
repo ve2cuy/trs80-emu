@@ -53,21 +53,25 @@ function openDb() {
   });
 }
 
-async function saveRom(bytes) {
+// Valeur conservée : { id, bytes } (id = entrée de roms.json, ou 'custom' pour un fichier
+// de l'utilisateur). Les versions précédentes conservaient seulement les octets.
+async function saveRom(id, bytes) {
   try {
     const db = await openDb();
-    db.transaction('roms', 'readwrite').objectStore('roms').put(bytes, 'level2');
+    db.transaction('roms', 'readwrite').objectStore('roms').put({ id, bytes }, 'level2');
   } catch { /* stockage indisponible (navigation privée) : on s'en passe */ }
 }
 
 async function loadSavedRom() {
   try {
     const db = await openDb();
-    return await new Promise((resolve) => {
+    const value = await new Promise((resolve) => {
       const req = db.transaction('roms').objectStore('roms').get('level2');
       req.onsuccess = () => resolve(req.result ?? null);
       req.onerror = () => resolve(null);
     });
+    if (value instanceof Uint8Array) return { id: 'custom', bytes: value };
+    return value;
   } catch {
     return null;
   }
@@ -77,11 +81,104 @@ async function loadSavedRom() {
 async function loadDevRom() {
   try {
     const res = await fetch('rom/level2.rom');
-    return res.ok ? new Uint8Array(await res.arrayBuffer()) : null;
+    return res.ok ? { id: 'custom', bytes: new Uint8Array(await res.arrayBuffer()) } : null;
   } catch {
     return null;
   }
 }
+
+// ROM proposées (roms.json) : téléchargées chez un tiers, seulement quand on les choisit.
+const romList = document.getElementById('rom-list');
+const romTar = document.getElementById('rom-tar');
+const romTarMember = document.getElementById('rom-tar-member');
+let roms = [];
+
+async function loadRomIndex() {
+  try {
+    const res = await fetch(`roms.json${V}`);
+    roms = res.ok ? await res.json() : [];
+  } catch {
+    roms = [];
+  }
+  for (const r of roms) {
+    romList.append(new Option(r.title, r.id));
+  }
+}
+
+/** Affiche la ROM courante dans la liste; un fichier personnel y apparaît comme « Your ROM file ». */
+function selectRomInList(id) {
+  if (id === 'custom' && !romList.querySelector('option[value="custom"]')) {
+    romList.append(new Option('Your ROM file', 'custom'));
+  }
+  romList.value = id ?? '';
+}
+
+async function sha256Hex(bytes) {
+  const digest = await crypto.subtle.digest('SHA-256', bytes);
+  return [...new Uint8Array(digest)].map((b) => b.toString(16).padStart(2, '0')).join('');
+}
+
+/** Contenu d'un membre (comparé sans le chemin) d'une archive tar, ou null. */
+function extractFromTar(tar, wanted) {
+  const decoder = new TextDecoder();
+  for (let off = 0; off + 512 <= tar.length;) {
+    const header = tar.subarray(off, off + 512);
+    if (header.every((b) => b === 0)) break; // fin de l'archive
+    const name = decoder.decode(header.subarray(0, 100)).replace(/\0.*$/s, '');
+    const size = parseInt(decoder.decode(header.subarray(124, 136)).replace(/\0.*$/s, '').trim() || '0', 8);
+    if (name.split('/').pop().toUpperCase() === wanted.toUpperCase()) {
+      return tar.slice(off + 512, off + 512 + size);
+    }
+    off += 512 + Math.ceil(size / 512) * 512;
+  }
+  return null;
+}
+
+async function chooseListedRom(id) {
+  const rom = roms.find((r) => r.id === id);
+  romTar.hidden = true;
+  if (!rom) return;
+  if (rom.source === 'tar') {
+    romTarMember.textContent = rom.member;
+    romTar.hidden = false;
+    showStatus(`${rom.title}: open the release archive to continue.`);
+    return;
+  }
+  showStatus(`Downloading ${rom.title}…`);
+  try {
+    const res = await fetch(rom.url);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const bytes = new Uint8Array(await res.arrayBuffer());
+    if (rom.sha256 && (await sha256Hex(bytes)) !== rom.sha256) {
+      throw new Error('the downloaded file does not match the expected checksum');
+    }
+    if (start(bytes)) {
+      saveRom(rom.id, bytes);
+      showStatus(`${rom.title} loaded.`);
+    }
+  } catch (e) {
+    showStatus(`Cannot download ${rom.title}: ${e.message ?? e}`, true);
+  }
+}
+
+romList.addEventListener('change', () => chooseListedRom(romList.value));
+
+document.getElementById('tar-file').addEventListener('change', async (event) => {
+  const file = event.target.files[0];
+  event.target.value = '';
+  const rom = roms.find((r) => r.id === romList.value);
+  if (!file || !rom) return;
+  const bytes = extractFromTar(new Uint8Array(await file.arrayBuffer()), rom.member);
+  if (!bytes) {
+    showStatus(`${rom.member} was not found in ${file.name}.`, true);
+    return;
+  }
+  if (start(bytes)) {
+    romTar.hidden = true;
+    saveRom(rom.id, bytes);
+    showStatus(`${rom.title} loaded from ${file.name}.`);
+  }
+});
 
 function setRunning(running) {
   overlay.hidden = running;
@@ -108,16 +205,18 @@ function start(bytes) {
   return true;
 }
 
-async function onRomFile(event) {
+document.getElementById('rom-file').addEventListener('change', async (event) => {
   const file = event.target.files[0];
+  event.target.value = '';
   if (!file) return;
   const bytes = new Uint8Array(await file.arrayBuffer());
-  if (start(bytes)) saveRom(bytes);
-  event.target.value = '';
-}
-
-document.getElementById('rom-file').addEventListener('change', onRomFile);
-document.getElementById('rom-change').addEventListener('change', onRomFile);
+  if (start(bytes)) {
+    romTar.hidden = true;
+    selectRomInList('custom');
+    saveRom('custom', bytes);
+    showStatus(`${file.name} loaded.`);
+  }
+});
 resetButton.addEventListener('click', () => { emulator?.reset(); canvas.focus(); });
 
 // ------------------------------------------------------------------ programmes
@@ -263,10 +362,18 @@ function loop(now) {
   requestAnimationFrame(loop);
 }
 
-await loadProgramIndex();
-const saved = (await loadDevRom()) ?? (await loadSavedRom());
-if (saved && start(saved)) {
-  const params = new URLSearchParams(location.search);
+await Promise.all([loadProgramIndex(), loadRomIndex()]);
+const params = new URLSearchParams(location.search);
+// Lien direct vers une ROM de la liste : ?rom=level2-1.3 (a priorité sur la ROM conservée).
+const romParam = params.get('rom');
+if (romParam && roms.some((r) => r.id === romParam && r.source === 'url')) {
+  selectRomInList(romParam);
+  await chooseListedRom(romParam);
+} else {
+  const saved = (await loadDevRom()) ?? (await loadSavedRom());
+  if (saved && start(saved.bytes)) selectRomInList(saved.id);
+}
+if (emulator) {
   // Lien direct vers un programme : ?program=seadragon
   const program = params.get('program');
   if (program) {

@@ -7,7 +7,22 @@ web (WebAssembly).
 > semi-graphiques, programmes `.CMD`. À venir : cassette, disquettes.
 > Voir [docs/conception.md](docs/conception.md).
 
-**▶️ Essayer en ligne : <https://ve2cuy.github.io/trs80-emu/>** (vous fournissez votre ROM Level II).
+**▶️ Essayer en ligne : <https://ve2cuy.github.io/trs80-emu/>**
+
+## ROM
+
+Aucune ROM n'est hébergée dans ce dépôt : elles sont © Tandy / Microsoft. La liste
+déroulante de la page ([`www/roms.json`](www/roms.json)) les télécharge, au moment où
+on les choisit, depuis le dépôt tiers
+[kiwisincebirth/TRS-80-ROMS](https://github.com/kiwisincebirth/TRS-80-ROMS) :
+
+| ROM | Téléchargement |
+| --- | --- |
+| Level II 1.3 et 1.2 (Tandy, officielles) | Direct, à un commit épinglé, empreinte SHA-256 vérifiée |
+| Level II 1.3 avec correctifs, Enhanced Level II 1.4 (kiwisincebirth) | Depuis l'archive `.tar` de leur release, que l'utilisateur télécharge puis ouvre dans la page (GitHub n'autorise pas le fureteur à la télécharger lui-même) |
+
+On peut aussi charger son propre fichier (« Load ROM file… »). Lien direct :
+`?rom=level2-1.3`. La ROM choisie est conservée dans le fureteur.
 
 ## Lancer l'émulateur localement
 
@@ -26,12 +41,11 @@ cd www
 python -m http.server 8080
 ```
 
-Ouvrir <http://localhost:8080>, choisir le fichier ROM Level II (12 Ko), puis
+Ouvrir <http://localhost:8080>, choisir une ROM dans la liste (ou votre fichier), puis
 répondre à `MEM SIZE?` avec ENTRÉE.
 
 - Un serveur local est nécessaire : un fureteur refuse de charger un module
   WebAssembly ouvert directement en `file://`.
-- La ROM choisie est conservée dans le fureteur (IndexedDB) pour les visites suivantes.
 - En développement, une ROM copiée dans `www/rom/level2.rom` (exclue de Git) est
   chargée automatiquement.
 

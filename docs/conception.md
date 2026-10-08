@@ -68,6 +68,11 @@ l'utilisateur chargera son propre fichier ROM, conservé ensuite dans IndexedDB.
    le BASIC à « READY »), routines minimales à la place des appels de fichiers TRSDOS,
    liste de programmes libres de droits (`www/programs/`). Interface en anglais.
    ⬜ Reste : fichiers `.CAS` (cassette).
+6b. ✅ Liste de ROM (`www/roms.json`) : liens vers le dépôt tiers kiwisincebirth/TRS-80-ROMS,
+   jamais d'hébergement. 1.2 et 1.3 officielles téléchargées directement (commit épinglé,
+   SHA-256 vérifié); 1.3P et 1.4 extraites de l'archive `.tar` de leur release, ouverte par
+   l'utilisateur (les archives de release GitHub n'ont pas d'en-tête CORS).
+   Les quatre ROM démarrent; la 1.4 (« Enhanced Level II BASIC ») n'a plus de cassette.
 7. ⬜ Confort : Reset, Turbo, collage de texte, sauvegarde et restauration de l'état.
 8. ⬜ Facultatif : son de la cassette (WebAudio), modification minuscules, disquettes
    (WD1771, images `.DSK` / `.DMK`), Model III.

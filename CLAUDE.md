@@ -15,8 +15,13 @@ départ, si plus de contexte est nécessaire.
   Le processeur ne connaît la machine qu'à travers le trait `Bus`.
 - Toute nouvelle instruction ou correction du Z80 s'accompagne d'un test dans
   `crates/z80/tests/instructions.rs`.
-- **Ne jamais committer de ROM TRS-80** (droit d'auteur). Elles vont dans
-  `crates/*/tests/roms/`, exclu par `.gitignore`.
+- **Ne jamais committer de ROM TRS-80** (droit d'auteur, y compris les versions modifiées
+  comme la 1.4 de kiwisincebirth). Pour les tests : `crates/*/tests/roms/`, exclu par
+  `.gitignore`. Dans la page : seulement des liens vers un tiers (`www/roms.json`).
+- Programmes de `www/programs/` : seulement avec une autorisation de redistribution
+  vérifiable (voir `www/programs/README.md`).
+- `cargo run -p trs80 --example screen -- <rom> [secondes] [texte] [prog.cmd]` affiche
+  l'écran en texte : pratique pour tester une ROM ou un programme sans fureteur.
 
 ## Commandes
 

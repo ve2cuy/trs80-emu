@@ -14,25 +14,42 @@
       <canvas id="screen" width="384" height="192" tabindex="0"
               aria-label="TRS-80 screen: click, then type on your keyboard"></canvas>
       <div id="overlay" class="overlay">
-        <p>To start, choose your <strong>Level II</strong> ROM file (12 KB).</p>
-        <p class="small">The ROM is not included: it is protected by copyright.
-          It stays in your browser and is never uploaded.</p>
-        <label class="button">Choose ROM…
-          <input id="rom-file" type="file" accept=".rom,.bin,application/octet-stream" hidden>
-        </label>
+        <p>To start, choose a <strong>Level II ROM</strong> in the list below,
+          or load your own ROM file (12 KB).</p>
+        <p class="small">TRS-80 ROMs are © Tandy / Microsoft and are not part of this project.
+          The ROM stays in your browser and is never uploaded.</p>
         <p id="error" class="error" role="alert"></p>
       </div>
     </div>
 
     <div class="controls">
+      <label for="rom-list">ROM:</label>
+      <select id="rom-list">
+        <option value="">Choose…</option>
+      </select>
+      <label class="button secondary">Load ROM file…
+        <input id="rom-file" type="file" accept=".rom,.bin,application/octet-stream" hidden>
+      </label>
       <button id="reset" type="button" disabled>Reset</button>
       <label><input id="turbo" type="checkbox"> Turbo (×10)</label>
-      <label class="button secondary">Change ROM…
-        <input id="rom-change" type="file" accept=".rom,.bin,application/octet-stream" hidden>
-      </label>
       <span id="speed" class="speed" title="Emulated CPU speed"></span>
     </div>
+
+    <div id="rom-tar" class="program-info" hidden>
+      <span>This ROM is only published in the release archive of
+        <a href="https://github.com/kiwisincebirth/TRS-80-ROMS">kiwisincebirth/TRS-80-ROMS</a>,
+        which your browser cannot download directly.</span>
+      <span>1. Download <strong>TRS-80-…-ROM-Images.tar</strong> from the
+        <a href="https://github.com/kiwisincebirth/TRS-80-ROMS/releases/latest">latest release</a>.</span>
+      <span>2. Open the archive here; <strong id="rom-tar-member"></strong> will be extracted from it:</span>
+      <label class="button">Open .tar archive…
+        <input id="tar-file" type="file" accept=".tar,application/x-tar" hidden>
+      </label>
+    </div>
     <p id="status" class="status" role="status"></p>
+    <p class="small">ROMs in the list are downloaded from
+      <a href="https://github.com/kiwisincebirth/TRS-80-ROMS">github.com/kiwisincebirth/TRS-80-ROMS</a>
+      when you choose them.</p>
 
     <section class="programs" aria-labelledby="programs-title">
       <h2 id="programs-title">Programs</h2>
