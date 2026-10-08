@@ -9,6 +9,7 @@
 <body>
   <main>
     <h1>TRS-80 Model I</h1>
+    <p class="byline">Emulator by <strong>VE2CUY</strong></p>
 
     <div class="monitor">
       <canvas id="screen" width="1536" height="1152" tabindex="0"
@@ -37,6 +38,8 @@
     <div class="controls">
       <label for="font-list">Font:</label>
       <select id="font-list"></select>
+      <label title="Model I expansion interface: 40 Hz clock interrupt, used by some programs">
+        <input id="expansion" type="checkbox" checked> Expansion interface (40 Hz clock)</label>
     </div>
 
     <div id="rom-tar" class="program-info" hidden>
@@ -62,9 +65,19 @@
         <select id="program-list" disabled>
           <option value="">Choose…</option>
         </select>
-        <label id="cmd-button" class="button secondary disabled">Load CMD file…
-          <input id="cmd-file" type="file" accept=".cmd,.CMD" hidden disabled>
+        <label id="cmd-button" class="button secondary disabled">Load program (.CMD, .CAS)…
+          <input id="cmd-file" type="file" accept=".cmd,.cas" hidden disabled>
         </label>
+        <button id="type-button" type="button" class="secondary" disabled>Type text…</button>
+      </div>
+      <div id="type-panel" class="type-panel" hidden>
+        <label for="type-text">Text to type on the TRS-80 keyboard, for example a BASIC program.
+          You can also paste with Ctrl+V on the screen.</label>
+        <textarea id="type-text" rows="8" spellcheck="false" placeholder="10 PRINT &quot;HELLO&quot;&#10;20 GOTO 10&#10;RUN"></textarea>
+        <div class="controls">
+          <button id="type-send" type="button">Type it</button>
+          <button id="type-stop" type="button" class="secondary">Stop typing</button>
+        </div>
       </div>
       <p id="programs-hint" class="small">Load the Level II ROM first.</p>
       <div id="program-info" class="program-info" hidden></div>

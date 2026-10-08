@@ -4,7 +4,7 @@
 //! L'image de l'écran est lue directement dans la mémoire Wasm, sans copie
 //! (voir `framebuffer_ptr`).
 
-use trs80::{Key, SCREEN_HEIGHT, SCREEN_WIDTH, Trs80};
+use trs80::{Key, Loaded, SCREEN_HEIGHT, SCREEN_WIDTH, Trs80};
 use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen]
@@ -39,6 +39,38 @@ impl Emulator {
     /// Charge et lance un programme `.CMD`; retourne son adresse de lancement.
     pub fn load_cmd(&mut self, data: &[u8]) -> Result<u16, JsError> {
         self.machine.load_cmd(data).map_err(|e| JsError::new(&e.to_string()))
+    }
+
+    /// Charge une cassette `.CAS`. Un programme BASIC est aussitôt lancé (RUN tapé au
+    /// clavier). Retourne une description pour la barre d'état (en anglais).
+    pub fn load_cas(&mut self, data: &[u8]) -> Result<String, JsError> {
+        match self.machine.load_cas(data).map_err(|e| JsError::new(&e.to_string()))? {
+            Loaded::System(entry) => Ok(format!("machine-language tape, started at {entry:04X}h")),
+            Loaded::Basic(size) => {
+                self.machine.type_text("RUN\n");
+                Ok(format!("BASIC tape ({size} bytes), running"))
+            }
+        }
+    }
+
+    /// Tape un texte au clavier (ex. : programme BASIC collé); retourne le nombre de
+    /// caractères acceptés (ceux qui n'existent pas sur le TRS-80 sont ignorés).
+    pub fn type_text(&mut self, text: &str) -> u32 {
+        self.machine.type_text(text) as u32
+    }
+
+    /// Une frappe automatique est-elle en cours ?
+    pub fn typing(&self) -> bool {
+        self.machine.typing()
+    }
+
+    pub fn cancel_typing(&mut self) {
+        self.machine.cancel_typing();
+    }
+
+    /// Interface d'expansion (horloge à 40 Hz).
+    pub fn set_expansion_interface(&mut self, present: bool) {
+        self.machine.set_expansion_interface(present);
     }
 
     /// Touche enfoncée, selon `KeyboardEvent.key`. Retourne `true` si la touche

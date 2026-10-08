@@ -35,9 +35,21 @@ fn main() {
         tap(&mut m, "Enter");
         (0..60).for_each(|_| m.run_frame());
     }
-    if let Some(cmd) = args.get(3) {
-        let entry = m.load_cmd(&std::fs::read(cmd).expect("lecture du programme")).unwrap();
-        println!("programme lancé en {entry:04X}h");
+    if let Some(path) = args.get(3) {
+        let data = std::fs::read(path).expect("lecture du programme");
+        if path.to_ascii_lowercase().ends_with(".cas") {
+            match m.load_cas(&data) {
+                Ok(trs80::Loaded::System(entry)) => println!("cassette SYSTEM lancée en {entry:04X}h"),
+                Ok(trs80::Loaded::Basic(n)) => {
+                    println!("cassette BASIC chargée ({n} octets), RUN");
+                    m.type_text("RUN\n");
+                }
+                Err(e) => println!("erreur : {e}"),
+            }
+        } else {
+            let entry = m.load_cmd(&data).unwrap_or_else(|e| panic!("{e}"));
+            println!("programme lancé en {entry:04X}h");
+        }
         (0..300).for_each(|_| m.run_frame());
     }
 

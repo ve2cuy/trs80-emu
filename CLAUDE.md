@@ -15,6 +15,9 @@ départ, si plus de contexte est nécessaire.
   Le processeur ne connaît la machine qu'à travers le trait `Bus`.
 - Toute nouvelle instruction ou correction du Z80 s'accompagne d'un test dans
   `crates/z80/tests/instructions.rs`.
+- `asm/` : sources Z80, assemblées avec le zmac de l'utilisateur
+  (`Z:\0 - Documentation\Réseau et équipement maison\TRS-80\ASM-Tool-Chain\zmac.exe`);
+  copier `zout/invaders.cmd` et `zout/invaders.500.cas` dans `www/programs/`.
 - `crates/z80/tests/zex/` : ZEXDOC et ZEXALL (GPL, versionnés). Le cœur Z80 ne dépend
   d'aucun fichier de `crates/trs80`.
 - **Ne jamais committer de ROM TRS-80** (droit d'auteur, y compris les versions modifiées

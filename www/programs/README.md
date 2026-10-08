@@ -8,6 +8,7 @@ La liste affichée dans l'interface vient de [`index.json`](index.json).
 
 | Fichier | Programme | Statut |
 | --- | --- | --- |
+| `ve2cuy-invaders.cmd`, `ve2cuy-invaders.cas` | VE2CUY Invaders (2026), VE2CUY | Écrit pour ce projet ([source](../../asm/invaders.asm)) |
 | `seadragon.cmd` | Sea Dragon (1982), Wayne Westmoreland et Terry Gilman | Domaine public |
 | `armored-patrol.cmd` | Armored Patrol (1981), Wayne Westmoreland et Terry Gilman | Domaine public |
 

@@ -23,7 +23,22 @@ main {
   padding: 16px;
 }
 
-h1 { font-size: 1.4rem; margin: 0 0 12px; }
+h1 { font-size: 1.4rem; margin: 0; }
+.byline { margin: 0 0 12px; color: var(--muted); }
+
+.type-panel { display: flex; flex-direction: column; gap: 6px; margin-top: 10px; }
+.type-panel[hidden] { display: none; }
+textarea {
+  width: 100%;
+  padding: 8px;
+  border-radius: 6px;
+  border: 1px solid #4a4e57;
+  background: var(--panel);
+  color: var(--text);
+  font: 0.95rem/1.4 ui-monospace, Consolas, monospace;
+  text-transform: uppercase;
+}
+button.secondary { background: var(--panel); color: var(--text); }
 
 .monitor {
   position: relative;

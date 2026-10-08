@@ -5,8 +5,9 @@
 An emulator of the **TRS-80 Model I**, written in Rust, that runs in a web
 browser (WebAssembly).
 
-> Version 0.2: boots the Level II ROM, BASIC from the keyboard, text and
-> semigraphics, `.CMD` programs. Coming next: cassette, floppy disks.
+> Version 0.3: Level II ROM, BASIC, text and semigraphics, `.CMD` programs and
+> `.CAS` cassettes, pasting text, 40 Hz clock, and **VE2CUY Invaders**, a game
+> written in Z80 assembly for this project. Coming next: floppy disks.
 > See [docs/conception.md](docs/conception.md) (in French).
 
 **▶️ Try it online: <https://ve2cuy.github.io/trs80-emu/>**
@@ -63,11 +64,15 @@ answer `MEM SIZE?` with ENTER.
 
 ### Programs
 
-- **Built-in list**: games whose author allowed redistribution (Sea Dragon,
-  Armored Patrol). Read [www/programs/README.md](www/programs/README.md) (in French)
-  before adding one.
-- **"Load CMD file…"**: any `.CMD` file from your disk; nothing is uploaded.
-- Direct link to a program: `?program=seadragon`.
+- **Built-in list**: VE2CUY Invaders ([source](asm/invaders.asm)) and games whose
+  author allowed redistribution (Sea Dragon, Armored Patrol). Read
+  [www/programs/README.md](www/programs/README.md) (in French) before adding one.
+- **"Load program (.CMD, .CAS)…"**: any program from your disk; nothing is uploaded.
+  A cassette (`.CAS`) is loaded directly into memory: a machine-language tape is
+  started, a BASIC tape is run.
+- **Pasting text**: Ctrl+V on the screen, or "Type text…", types the text on the
+  TRS-80 keyboard (for example a BASIC program).
+- Direct link to a program: `?program=ve2cuy-invaders`.
 
 TRSDOS file calls are replaced by minimal routines: programs made for floppy disk
 start, but nothing is saved.
@@ -93,7 +98,8 @@ TRS-80 Shift key, whose layout is different.
 | `crates/trs80` | The machine (`no_std`): memory map, keyboard, video, pixel rendering |
 | `crates/web` | WebAssembly binding (`wasm-bindgen`) |
 | `www/` | The web page: `index.html`, `main.js`, `style.css` |
-| `www/programs/` | Freely redistributable `.CMD` programs and their list (`index.json`) |
+| `www/programs/` | Freely redistributable programs and their list (`index.json`) |
+| `asm/` | Z80 assembly sources (VE2CUY Invaders), built with zmac |
 | `docs/` | Design notes (in French) |
 
 ## Tests

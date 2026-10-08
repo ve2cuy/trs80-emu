@@ -15,3 +15,6 @@ Thumbs.db
 # Sortie de wasm-pack et ROM de développement
 /www/pkg/
 /www/rom/
+
+# Sorties de zmac
+/asm/zout/

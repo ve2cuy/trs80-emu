@@ -1,5 +1,25 @@
 [
   {
+    "id": "ve2cuy-invaders",
+    "file": "ve2cuy-invaders.cmd",
+    "title": "VE2CUY Invaders",
+    "year": 2026,
+    "authors": "VE2CUY",
+    "description": "A Space Invaders-inspired game written in Z80 assembly for this project. English or French, chosen on the title screen.",
+    "controls": "Arrow keys to move, Space to fire, Break (Esc) quits.",
+    "license": "Written by VE2CUY for this project (source code: asm/invaders.asm)"
+  },
+  {
+    "id": "ve2cuy-invaders-tape",
+    "file": "ve2cuy-invaders.cas",
+    "title": "VE2CUY Invaders (cassette)",
+    "year": 2026,
+    "authors": "VE2CUY",
+    "description": "The same game, loaded from a 500-baud cassette image (.CAS) like a SYSTEM tape.",
+    "controls": "Arrow keys to move, Space to fire, Break (Esc) quits.",
+    "license": "Written by VE2CUY for this project (source code: asm/invaders.asm)"
+  },
+  {
     "id": "seadragon",
     "file": "seadragon.cmd",
     "title": "Sea Dragon",

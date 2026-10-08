@@ -5,8 +5,9 @@
 Émulateur du **TRS-80 Model 1**, écrit en Rust, qui s'exécute dans un fureteur
 web (WebAssembly).
 
-> Version 0.2 : démarrage de la ROM Level II, BASIC au clavier, texte et
-> semi-graphiques, programmes `.CMD`. À venir : cassette, disquettes.
+> Version 0.3 : ROM Level II, BASIC, texte et semi-graphiques, programmes `.CMD` et
+> cassettes `.CAS`, collage de texte, horloge à 40 Hz, et **VE2CUY Invaders**, un jeu
+> écrit en assembleur Z80 pour ce projet. À venir : disquettes.
 > Voir [docs/conception.md](docs/conception.md).
 
 **▶️ Essayer en ligne : <https://ve2cuy.github.io/trs80-emu/>**
@@ -63,10 +64,15 @@ répondre à `MEM SIZE?` avec ENTRÉE.
 
 ### Programmes
 
-- **Liste intégrée** : jeux dont l'auteur a autorisé la redistribution (Sea Dragon,
-  Armored Patrol). Voir [www/programs/README.md](www/programs/README.md) avant d'en ajouter.
-- **« Load CMD file… »** : n'importe quel `.CMD` de votre disque; rien n'est envoyé.
-- Lien direct vers un programme : `?program=seadragon`.
+- **Liste intégrée** : VE2CUY Invaders ([source](asm/invaders.asm)) et des jeux dont
+  l'auteur a autorisé la redistribution (Sea Dragon, Armored Patrol). Voir
+  [www/programs/README.md](www/programs/README.md) avant d'en ajouter.
+- **« Load program (.CMD, .CAS)… »** : n'importe quel programme de votre disque; rien
+  n'est envoyé. Une cassette (`.CAS`) est chargée directement en mémoire : un programme
+  en langage machine est lancé, un programme BASIC est exécuté.
+- **Collage de texte** : Ctrl+V sur l'écran, ou « Type text… », tape le texte au clavier
+  du TRS-80 (par exemple un programme BASIC).
+- Lien direct vers un programme : `?program=ve2cuy-invaders`.
 
 Les appels de fichiers de TRSDOS sont remplacés par des routines minimales : les
 programmes conçus pour disquette démarrent, mais rien n'est enregistré.
@@ -92,7 +98,8 @@ s'occupe de la touche MAJ du TRS-80, dont la disposition est différente.
 | `crates/trs80` | La machine (`no_std`) : carte mémoire, clavier, vidéo, rendu en pixels |
 | `crates/web` | Liaison WebAssembly (`wasm-bindgen`) |
 | `www/` | La page web : `index.html`, `main.js`, `style.css` |
-| `www/programs/` | Programmes `.CMD` libres de droits et leur liste (`index.json`) |
+| `www/programs/` | Programmes libres de droits et leur liste (`index.json`) |
+| `asm/` | Sources en assembleur Z80 (VE2CUY Invaders), assemblées avec zmac |
 | `docs/` | Notes de conception |
 
 ## Tests

@@ -64,6 +64,11 @@ l'utilisateur chargera son propre fichier ROM, conservé ensuite dans IndexedDB.
    ⬜ Reste : interruption 40 Hz de l'interface d'expansion (horloge, `TIME$`).
 5. ✅ Couche web : `wasm-pack`, `<canvas>` 384 × 192 affiché en 4:3, ROM choisie par
    l'utilisateur et conservée dans IndexedDB, Reset, Turbo ×10.
+7a. ✅ Cassettes `.CAS` (SYSTEM et BASIC, chargées directement en mémoire; BASIC : liens
+   de lignes et pointeurs recalculés), frappe automatique (collage, file de 16 Ko,
+   ×4 pendant la frappe), interface d'expansion avec horloge à 40 Hz (IM 1, verrou 37E0h).
+7b. ✅ VE2CUY Invaders (`asm/invaders.asm`, zmac) : jeu bilingue choisi à l'accueil,
+   tampon d'écran, environ 31 images par seconde; testé par `tests/invaders.rs`.
 6. ✅ Chargement de programmes `.CMD` (écriture directe en mémoire, après avoir amené
    le BASIC à « READY »), routines minimales à la place des appels de fichiers TRSDOS,
    liste de programmes libres de droits (`www/programs/`). Interface en anglais.

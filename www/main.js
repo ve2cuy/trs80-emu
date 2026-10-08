@@ -24,6 +24,8 @@ const programInfo = document.getElementById('program-info');
 const cmdFile = document.getElementById('cmd-file');
 const cmdButton = document.getElementById('cmd-button');
 const programsHint = document.getElementById('programs-hint');
+const typeButton = document.getElementById('type-button');
+const expansion = document.getElementById('expansion');
 
 // Toute erreur imprévue est affichée sous l'écran plutôt que de figer la page en silence.
 function showStatus(message, isError = false) {
@@ -189,6 +191,7 @@ function setRunning(running) {
   programList.disabled = !running;
   cmdFile.disabled = !running;
   cmdButton.classList.toggle('disabled', !running);
+  typeButton.disabled = !running;
   programsHint.hidden = running;
 }
 
@@ -203,6 +206,7 @@ function start(bytes) {
     return false;
   }
   errorBox.textContent = '';
+  emulator.set_expansion_interface(expansion.checked);
   setRunning(true);
   canvas.focus();
   return true;
@@ -241,11 +245,16 @@ async function loadProgramIndex() {
   }
 }
 
-function runCmd(bytes, label) {
+/** Charge un programme selon son extension : cassette .CAS ou exécutable .CMD. */
+function runFile(bytes, name, label = name) {
   if (!emulator) return;
   try {
-    const entry = emulator.load_cmd(bytes);
-    showStatus(`${label} loaded, started at ${entry.toString(16).toUpperCase().padStart(4, '0')}h`);
+    if (/\.cas$/i.test(name)) {
+      showStatus(`${label}: ${emulator.load_cas(bytes)}`);
+    } else {
+      const entry = emulator.load_cmd(bytes);
+      showStatus(`${label} loaded, started at ${entry.toString(16).toUpperCase().padStart(4, '0')}h`);
+    }
   } catch (e) {
     showStatus(`Cannot run ${label}: ${e.message ?? e}`, true);
   }
@@ -279,7 +288,7 @@ async function runProgram(id) {
   try {
     const res = await fetch(`programs/${p.file}${V}`);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    runCmd(new Uint8Array(await res.arrayBuffer()), p.title);
+    runFile(new Uint8Array(await res.arrayBuffer()), p.file, p.title);
   } catch (e) {
     showStatus(`Cannot download ${p.title}: ${e.message ?? e}`, true);
   }
@@ -292,8 +301,47 @@ cmdFile.addEventListener('change', async (event) => {
   if (!file) return;
   programList.value = '';
   showProgramInfo(null);
-  runCmd(new Uint8Array(await file.arrayBuffer()), file.name);
+  runFile(new Uint8Array(await file.arrayBuffer()), file.name);
   event.target.value = '';
+});
+
+// ------------------------------------------------------------------ frappe de texte
+
+const typePanel = document.getElementById('type-panel');
+const typeText = document.getElementById('type-text');
+
+function typeOnTrs80(text) {
+  if (!emulator || !text) return;
+  const accepted = emulator.type_text(text);
+  const skipped = [...text.replace(/\r/g, '')].length - accepted;
+  showStatus(`Typing ${accepted} characters…` + (skipped > 0 ? ` (${skipped} without a TRS-80 key skipped)` : ''));
+  canvas.focus();
+}
+
+typeButton.addEventListener('click', () => {
+  typePanel.hidden = !typePanel.hidden;
+  if (!typePanel.hidden) typeText.focus();
+});
+document.getElementById('type-send').addEventListener('click', () => {
+  let text = typeText.value;
+  if (text && !text.endsWith('\n')) text += '\n';
+  typeOnTrs80(text);
+});
+document.getElementById('type-stop').addEventListener('click', () => {
+  emulator?.cancel_typing();
+  showStatus('Typing stopped.');
+});
+
+// Ctrl+V sur l'écran : le texte du presse-papiers est tapé sur le TRS-80.
+window.addEventListener('paste', (e) => {
+  if (!emulator || typingInForm(e.target) || e.target instanceof HTMLTextAreaElement) return;
+  e.preventDefault();
+  typeOnTrs80(e.clipboardData.getData('text'));
+});
+
+expansion.addEventListener('change', () => {
+  emulator?.set_expansion_interface(expansion.checked);
+  canvas.focus();
 });
 
 // ------------------------------------------------------------------ clavier
@@ -310,7 +358,8 @@ let frameCount = 0;
 let pendingReleases = [];
 
 function typingInForm(target) {
-  return target instanceof HTMLInputElement || target instanceof HTMLSelectElement;
+  return target instanceof HTMLInputElement || target instanceof HTMLSelectElement
+    || target instanceof HTMLTextAreaElement;
 }
 
 window.addEventListener('keydown', (e) => {
@@ -427,7 +476,7 @@ function loop(now) {
     const frames = Math.floor(frameDebt);
     if (frames > 0) {
       frameDebt -= frames;
-      const emulated = frames * (turbo.checked ? 10 : 1);
+      const emulated = frames * (turbo.checked ? 10 : emulator.typing() ? 4 : 1);
       emulator.run_frames(emulated);
       frameCount += emulated;
       releaseDueKeys();
