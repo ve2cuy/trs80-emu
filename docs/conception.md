@@ -16,9 +16,9 @@ l'ancien émulateur Flash, qui ne fonctionne plus dans les fureteurs actuels.
 - **Séparation stricte** :
   - `crates/z80` : le processeur seul, `no_std`, sans aucune dépendance. Il ne
     connaît la machine qu'à travers le trait `Bus` (mémoire et ports d'E/S).
-  - `crates/trs80` (à venir) : la machine (carte mémoire, clavier, vidéo, cassette).
-  - `crates/web` (à venir) : une mince couche `wasm-bindgen`; JavaScript s'occupe du
-    `<canvas>`, du clavier, du son et du chargement des fichiers.
+  - `crates/trs80` : la machine (carte mémoire, clavier, vidéo et rendu en pixels), `no_std`.
+  - `crates/web` : une mince couche `wasm-bindgen`; JavaScript (`www/main.js`) s'occupe du
+    `<canvas>`, du clavier, du stockage de la ROM et de la boucle d'affichage.
 - **Mémoire partagée Wasm ↔ JavaScript** : JavaScript lit directement la mémoire
   vidéo (3C00-3FFF) dans la mémoire Wasm, sans copie, pour dessiner l'écran.
 
@@ -38,7 +38,7 @@ de bit 6. La ROM écrit les majuscules en 00h-1Fh (« M » = 0Dh) et le généra
 caractères les affiche comme 40h-5Fh. Les codes 80h-FFh sont des blocs
 semi-graphiques 2 × 3.
 
-## Boucle d'exécution (prévue)
+## Boucle d'exécution
 
 À chaque image (`requestAnimationFrame`, 60 Hz) : exécuter environ 29 600 T-states
 (1 774 000 / 60), puis redessiner l'écran. Le mode turbo exécute plus de cycles
@@ -58,9 +58,12 @@ l'utilisateur chargera son propre fichier ROM, conservé ensuite dans IndexedDB.
    non documentés X/Y, registre WZ (MEMPTR), durées en T-states, interruptions
    (modes 0, 1, 2 et NMI), HALT, registre R.
 3. ✅ Validation : tests unitaires, ZEXDOC / ZEXALL, démarrage de la ROM jusqu'à « MEM SIZE? ».
-4. ⬜ Crate `trs80` : bus mémoire complet, clavier (matrice), vidéo, interruption 40 Hz.
-5. ⬜ Couche web : `wasm-pack`, `<canvas>` 384 × 192 agrandi, clavier du PC vers la
-   matrice (correspondance par symbole, pas par position), chargement de la ROM.
+4. ✅ Crate `trs80` : carte mémoire (48 Ko de RAM), clavier (matrice et MAJ par symbole),
+   vidéo 64 × 16 et mode 32 caractères, semi-graphiques, police 5 × 7 maison.
+   Validé par une session BASIC complète (`PRINT (2+2)*3`).
+   ⬜ Reste : interruption 40 Hz de l'interface d'expansion (horloge, `TIME$`).
+5. ✅ Couche web : `wasm-pack`, `<canvas>` 384 × 192 affiché en 4:3, ROM choisie par
+   l'utilisateur et conservée dans IndexedDB, Reset, Turbo ×10.
 6. ⬜ Chargement de programmes `.CAS` et `.CMD` (écriture directe en mémoire); boucle
    de développement avec zmac.
 7. ⬜ Confort : Reset, Turbo, collage de texte, sauvegarde et restauration de l'état.

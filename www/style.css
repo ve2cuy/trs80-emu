@@ -1,0 +1,90 @@
+:root {
+  --bg: #1d1f24;
+  --panel: #2a2d34;
+  --text: #e8eaee;
+  --muted: #a3a8b3;
+  --accent: #6ea8ff;
+  --error: #ff8a80;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font: 16px/1.5 system-ui, sans-serif;
+}
+
+main {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 16px;
+}
+
+h1 { font-size: 1.4rem; margin: 0 0 12px; }
+
+.monitor {
+  position: relative;
+  background: #000;
+  border: 12px solid #3a3d44;
+  border-radius: 10px;
+}
+
+/* 384 × 192 pixels affichés en 4:3, comme sur le moniteur d'origine. */
+canvas {
+  display: block;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  image-rendering: pixelated;
+  outline: none;
+}
+
+canvas:focus-visible { box-shadow: 0 0 0 3px var(--accent); }
+
+.overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 24px;
+  text-align: center;
+  background: rgba(0, 0, 0, 0.85);
+}
+
+.overlay[hidden] { display: none; }
+
+.small { font-size: 0.85rem; color: var(--muted); max-width: 32em; }
+.error { color: var(--error); min-height: 1.5em; }
+
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+button, .button {
+  display: inline-block;
+  padding: 6px 14px;
+  border: 0;
+  border-radius: 6px;
+  background: var(--accent);
+  color: #0b1220;
+  font: inherit;
+  cursor: pointer;
+}
+
+.button.secondary, button:disabled { background: var(--panel); color: var(--text); }
+button:disabled { cursor: default; opacity: 0.6; }
+
+.status { color: var(--muted); font-size: 0.9rem; margin-left: auto; }
+
+.help { margin-top: 16px; color: var(--muted); }
+.help table { border-collapse: collapse; margin: 8px 0; }
+.help th, .help td { text-align: left; padding: 2px 16px 2px 0; }

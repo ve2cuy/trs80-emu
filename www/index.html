@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="fr-CA">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>TRS-80 Model 1</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main>
+    <h1>TRS-80 Model 1</h1>
+
+    <div class="monitor">
+      <canvas id="screen" width="384" height="192" tabindex="0"
+              aria-label="Écran du TRS-80 : cliquer puis taper au clavier"></canvas>
+      <div id="overlay" class="overlay">
+        <p>Pour démarrer, choisissez votre fichier ROM <strong>Level II</strong> (12 Ko).</p>
+        <p class="small">La ROM n'est pas fournie : elle est protégée par le droit d'auteur.
+          Elle reste dans votre fureteur et n'est envoyée nulle part.</p>
+        <label class="button">Choisir la ROM…
+          <input id="rom-file" type="file" accept=".rom,.bin,application/octet-stream" hidden>
+        </label>
+        <p id="error" class="error" role="alert"></p>
+      </div>
+    </div>
+
+    <div class="controls">
+      <button id="reset" type="button" disabled>Reset</button>
+      <label><input id="turbo" type="checkbox"> Turbo (×10)</label>
+      <label class="button secondary">Changer de ROM…
+        <input id="rom-change" type="file" accept=".rom,.bin,application/octet-stream" hidden>
+      </label>
+      <span id="status" class="status"></span>
+    </div>
+
+    <details class="help">
+      <summary>Clavier</summary>
+      <table>
+        <tr><th>TRS-80</th><th>PC</th></tr>
+        <tr><td>ENTER</td><td>Entrée</td></tr>
+        <tr><td>BREAK</td><td>Échap ou Fin</td></tr>
+        <tr><td>CLEAR</td><td>Origine ou Suppr</td></tr>
+        <tr><td>← (effacer)</td><td>Retour arrière ou flèche gauche</td></tr>
+        <tr><td>→ (tabulation)</td><td>Tab ou flèche droite</td></tr>
+        <tr><td>↑ ↓</td><td>Flèches haut et bas</td></tr>
+      </table>
+      <p>Les symboles se tapent comme sur un PC : l'émulateur s'occupe de la touche MAJ du TRS-80.</p>
+    </details>
+  </main>
+  <script type="module" src="main.js"></script>
+</body>
+</html>

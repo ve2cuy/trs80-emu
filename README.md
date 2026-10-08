@@ -1,35 +1,74 @@
 # 🖥️ trs80-emu
 
-Émulateur du **TRS-80 Model 1**, écrit en Rust, destiné à s'exécuter dans un
-fureteur web (WebAssembly).
+Émulateur du **TRS-80 Model 1**, écrit en Rust, qui s'exécute dans un fureteur
+web (WebAssembly).
 
-> Projet en cours : le cœur Z80 est terminé et validé; la machine TRS-80 et la
-> couche web sont les prochaines étapes. Voir [docs/conception.md](docs/conception.md).
+> Version 0.1 : démarrage de la ROM Level II, BASIC au clavier, texte et
+> semi-graphiques. À venir : cassette, programmes `.CMD`, disquettes.
+> Voir [docs/conception.md](docs/conception.md).
+
+## Lancer l'émulateur dans le fureteur
+
+Prérequis (une seule fois) :
+
+```bash
+rustup target add wasm32-unknown-unknown
+cargo install wasm-pack
+```
+
+Compiler, puis servir le dossier `www/` :
+
+```bash
+wasm-pack build crates/web --target web --out-dir ../../www/pkg --no-pack
+cd www
+python -m http.server 8080
+```
+
+Ouvrir <http://localhost:8080>, choisir le fichier ROM Level II (12 Ko), puis
+répondre à `MEM SIZE?` avec ENTRÉE.
+
+- Un serveur local est nécessaire : un fureteur refuse de charger un module
+  WebAssembly ouvert directement en `file://`.
+- La ROM choisie est conservée dans le fureteur (IndexedDB) pour les visites suivantes.
+- En développement, une ROM copiée dans `www/rom/level2.rom` (exclue de Git) est
+  chargée automatiquement.
+
+### Clavier
+
+| TRS-80 | PC |
+| --- | --- |
+| ENTER | Entrée |
+| BREAK | Échap ou Fin |
+| CLEAR | Origine ou Suppr |
+| ← (effacer) | Retour arrière ou flèche gauche |
+| → (tabulation) | Tab ou flèche droite |
+
+Les symboles se tapent comme sur un PC (`"`, `*`, `+`, ...) : l'émulateur
+s'occupe de la touche MAJ du TRS-80, dont la disposition est différente.
 
 ## Structure
 
 | Dossier | Rôle |
 | --- | --- |
 | `crates/z80` | Cœur Z80 `no_std` : réutilisable en natif, en WebAssembly ou sur microcontrôleur |
+| `crates/trs80` | La machine (`no_std`) : carte mémoire, clavier, vidéo, rendu en pixels |
+| `crates/web` | Liaison WebAssembly (`wasm-bindgen`) |
+| `www/` | La page web : `index.html`, `main.js`, `style.css` |
 | `docs/` | Notes de conception |
-
-## Prérequis
-
-- [Rust](https://rustup.rs) (stable)
-- Pour la future version web : `rustup target add wasm32-unknown-unknown`
 
 ## Tests
 
 ```bash
-# Tests rapides : instructions, démarrage de la ROM (si présente)
+# Tests rapides : instructions Z80, démarrage de la ROM, session BASIC (si ROM présente)
 cargo test
 
-# Validation complète du Z80 (ZEXDOC et ZEXALL) : plusieurs minutes
+# Validation complète du Z80 (ZEXDOC et ZEXALL) : environ 30 secondes
 cargo test --release -p z80 --test zex -- --ignored --nocapture
 ```
 
-Le test de démarrage utilise la ROM Level II, qui **n'est pas fournie** (droit
-d'auteur Tandy / Microsoft) : voir [crates/z80/tests/roms/README.md](crates/z80/tests/roms/README.md).
+Les tests qui démarrent la ROM Level II l'attendent dans `crates/z80/tests/roms/`.
+Elle **n'est pas fournie** (droit d'auteur Tandy / Microsoft) : voir
+[crates/z80/tests/roms/README.md](crates/z80/tests/roms/README.md).
 
 ## Auteur
 

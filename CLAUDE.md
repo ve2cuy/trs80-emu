@@ -23,7 +23,13 @@ départ, si plus de contexte est nécessaire.
 ```bash
 cargo test                                                        # tests rapides
 cargo test --release -p z80 --test zex -- --ignored --nocapture   # ZEXDOC / ZEXALL
+wasm-pack build crates/web --target web --out-dir ../../www/pkg --no-pack
+cd www && python -m http.server 8080                              # http://localhost:8080
 ```
+
+- `www/rom/level2.rom` (exclu de Git) est chargé d'office en développement;
+  `?frames=N` exécute N images au chargement (utile pour les captures headless,
+  où `requestAnimationFrame` n'avance pas).
 
 - Sous Windows, `cargo` est dans `%USERPROFILE%\.cargo\bin`; Rust est aussi installé sous WSL.
 - `gh` (GitHub CLI) est disponible seulement sous WSL; dépôt : `ve2cuy/trs80-emu`.

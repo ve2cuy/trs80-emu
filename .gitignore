@@ -13,3 +13,7 @@ ressources.txt
 
 .DS_Store
 Thumbs.db
+
+# Sortie de wasm-pack et ROM de développement
+/www/pkg/
+/www/rom/
