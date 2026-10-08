@@ -1,13 +1,13 @@
 //! Chargement des programmes `.CMD` fournis avec le site (www/programs/).
 //! Chaque programme doit se charger, se lancer et modifier l'écran.
 //!
-//! Exige la ROM Level II dans `crates/z80/tests/roms/` (non fournie); sinon le test est ignoré.
+//! Exige la ROM Level II dans `crates/trs80/tests/roms/` (non fournie); sinon le test est ignoré.
 //! Une capture de l'écran de chaque programme est écrite dans `target/screens/` (format PPM).
 
 use trs80::{SCREEN_HEIGHT, SCREEN_WIDTH, Trs80};
 
 fn load_rom() -> Option<Vec<u8>> {
-    let dir = format!("{}/../z80/tests/roms", env!("CARGO_MANIFEST_DIR"));
+    let dir = format!("{}/tests/roms", env!("CARGO_MANIFEST_DIR"));
     ["M1L2_1.3.bin", "level2.rom"]
         .iter()
         .find_map(|name| std::fs::read(format!("{dir}/{name}")).ok())

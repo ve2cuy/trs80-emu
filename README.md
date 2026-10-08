@@ -23,8 +23,18 @@ one, from the third-party repository
 | Level II 1.3 and 1.2 (Tandy, official) | Direct, from a pinned commit, SHA-256 checksum verified |
 | Level II 1.3 with bug fixes, Enhanced Level II 1.4 (kiwisincebirth) | From their release `.tar` archive, which you download and then open in the page (GitHub does not let the browser download it by itself) |
 
-You can also load your own file ("Load ROM file…"). Direct link:
-`?rom=level2-1.3`. The chosen ROM is kept in your browser.
+On the first visit, the emulator starts with Level II 1.3. You can also load your
+own file ("Load ROM file…"). Direct link: `?rom=level2-1.3`. The chosen ROM is kept
+in your browser.
+
+## Fonts
+
+The "Font" list changes how text is drawn: the original TRS-80 pixel font, or a
+fixed-width (monospace) font: retro (VT323, Press Start 2P, ...), modern (IBM Plex
+Mono, JetBrains Mono, ...) or installed on your system (Consolas, Courier New).
+Fonts are condensed to fit the narrow 64 × 16 grid; semigraphics are unchanged.
+Web fonts are downloaded from Google Fonts only when chosen. Direct link:
+`?font=vt323`.
 
 ## Running the emulator locally
 
@@ -96,9 +106,9 @@ cargo test
 cargo test --release -p z80 --test zex -- --ignored --nocapture
 ```
 
-The tests that boot the Level II ROM expect it in `crates/z80/tests/roms/`.
+The tests that boot the Level II ROM expect it in `crates/trs80/tests/roms/`.
 It is **not included** (Tandy / Microsoft copyright): see
-[crates/z80/tests/roms/README.md](crates/z80/tests/roms/README.md) (in French).
+[crates/trs80/tests/roms/README.md](crates/trs80/tests/roms/README.md) (in French).
 
 ## Author
 

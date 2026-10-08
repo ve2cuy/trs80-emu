@@ -5,8 +5,6 @@
 *.bin
 /crates/*/tests/roms/*
 !/crates/*/tests/roms/README.md
-!/crates/*/tests/roms/zexdoc.com
-!/crates/*/tests/roms/zexall.com
 
 # Notes de travail locales
 ressources.txt

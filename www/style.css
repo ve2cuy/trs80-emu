@@ -32,12 +32,12 @@ h1 { font-size: 1.4rem; margin: 0 0 12px; }
   border-radius: 10px;
 }
 
-/* 384 × 192 pixels affichés en 4:3, comme sur le moniteur d'origine. */
+/* 64 × 16 cases (1536 × 1152 pixels) affichées en 4:3, comme sur le moniteur d'origine.
+   L'image de 384 × 192 de l'émulateur y est agrandie sans lissage par main.js. */
 canvas {
   display: block;
   width: 100%;
   aspect-ratio: 4 / 3;
-  image-rendering: pixelated;
   outline: none;
 }
 

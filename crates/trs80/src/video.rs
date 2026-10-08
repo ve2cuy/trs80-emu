@@ -34,11 +34,12 @@ pub(crate) fn display_char(code: u8) -> char {
 }
 
 /// Le pixel (x, y) d'une cellule (6 × 12) est-il allumé ?
-fn cell_pixel(code: u8, x: usize, y: usize) -> bool {
+/// Avec `text` faux, les caractères ne sont pas dessinés (seulement les blocs graphiques).
+fn cell_pixel(code: u8, x: usize, y: usize, text: bool) -> bool {
     if code & 0x80 != 0 {
         let bit = (y / 4) * 2 + x / 3;
         code & (1 << bit) != 0
-    } else if x < 5 && (GLYPH_TOP..GLYPH_TOP + 7).contains(&y) {
+    } else if text && x < 5 && (GLYPH_TOP..GLYPH_TOP + 7).contains(&y) {
         let row = FONT[(ascii(code) - 0x20) as usize][y - GLYPH_TOP];
         row & (0x10 >> x) != 0
     } else {
@@ -46,7 +47,7 @@ fn cell_pixel(code: u8, x: usize, y: usize) -> bool {
     }
 }
 
-pub(crate) fn render(video: &[u8; 1024], wide: bool, out: &mut [u8]) {
+pub(crate) fn render(video: &[u8; 1024], wide: bool, text: bool, out: &mut [u8]) {
     assert!(out.len() >= SCREEN_WIDTH * SCREEN_HEIGHT * 4, "tampon d'affichage trop petit");
     for y in 0..SCREEN_HEIGHT {
         let row = y / CELL_H;
@@ -58,7 +59,7 @@ pub(crate) fn render(video: &[u8; 1024], wide: bool, out: &mut [u8]) {
             } else {
                 (x / CELL_W, x % CELL_W)
             };
-            let on = cell_pixel(video[row * 64 + col], cx, cy);
+            let on = cell_pixel(video[row * 64 + col], cx, cy, text);
             let i = (y * SCREEN_WIDTH + x) * 4;
             out[i..i + 4].copy_from_slice(if on { &FG } else { &BG });
         }

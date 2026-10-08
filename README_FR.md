@@ -23,8 +23,18 @@ on les choisit, depuis le dépôt tiers
 | Level II 1.3 et 1.2 (Tandy, officielles) | Direct, à un commit épinglé, empreinte SHA-256 vérifiée |
 | Level II 1.3 avec correctifs, Enhanced Level II 1.4 (kiwisincebirth) | Depuis l'archive `.tar` de leur release, que l'utilisateur télécharge puis ouvre dans la page (GitHub n'autorise pas le fureteur à la télécharger lui-même) |
 
-On peut aussi charger son propre fichier (« Load ROM file… »). Lien direct :
-`?rom=level2-1.3`. La ROM choisie est conservée dans le fureteur.
+À la première visite, l'émulateur démarre avec la Level II 1.3. On peut aussi charger
+son propre fichier (« Load ROM file… »). Lien direct : `?rom=level2-1.3`. La ROM choisie
+est conservée dans le fureteur.
+
+## Polices
+
+La liste « Font » change le dessin du texte : la police d'origine du TRS-80 (pixels) ou
+une police à chasse fixe : rétro (VT323, Press Start 2P, ...), moderne (IBM Plex Mono,
+JetBrains Mono, ...) ou installée sur le système (Consolas, Courier New). Les polices
+sont condensées pour la grille étroite de 64 × 16; les semi-graphiques ne changent pas.
+Les polices web viennent de Google Fonts, téléchargées seulement si on les choisit.
+Lien direct : `?font=vt323`.
 
 ## Lancer l'émulateur localement
 
@@ -95,9 +105,9 @@ cargo test
 cargo test --release -p z80 --test zex -- --ignored --nocapture
 ```
 
-Les tests qui démarrent la ROM Level II l'attendent dans `crates/z80/tests/roms/`.
+Les tests qui démarrent la ROM Level II l'attendent dans `crates/trs80/tests/roms/`.
 Elle **n'est pas fournie** (droit d'auteur Tandy / Microsoft) : voir
-[crates/z80/tests/roms/README.md](crates/z80/tests/roms/README.md).
+[crates/trs80/tests/roms/README.md](crates/trs80/tests/roms/README.md).
 
 ## Auteur
 

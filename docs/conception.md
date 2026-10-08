@@ -48,7 +48,7 @@ par image.
 
 La ROM Level II est protégée par le droit d'auteur (Tandy / Microsoft) : **elle
 n'est jamais publiée dans le dépôt**. Pour les tests, elle est placée localement
-dans `crates/z80/tests/roms/` (exclue par `.gitignore`). Dans le fureteur,
+dans `crates/trs80/tests/roms/` (exclue par `.gitignore`). Dans le fureteur,
 l'utilisateur chargera son propre fichier ROM, conservé ensuite dans IndexedDB.
 
 ## Étapes
@@ -73,6 +73,11 @@ l'utilisateur chargera son propre fichier ROM, conservé ensuite dans IndexedDB.
    SHA-256 vérifié); 1.3P et 1.4 extraites de l'archive `.tar` de leur release, ouverte par
    l'utilisateur (les archives de release GitHub n'ont pas d'en-tête CORS).
    Les quatre ROM démarrent; la 1.4 (« Enhanced Level II BASIC ») n'a plus de cassette.
+   Première visite : démarrage automatique avec la 1.3 officielle.
+6c. ✅ Polices : police d'origine (pixels, Rust) ou polices à chasse fixe (`www/fonts.js`).
+   Rust dessine alors seulement les blocs graphiques (`render_graphics`) et la page dessine
+   le texte depuis un atlas de 64 glyphes, sur un canvas de 1536 × 1152. Redessin seulement
+   si la mémoire vidéo change. Clavier : chaque touche reste enfoncée au moins 3 images.
 7. ⬜ Confort : Reset, Turbo, collage de texte, sauvegarde et restauration de l'état.
 8. ⬜ Facultatif : son de la cassette (WebAudio), modification minuscules, disquettes
    (WD1771, images `.DSK` / `.DMK`), Model III.

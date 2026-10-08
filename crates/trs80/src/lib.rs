@@ -264,6 +264,12 @@ impl Trs80 {
 
     /// Dessine l'écran dans `out` : [`SCREEN_WIDTH`] × [`SCREEN_HEIGHT`] pixels RGBA.
     pub fn render(&self, out: &mut [u8]) {
-        video::render(&self.board.video, self.board.wide, out);
+        video::render(&self.board.video, self.board.wide, true, out);
+    }
+
+    /// Comme [`Trs80::render`], mais sans le texte : seulement le fond et les blocs
+    /// semi-graphiques. L'hôte dessine alors le texte avec la police de son choix.
+    pub fn render_graphics(&self, out: &mut [u8]) {
+        video::render(&self.board.video, self.board.wide, false, out);
     }
 }

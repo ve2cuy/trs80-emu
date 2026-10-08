@@ -1,12 +1,12 @@
 //! Session BASIC complète : démarrage, réponse à « MEM SIZE? », puis PRINT 2+2.
 //! Valide ensemble le Z80, la carte mémoire, le clavier (matrice et MAJ) et la vidéo.
 //!
-//! Exige la ROM Level II dans `crates/z80/tests/roms/` (non fournie); sinon le test est ignoré.
+//! Exige la ROM Level II dans `crates/trs80/tests/roms/` (non fournie); sinon le test est ignoré.
 
 use trs80::{Key, SCREEN_HEIGHT, SCREEN_WIDTH, Trs80};
 
 fn load_rom() -> Option<Vec<u8>> {
-    let dir = format!("{}/../z80/tests/roms", env!("CARGO_MANIFEST_DIR"));
+    let dir = format!("{}/tests/roms", env!("CARGO_MANIFEST_DIR"));
     ["M1L2_1.3.bin", "level2.rom"]
         .iter()
         .find_map(|name| std::fs::read(format!("{dir}/{name}")).ok())

@@ -11,7 +11,7 @@
     <h1>TRS-80 Model I</h1>
 
     <div class="monitor">
-      <canvas id="screen" width="384" height="192" tabindex="0"
+      <canvas id="screen" width="1536" height="1152" tabindex="0"
               aria-label="TRS-80 screen: click, then type on your keyboard"></canvas>
       <div id="overlay" class="overlay">
         <p>To start, choose a <strong>Level II ROM</strong> in the list below,
@@ -33,6 +33,10 @@
       <button id="reset" type="button" disabled>Reset</button>
       <label><input id="turbo" type="checkbox"> Turbo (×10)</label>
       <span id="speed" class="speed" title="Emulated CPU speed"></span>
+    </div>
+    <div class="controls">
+      <label for="font-list">Font:</label>
+      <select id="font-list"></select>
     </div>
 
     <div id="rom-tar" class="program-info" hidden>

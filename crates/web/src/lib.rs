@@ -75,6 +75,22 @@ impl Emulator {
         self.framebuffer.as_ptr()
     }
 
+    /// Comme `render`, sans le texte (la page le dessine avec une autre police).
+    pub fn render_graphics(&mut self) -> *const u8 {
+        self.machine.render_graphics(&mut self.framebuffer);
+        self.framebuffer.as_ptr()
+    }
+
+    /// Adresse de la mémoire vidéo (1024 octets : 16 lignes de 64) dans la mémoire Wasm.
+    pub fn video_ptr(&self) -> *const u8 {
+        self.machine.video().as_ptr()
+    }
+
+    /// Mode 32 caractères par ligne actif.
+    pub fn wide(&self) -> bool {
+        self.machine.wide()
+    }
+
     pub fn width() -> u32 {
         SCREEN_WIDTH as u32
     }

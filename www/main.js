@@ -9,6 +9,7 @@ const BUILD = new URL(import.meta.url).searchParams.get('v') ?? 'dev';
 const V = `?v=${BUILD === 'dev' ? Date.now() : BUILD}`;
 
 const { default: init, Emulator } = await import(`./pkg/trs80_web.js${V}`);
+const { FONTS, buildAtlas, drawText } = await import(`./fonts.js${V}`);
 
 const canvas = document.getElementById('screen');
 const ctx = canvas.getContext('2d');
@@ -87,7 +88,9 @@ async function loadDevRom() {
   }
 }
 
-// ROM proposées (roms.json) : téléchargées chez un tiers, seulement quand on les choisit.
+// ROM proposées (roms.json) : téléchargées chez un tiers quand on les choisit, ou au premier
+// démarrage pour la ROM par défaut.
+const DEFAULT_ROM = 'level2-1.3';
 const romList = document.getElementById('rom-list');
 const romTar = document.getElementById('rom-tar');
 const romTarMember = document.getElementById('rom-tar-member');
@@ -297,7 +300,14 @@ cmdFile.addEventListener('change', async (event) => {
 
 // La touche relâchée peut avoir un autre nom que la touche enfoncée (ex. : « a » puis « A »
 // si MAJ a été enfoncée entre-temps) : on mémorise le nom par touche physique.
-const pressed = new Map();
+const pressed = new Map(); // code physique -> { name, at: image où la touche a été enfoncée }
+
+// La ROM lit le clavier pendant que l'émulateur tourne : une touche enfoncée puis relâchée
+// entre deux images ne serait jamais vue (frappe rapide). Chaque touche reste donc enfoncée
+// au moins MIN_HOLD_FRAMES images; un relâchement trop rapide est différé.
+const MIN_HOLD_FRAMES = 3;
+let frameCount = 0;
+let pendingReleases = [];
 
 function typingInForm(target) {
   return target instanceof HTMLInputElement || target instanceof HTMLSelectElement;
@@ -307,36 +317,106 @@ window.addEventListener('keydown', (e) => {
   if (!emulator || e.ctrlKey || e.altKey || e.metaKey || typingInForm(e.target)) return;
   if (e.repeat) { e.preventDefault(); return; }
   if (emulator.key_down(e.key)) {
-    pressed.set(e.code, e.key);
+    pendingReleases = pendingReleases.filter((r) => r.name !== e.key);
+    pressed.set(e.code, { name: e.key, at: frameCount });
     e.preventDefault();
   }
 });
 
 window.addEventListener('keyup', (e) => {
   if (!emulator) return;
-  const name = pressed.get(e.code) ?? e.key;
+  const key = pressed.get(e.code) ?? { name: e.key, at: -Infinity };
   pressed.delete(e.code);
-  emulator.key_up(name);
+  if (frameCount - key.at >= MIN_HOLD_FRAMES) {
+    emulator.key_up(key.name);
+  } else {
+    pendingReleases.push(key);
+  }
 });
+
+/** Applique les relâchements différés dont la durée minimale est atteinte. */
+function releaseDueKeys() {
+  pendingReleases = pendingReleases.filter((r) => {
+    if (frameCount - r.at < MIN_HOLD_FRAMES) return true;
+    emulator.key_up(r.name);
+    return false;
+  });
+}
 
 window.addEventListener('blur', () => {
   pressed.clear();
+  pendingReleases = [];
   emulator?.release_all_keys();
 });
 
 // ------------------------------------------------------------------ boucle
 
-const image = ctx.createImageData(WIDTH, HEIGHT);
+// L'émulateur produit une image de 384 × 192; elle est agrandie dans le canvas (1536 × 1152)
+// sans lissage. Avec une police autre que celle d'origine, Rust ne dessine que les blocs
+// graphiques et la page dessine le texte par-dessus (fonts.js).
+const small = document.createElement('canvas');
+small.width = WIDTH;
+small.height = HEIGHT;
+const smallCtx = small.getContext('2d');
+const image = smallCtx.createImageData(WIDTH, HEIGHT);
 let lastTime = performance.now();
 let frameDebt = 0;
 let fpsFrames = 0;
 let fpsTime = lastTime;
 
+// ------------------------------------------------------------------ polices
+
+const fontList = document.getElementById('font-list');
+let font = FONTS[0];
+let atlas = null; // glyphes de la police courante (null : police d'origine, dessinée par Rust)
+
+for (const group of [...new Set(FONTS.map((f) => f.group))]) {
+  const optgroup = document.createElement('optgroup');
+  optgroup.label = group;
+  for (const f of FONTS.filter((x) => x.group === group)) optgroup.append(new Option(f.label, f.id));
+  fontList.append(optgroup);
+}
+
+async function selectFont(id) {
+  const chosen = FONTS.find((f) => f.id === id) ?? FONTS[0];
+  try {
+    atlas = chosen.family ? await buildAtlas(chosen) : null;
+    font = chosen;
+    try { localStorage.setItem('trs80-font', chosen.id); } catch { /* stockage indisponible */ }
+  } catch (e) {
+    showStatus(`Font ${chosen.label}: ${e.message ?? e}`, true);
+  }
+  fontList.value = font.id;
+  lastVideo = null; // force le redessin
+  if (emulator) draw();
+}
+
+fontList.addEventListener('change', () => { selectFont(fontList.value); canvas.focus(); });
+
+// Dernier contenu dessiné : on ne redessine que si l'écran du TRS-80 a changé.
+let lastVideo = null;
+let lastWide = false;
+
+function screenChanged() {
+  const video = new Uint8Array(wasm.memory.buffer, emulator.video_ptr(), 1024);
+  const wide = emulator.wide();
+  if (lastVideo && wide === lastWide && video.every((b, i) => b === lastVideo[i])) return false;
+  lastVideo = video.slice();
+  lastWide = wide;
+  return true;
+}
+
 function draw() {
-  const ptr = emulator.render();
+  const ptr = atlas ? emulator.render_graphics() : emulator.render();
   // Lecture directe de l'image dans la mémoire Wasm, sans copie intermédiaire.
   image.data.set(new Uint8ClampedArray(wasm.memory.buffer, ptr, WIDTH * HEIGHT * 4));
-  ctx.putImageData(image, 0, 0);
+  smallCtx.putImageData(image, 0, 0);
+  ctx.imageSmoothingEnabled = false;
+  ctx.drawImage(small, 0, 0, canvas.width, canvas.height);
+  if (atlas) {
+    const video = new Uint8Array(wasm.memory.buffer, emulator.video_ptr(), 1024);
+    drawText(ctx, atlas, video, emulator.wide());
+  }
 }
 
 function loop(now) {
@@ -347,8 +427,11 @@ function loop(now) {
     const frames = Math.floor(frameDebt);
     if (frames > 0) {
       frameDebt -= frames;
-      emulator.run_frames(frames * (turbo.checked ? 10 : 1));
-      draw();
+      const emulated = frames * (turbo.checked ? 10 : 1);
+      emulator.run_frames(emulated);
+      frameCount += emulated;
+      releaseDueKeys();
+      if (screenChanged()) draw();
       fpsFrames += frames;
     }
     if (now - fpsTime >= 1000) {
@@ -364,6 +447,10 @@ function loop(now) {
 
 await Promise.all([loadProgramIndex(), loadRomIndex()]);
 const params = new URLSearchParams(location.search);
+// Police : ?font=<id>, sinon la dernière choisie.
+let savedFont = null;
+try { savedFont = localStorage.getItem('trs80-font'); } catch { /* stockage indisponible */ }
+await selectFont(params.get('font') ?? savedFont ?? 'trs80');
 // Lien direct vers une ROM de la liste : ?rom=level2-1.3 (a priorité sur la ROM conservée).
 const romParam = params.get('rom');
 if (romParam && roms.some((r) => r.id === romParam && r.source === 'url')) {
@@ -371,7 +458,13 @@ if (romParam && roms.some((r) => r.id === romParam && r.source === 'url')) {
   await chooseListedRom(romParam);
 } else {
   const saved = (await loadDevRom()) ?? (await loadSavedRom());
-  if (saved && start(saved.bytes)) selectRomInList(saved.id);
+  if (saved) {
+    if (start(saved.bytes)) selectRomInList(saved.id);
+  } else {
+    // Première visite : démarrage avec la ROM Level II 1.3 officielle de la liste.
+    selectRomInList(DEFAULT_ROM);
+    await chooseListedRom(DEFAULT_ROM);
+  }
 }
 if (emulator) {
   // Lien direct vers un programme : ?program=seadragon

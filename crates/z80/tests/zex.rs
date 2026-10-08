@@ -24,7 +24,7 @@ impl Bus for Cpm {
 }
 
 fn run_zex(name: &str) {
-    let path = format!("{}/tests/roms/{name}", env!("CARGO_MANIFEST_DIR"));
+    let path = format!("{}/tests/zex/{name}", env!("CARGO_MANIFEST_DIR"));
     let program = std::fs::read(&path).unwrap_or_else(|e| panic!("{path} : {e}"));
 
     let mut bus = Cpm { mem: vec![0; 0x10000] };
