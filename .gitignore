@@ -1,0 +1,15 @@
+/target/
+
+# ROM du TRS-80 : protégées par le droit d'auteur (Tandy / Microsoft), jamais dans le dépôt.
+*.rom
+*.bin
+/crates/*/tests/roms/*
+!/crates/*/tests/roms/README.md
+!/crates/*/tests/roms/zexdoc.com
+!/crates/*/tests/roms/zexall.com
+
+# Notes de travail locales
+ressources.txt
+
+.DS_Store
+Thumbs.db
