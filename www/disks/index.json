@@ -1,0 +1,11 @@
+[
+  {
+    "id": "ldos-531",
+    "file": "ldos-531.dsk",
+    "title": "LDOS 5.3.1 (system disk)",
+    "year": 1991,
+    "authors": "Logical Systems / MISOSYS",
+    "description": "The Model I version of LDOS. At boot, enter a date from its era, e.g. 10/08/91, then the time. Try DIR, FREE, LIB.",
+    "license": "Copyright 1991 MISOSYS, Inc. Free redistribution with notice: see www/disks/README.md"
+  }
+]

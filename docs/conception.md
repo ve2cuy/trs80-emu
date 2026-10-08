@@ -69,6 +69,13 @@ l'utilisateur chargera son propre fichier ROM, conservé ensuite dans IndexedDB.
    ×4 pendant la frappe), interface d'expansion avec horloge à 40 Hz (IM 1, verrou 37E0h).
 7b. ✅ VE2CUY Invaders (`asm/invaders.asm`, zmac) : jeu bilingue choisi à l'accueil,
    tampon d'écran, environ 31 images par seconde; testé par `tests/invaders.rs`.
+7c. ✅ Son : sortie cassette (port FFh, bits 0-1) échantillonnée au fil des cycles
+   (`audio.rs`, moyenne entre échantillons + passe-haut), jouée par WebAudio; effets
+   sonores dans VE2CUY Invaders.
+7d. ✅ Disquettes : contrôleur WD1771 (`fdc.rs`) et images JV1/JV3/DMK (`disk.rs`, avec
+   `alloc`); LDOS 5.3.1 fourni (`www/disks/`). Démarrent : LDOS 5.3.1, TRSDOS 2.1/2.3,
+   NEWDOS 3.0, NEWDOS/80, DOSPLUS 3.5. Reste : doubleurs de densité, formatage.
+7e. ✅ Licence Apache 2.0 (`LICENSE`, `NOTICE` pour les fichiers de tiers).
 6. ✅ Chargement de programmes `.CMD` (écriture directe en mémoire, après avoir amené
    le BASIC à « READY »), routines minimales à la place des appels de fichiers TRSDOS,
    liste de programmes libres de droits (`www/programs/`). Interface en anglais.
@@ -84,8 +91,7 @@ l'utilisateur chargera son propre fichier ROM, conservé ensuite dans IndexedDB.
    le texte depuis un atlas de 64 glyphes, sur un canvas de 1536 × 1152. Redessin seulement
    si la mémoire vidéo change. Clavier : chaque touche reste enfoncée au moins 3 images.
 7. ⬜ Confort : Reset, Turbo, collage de texte, sauvegarde et restauration de l'état.
-8. ⬜ Facultatif : son de la cassette (WebAudio), modification minuscules, disquettes
-   (WD1771, images `.DSK` / `.DMK`), Model III.
+8. ⬜ Facultatif : modification minuscules, doubleurs de densité, formatage, Model III.
 9. ✅ Déploiement GitHub Pages par une GitHub Action (`.github/workflows/pages.yml`) :
    <https://ve2cuy.github.io/trs80-emu/>
 

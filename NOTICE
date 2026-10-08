@@ -1,0 +1,30 @@
+trs80-emu
+Copyright 2026 Alain Boudreault (VE2CUY)
+
+Licensed under the Apache License, Version 2.0 (see the LICENSE file).
+
+-------------------------------------------------------------------------------
+Third-party files included in this repository keep their own terms (see the
+README.md next to them). They are not covered by the Apache License.
+
+- crates/z80/tests/zex/zexdoc.com, zexall.com
+    Z80 Instruction Exerciser, (c) 1994 Frank D. Cringle, GNU GPL version 2.
+
+- www/programs/seadragon.cmd, www/programs/armored-patrol.cmd
+    Wayne Westmoreland & Terry Gilman, released into the public domain by
+    Wayne Westmoreland in 1995 (see www/programs/WESTMORELAND-README.TXT).
+
+- www/disks/ldos-531.dsk
+    LDOS 5.3.1 for the Model I, Copyright 1991 MISOSYS, Inc.
+    Distribution notice, as published at https://tim-mann.org/misosys.html :
+
+    "Roy Soltoff holds copyright or distribution rights to the software
+    and documentation in the list below.  Roy grants free permission to
+    everyone to download and use this software and documentation and to
+    redistribute it to others, provided this notice is retained.  All
+    other rights are reserved.  Specific exceptions apply to files marked
+    with an asterisk (*) and are detailed within those files.  Hartforth
+    is available with the permission of Andrew Graham.  LDOS/LS-DOS are
+    available with the permission of William Schroeder."
+
+TRS-80 ROMs are NOT included: they are (c) Tandy / Microsoft.

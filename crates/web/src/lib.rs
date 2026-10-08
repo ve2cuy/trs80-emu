@@ -68,6 +68,54 @@ impl Emulator {
         self.machine.cancel_typing();
     }
 
+    /// Insère une image de disquette (JV1, JV3 ou DMK) dans le lecteur `drive` (0 à 3).
+    /// Retourne une description (format, nombre de secteurs) pour la page.
+    pub fn insert_disk(&mut self, drive: u32, image: Vec<u8>) -> Result<String, JsError> {
+        let disk = self
+            .machine
+            .insert_disk(drive as usize, image)
+            .map_err(|e| JsError::new(&e.to_string()))?;
+        Ok(format!(
+            "{}, {} sectors{}",
+            disk.format().name(),
+            disk.sector_count(),
+            if disk.write_protected() { ", write-protected" } else { "" }
+        ))
+    }
+
+    pub fn eject_disk(&mut self, drive: u32) {
+        self.machine.eject_disk(drive as usize);
+    }
+
+    /// La disquette du lecteur a-t-elle été modifiée par le TRS-80 ?
+    pub fn disk_modified(&self, drive: u32) -> bool {
+        self.machine.disk(drive as usize).is_some_and(|d| d.modified())
+    }
+
+    /// Image (modifiée) à enregistrer; absente pour un lecteur vide ou une image DMK.
+    pub fn disk_image(&self, drive: u32) -> Option<Vec<u8>> {
+        self.machine.disk(drive as usize)?.image().map(<[u8]>::to_vec)
+    }
+
+    /// Active le son à la fréquence `rate` (celle de l'AudioContext); 0 le désactive.
+    pub fn set_audio_rate(&mut self, rate: u32) {
+        self.machine.set_audio_rate(rate);
+    }
+
+    /// Adresse et nombre des échantillons audio produits depuis `clear_audio`
+    /// (f32 dans la mémoire Wasm, lus sans copie par la page).
+    pub fn audio_ptr(&self) -> *const f32 {
+        self.machine.audio_samples().as_ptr()
+    }
+
+    pub fn audio_len(&self) -> u32 {
+        self.machine.audio_samples().len() as u32
+    }
+
+    pub fn clear_audio(&mut self) {
+        self.machine.clear_audio();
+    }
+
     /// Interface d'expansion (horloge à 40 Hz).
     pub fn set_expansion_interface(&mut self, present: bool) {
         self.machine.set_expansion_interface(present);

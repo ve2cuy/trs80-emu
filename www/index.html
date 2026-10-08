@@ -40,6 +40,8 @@
       <select id="font-list"></select>
       <label title="Model I expansion interface: 40 Hz clock interrupt, used by some programs">
         <input id="expansion" type="checkbox" checked> Expansion interface (40 Hz clock)</label>
+      <label title="Sound from the cassette output (port FFh), like the real machine">
+        <input id="sound" type="checkbox" checked> Sound</label>
     </div>
 
     <div id="rom-tar" class="program-info" hidden>
@@ -81,6 +83,20 @@
       </div>
       <p id="programs-hint" class="small">Load the Level II ROM first.</p>
       <div id="program-info" class="program-info" hidden></div>
+    </section>
+
+    <section class="programs" aria-labelledby="disks-title">
+      <h2 id="disks-title">Disks</h2>
+      <div class="controls">
+        <label for="disk-list">Boot a disk:</label>
+        <select id="disk-list" disabled>
+          <option value="">Choose…</option>
+        </select>
+      </div>
+      <div id="drives" class="drives"></div>
+      <p class="small">Drive 0 is the boot drive: insert a system disk, then press Reset.
+        Formats: JV1, JV3 and DMK (Model I, single density).</p>
+      <div id="disk-info" class="program-info" hidden></div>
     </section>
 
     <details class="help">

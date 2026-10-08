@@ -4,8 +4,9 @@
 
 use crate::keyboard::{Key, Keyboard};
 
-/// Images pendant lesquelles une touche reste enfoncée.
-const HOLD: u8 = 2;
+/// Images pendant lesquelles une touche reste enfoncée (au moins deux lectures du clavier
+/// par les DOS, qui le lisent à chaque interruption de 25 ms).
+const HOLD: u8 = 3;
 /// Images de pause après une touche.
 const GAP: u8 = 2;
 /// Images de pause après ENTRÉE (le BASIC analyse et range la ligne).

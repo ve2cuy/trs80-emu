@@ -126,6 +126,11 @@ select {
 
 .program-info[hidden] { display: none; }
 
+.drives { display: flex; flex-direction: column; gap: 6px; margin-top: 10px; }
+.drive { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.drive-name { min-width: 18em; font-family: ui-monospace, Consolas, monospace; font-size: 0.9rem; }
+.drive-name.modified::after { content: " (modified)"; color: var(--accent); }
+
 .footer { margin-top: 24px; color: var(--muted); font-size: 0.85rem; }
 .footer a { color: var(--accent); }
 

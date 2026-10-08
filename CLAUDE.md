@@ -20,6 +20,9 @@ départ, si plus de contexte est nécessaire.
   copier `zout/invaders.cmd` et `zout/invaders.500.cas` dans `www/programs/`.
 - `crates/z80/tests/zex/` : ZEXDOC et ZEXALL (GPL, versionnés). Le cœur Z80 ne dépend
   d'aucun fichier de `crates/trs80`.
+- Licence Apache 2.0; les fichiers de tiers sont listés dans `NOTICE` (à tenir à jour).
+- Disquettes publiées (`www/disks/`) : seulement avec une autorisation vérifiable; LDOS 5.3.1
+  exige de conserver l'avis de MISOSYS (voir `www/disks/README.md`).
 - **Ne jamais committer de ROM TRS-80** (droit d'auteur, y compris les versions modifiées
   comme la 1.4 de kiwisincebirth). Pour les tests : `crates/trs80/tests/roms/`, exclu par
   `.gitignore`. Dans la page : seulement des liens vers un tiers (`www/roms.json`).

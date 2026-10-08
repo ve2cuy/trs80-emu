@@ -34,6 +34,31 @@ fn save_ppm(m: &Trs80, name: &str) {
     std::fs::write(dir.join(format!("{name}.ppm")), ppm).unwrap();
 }
 
+/// Écrit des échantillons en WAV mono 16 bits à 44,1 kHz (pour écouter le résultat).
+fn save_wav(samples: &[f32], name: &str) {
+    let data: Vec<u8> = samples
+        .iter()
+        .flat_map(|&x| ((x.clamp(-1.0, 1.0) * 32767.0) as i16).to_le_bytes())
+        .collect();
+    let mut wav = Vec::new();
+    wav.extend_from_slice(b"RIFF");
+    wav.extend_from_slice(&(36 + data.len() as u32).to_le_bytes());
+    wav.extend_from_slice(b"WAVEfmt ");
+    wav.extend_from_slice(&16u32.to_le_bytes());
+    wav.extend_from_slice(&1u16.to_le_bytes()); // PCM
+    wav.extend_from_slice(&1u16.to_le_bytes()); // mono
+    wav.extend_from_slice(&44_100u32.to_le_bytes());
+    wav.extend_from_slice(&(44_100u32 * 2).to_le_bytes());
+    wav.extend_from_slice(&2u16.to_le_bytes());
+    wav.extend_from_slice(&16u16.to_le_bytes());
+    wav.extend_from_slice(b"data");
+    wav.extend_from_slice(&(data.len() as u32).to_le_bytes());
+    wav.extend_from_slice(&data);
+    let dir = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../target/screens");
+    std::fs::create_dir_all(&dir).unwrap();
+    std::fs::write(dir.join(format!("{name}.wav")), wav).unwrap();
+}
+
 fn frames(m: &mut Trs80, n: usize) {
     (0..n).for_each(|_| m.run_frame());
 }
@@ -79,7 +104,17 @@ fn english_game() {
     let s = screen(&m);
     assert!(s.contains("SCORE") && s.contains("HI-SCORE") && s.contains("LIVES"), "partie :\n{s}");
 
-    // Dix secondes de jeu : on tire sans arrêt en se déplaçant de gauche à droite.
+    // Dix secondes de jeu : on tire sans arrêt en se déplaçant de gauche à droite,
+    // en gardant le son produit (tirs, explosions, pas de la formation).
+    m.set_audio_rate(44_100);
+    let mut sound: Vec<f32> = Vec::new();
+    let mut play = |m: &mut Trs80, n: usize| {
+        for _ in 0..n {
+            m.run_frame();
+            sound.extend_from_slice(m.audio_samples());
+            m.clear_audio();
+        }
+    };
     let fire = Key::from_name(" ").unwrap();
     let left = Key::from_name("ArrowLeft").unwrap();
     let right = Key::from_name("ArrowRight").unwrap();
@@ -87,12 +122,16 @@ fn english_game() {
         let dir = if step % 4 < 2 { left } else { right };
         m.key_down(dir);
         m.key_down(fire);
-        frames(&mut m, 15);
+        play(&mut m, 15);
         m.key_up(fire);
         m.key_up(dir);
-        frames(&mut m, 15);
+        play(&mut m, 15);
     }
     save_ppm(&m, "invaders-game-en");
+    let peak = sound.iter().fold(0f32, |a, &x| a.max(x.abs()));
+    assert!(peak > 0.05, "aucun son produit (crête {peak})");
+    assert!(sound.len() > 400_000, "environ 44 100 échantillons par seconde : {}", sound.len());
+    save_wav(&sound, "invaders-sound");
     // Cadence du jeu : le compteur d'images FRAME (adresse du listage zmac, si présente).
     if let Ok(frame_addr) = std::env::var("INVADERS_FRAME_ADDR") {
         let addr = u16::from_str_radix(&frame_addr, 16).unwrap();

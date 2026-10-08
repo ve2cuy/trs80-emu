@@ -4,6 +4,7 @@ version = "0.1.0"
 description = "Liaison WebAssembly de l'émulateur TRS-80"
 edition.workspace = true
 authors.workspace = true
+license.workspace = true
 repository.workspace = true
 
 [lib]

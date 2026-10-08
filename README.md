@@ -5,9 +5,10 @@
 An emulator of the **TRS-80 Model I**, written in Rust, that runs in a web
 browser (WebAssembly).
 
-> Version 0.3: Level II ROM, BASIC, text and semigraphics, `.CMD` programs and
-> `.CAS` cassettes, pasting text, 40 Hz clock, and **VE2CUY Invaders**, a game
-> written in Z80 assembly for this project. Coming next: floppy disks.
+> Version 0.4: Level II ROM, BASIC, text and semigraphics, `.CMD` programs and
+> `.CAS` cassettes, **floppy disks** (LDOS, TRSDOS, NEWDOS...), **sound**, pasting
+> text, 40 Hz clock, and **VE2CUY Invaders**, a game written in Z80 assembly for
+> this project.
 > See [docs/conception.md](docs/conception.md) (in French).
 
 **▶️ Try it online: <https://ve2cuy.github.io/trs80-emu/>**
@@ -77,6 +78,22 @@ answer `MEM SIZE?` with ENTER.
 TRSDOS file calls are replaced by minimal routines: programs made for floppy disk
 start, but nothing is saved.
 
+### Disks
+
+- **"Boot a disk"**: LDOS 5.3.1, freely redistributable (see [www/disks/README.md](www/disks/README.md)).
+  At boot, enter a date from its era, e.g. `10/08/91`. Direct link: `?disk=ldos-531`.
+- **Drives 0 to 3**: "Insert…" any JV1, JV3 or DMK image, "Eject", and "Save" to download
+  a disk modified by the TRS-80 (JV1 and JV3). Drive 0 is the boot drive: press Reset.
+- WD1771 controller of the Model I expansion interface. Tested: LDOS 5.3.1, TRSDOS 2.1
+  and 2.3, NEWDOS 3.0, NEWDOS/80, DOSPLUS 3.5. Not yet: double-density systems that
+  need a specific "doubler", and formatting.
+
+### Sound
+
+The Model I has no sound chip: programs toggle the cassette output (port FFh), as
+VE2CUY Invaders does. The emulator turns it into audio (WebAudio). Sound starts at
+the first key press or click (a browser rule); untick "Sound" to mute.
+
 ### Keyboard
 
 | TRS-80 | PC |
@@ -115,6 +132,11 @@ cargo test --release -p z80 --test zex -- --ignored --nocapture
 The tests that boot the Level II ROM expect it in `crates/trs80/tests/roms/`.
 It is **not included** (Tandy / Microsoft copyright): see
 [crates/trs80/tests/roms/README.md](crates/trs80/tests/roms/README.md) (in French).
+
+## License
+
+[Apache License 2.0](LICENSE). Third-party files (ZEXDOC/ZEXALL, the public-domain
+games, LDOS) keep their own terms: see [NOTICE](NOTICE). TRS-80 ROMs are not included.
 
 ## Author
 

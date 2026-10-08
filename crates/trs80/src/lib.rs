@@ -5,10 +5,18 @@
 //! - [`Trs80::render`] dessine l'écran (384 × 192 pixels, RGBA).
 //! - [`Trs80::load_cmd`] et [`Trs80::load_cas`] chargent un programme (`.CMD`, cassette `.CAS`).
 //! - [`Trs80::type_text`] tape un texte au clavier (ex. : un programme BASIC collé).
-//! - L'interface d'expansion fournit l'horloge à 40 Hz (interruption en mode 1).
+//! - L'interface d'expansion fournit l'horloge à 40 Hz (interruption en mode 1) et le
+//!   contrôleur de disquettes WD1771 ([`Trs80::insert_disk`] : images JV1, JV3, DMK).
+//!
+//! La crate est `no_std`; les disquettes utilisent `alloc` (images de taille variable).
 #![no_std]
 
+extern crate alloc;
+
+mod audio;
 mod cas;
+mod disk;
+mod fdc;
 mod cmd;
 mod font;
 mod keyboard;
@@ -16,11 +24,16 @@ mod typer;
 mod video;
 
 pub use cas::{CasError, Tape};
+pub use disk::{Disk, DiskError, Format};
+pub use fdc::DRIVES;
 pub use cmd::CmdError;
 pub use keyboard::Key;
 pub use video::{SCREEN_HEIGHT, SCREEN_WIDTH};
 
 use keyboard::Keyboard;
+use audio::Audio;
+pub use audio::AUDIO_CAPACITY;
+use fdc::Fdc;
 use typer::Typer;
 use z80::{Bus, Cpu};
 
@@ -52,6 +65,8 @@ pub enum Error {
     Cmd(CmdError),
     /// Image cassette `.CAS` invalide.
     Cas(CasError),
+    /// Image de disquette invalide.
+    Disk(DiskError),
     /// Le BASIC n'a jamais atteint « READY » (impossible de charger un programme).
     NotReady,
 }
@@ -64,6 +79,7 @@ impl core::fmt::Display for Error {
             }
             Error::Cmd(e) => write!(f, "{e}"),
             Error::Cas(e) => write!(f, "{e}"),
+            Error::Disk(e) => write!(f, "{e}"),
             Error::NotReady => write!(f, "BASIC did not reach READY"),
         }
     }
@@ -79,6 +95,12 @@ struct Board {
     wide: bool,
     /// Interface d'expansion branchée (horloge à 40 Hz en 37E0h).
     expansion: bool,
+    /// Sortie cassette (bits 0-1 du port FFh) : sert de haut-parleur.
+    sound: u8,
+    /// Contrôleur de disquettes (interface d'expansion).
+    fdc: Fdc,
+    /// Temps machine (T-states), pour l'impulsion d'index des disquettes.
+    now: u64,
     /// Interruption d'horloge en attente : effacée par la lecture de 37E0h.
     rtc_pending: bool,
 }
@@ -88,13 +110,18 @@ impl Bus for Board {
         match addr {
             0x0000..=0x2FFF => self.rom[addr as usize],
             0x3800..=0x3BFF => self.keyboard.read(addr as u8),
-            // Interface d'expansion : verrou des interruptions (bit 7 = horloge), remis à zéro
-            // par la lecture. 37E4h-37FFh (cassette, imprimante, disquettes) : absents.
+            // Interface d'expansion : verrou des interruptions (bit 7 = horloge, remis à zéro
+            // par la lecture; bit 6 = disquettes, remis à zéro par la lecture de l'état).
             0x37E0..=0x37E3 if self.expansion => {
-                let latch = if self.rtc_pending { 0x80 } else { 0x00 };
+                let mut latch = if self.rtc_pending { 0x80 } else { 0x00 };
+                if self.fdc.intrq && self.fdc.present() {
+                    latch |= 0x40;
+                }
                 self.rtc_pending = false;
                 latch
             }
+            // Contrôleur de disquettes : absent (FFh) tant qu'aucune disquette n'est insérée.
+            0x37EC..=0x37EF if self.expansion && self.fdc.present() => self.fdc.read(addr, self.now),
             0x3C00..=0x3FFF => self.video[(addr - VIDEO_START) as usize],
             0x4000..=0xFFFF => self.ram[(addr - RAM_START) as usize],
             // Interface d'expansion absente (37E0-37FF) et zones vides : bus flottant.
@@ -106,6 +133,8 @@ impl Bus for Board {
         match addr {
             0x3C00..=0x3FFF => self.video[(addr - VIDEO_START) as usize] = val,
             0x4000..=0xFFFF => self.ram[(addr - RAM_START) as usize] = val,
+            0x37E0..=0x37E3 if self.expansion => self.fdc.select(val),
+            0x37EC..=0x37EF if self.expansion => self.fdc.write(addr, val),
             _ => {}
         }
     }
@@ -113,6 +142,7 @@ impl Bus for Board {
     fn output(&mut self, port: u16, val: u8) {
         if port as u8 == 0xFF {
             self.wide = val & 0x08 != 0;
+            self.sound = val & 0x03;
         }
     }
 }
@@ -126,6 +156,7 @@ pub struct Trs80 {
     /// Prochaine interruption de l'horloge à 40 Hz (en T-states).
     next_rtc: u64,
     typer: Typer,
+    audio: Audio,
 }
 
 /// Programme chargé depuis une cassette.
@@ -151,9 +182,12 @@ impl Trs80 {
             wide: false,
             expansion: true,
             rtc_pending: false,
+            sound: 0,
+            fdc: Fdc::new(),
+            now: 0,
         };
         board.rom.copy_from_slice(rom);
-        Ok(Trs80 { cpu: Cpu::new(), board, overshoot: 0, next_rtc: RTC_PERIOD, typer: Typer::new() })
+        Ok(Trs80 { cpu: Cpu::new(), board, overshoot: 0, next_rtc: RTC_PERIOD, typer: Typer::new(), audio: Audio::new() })
     }
 
     /// Bouton RESET : redémarre le processeur (la RAM est conservée, comme sur la vraie machine).
@@ -175,14 +209,22 @@ impl Trs80 {
     pub fn run_cycles(&mut self, cycles: u32) {
         let mut done = self.overshoot;
         while done < cycles {
-            done += self.cpu.step(&mut self.board);
+            let level = Audio::level(self.board.sound);
+            self.board.now = self.cpu.cycles;
+            let t = self.cpu.step(&mut self.board);
+            self.audio.advance(level, t);
+            done += t;
             if self.cpu.cycles >= self.next_rtc {
                 self.next_rtc += RTC_PERIOD;
                 self.board.rtc_pending |= self.board.expansion;
             }
-            // L'interruption reste demandée tant que 37E0h n'a pas été lu (niveau, pas front).
-            if self.board.rtc_pending && self.cpu.iff1 {
-                done += self.cpu.interrupt(&mut self.board, 0xFF);
+            // L'interruption reste demandée tant que sa source n'a pas été lue (niveau, pas
+            // front) : 37E0h pour l'horloge, l'état du contrôleur pour les disquettes.
+            let disk_irq = self.board.fdc.intrq && self.board.fdc.present() && self.board.expansion;
+            if (self.board.rtc_pending || disk_irq) && self.cpu.iff1 {
+                let t = self.cpu.interrupt(&mut self.board, 0xFF);
+                self.audio.advance(Audio::level(self.board.sound), t);
+                done += t;
             }
         }
         self.overshoot = done - cycles;
@@ -206,6 +248,40 @@ impl Trs80 {
     }
 
     /// Annule la frappe automatique en cours.
+    /// Insère une image de disquette (JV1, JV3 ou DMK) dans le lecteur `drive` (0 à 3).
+    /// Pour démarrer sur un DOS : disquette système dans le lecteur 0, puis [`Trs80::reset`].
+    pub fn insert_disk(&mut self, drive: usize, image: alloc::vec::Vec<u8>) -> Result<&Disk, Error> {
+        let disk = Disk::open(image).map_err(Error::Disk)?;
+        let slot = &mut self.board.fdc.drives[drive % DRIVES];
+        *slot = Some(disk);
+        Ok(slot.as_ref().unwrap())
+    }
+
+    /// Retire la disquette du lecteur `drive`.
+    pub fn eject_disk(&mut self, drive: usize) -> Option<Disk> {
+        self.board.fdc.drives[drive % DRIVES].take()
+    }
+
+    /// La disquette du lecteur `drive`.
+    pub fn disk(&self, drive: usize) -> Option<&Disk> {
+        self.board.fdc.drives[drive % DRIVES].as_ref()
+    }
+
+    /// Active le son à la fréquence d'échantillonnage `rate` (Hz); 0 le désactive.
+    pub fn set_audio_rate(&mut self, rate: u32) {
+        self.audio.set_rate(rate);
+    }
+
+    /// Échantillons produits depuis le dernier [`Trs80::clear_audio`] (au plus
+    /// [`AUDIO_CAPACITY`]; au-delà, ils sont perdus).
+    pub fn audio_samples(&self) -> &[f32] {
+        self.audio.samples()
+    }
+
+    pub fn clear_audio(&mut self) {
+        self.audio.clear();
+    }
+
     pub fn cancel_typing(&mut self) {
         self.typer.cancel(&mut self.board.keyboard);
     }

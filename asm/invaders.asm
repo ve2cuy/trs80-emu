@@ -16,6 +16,9 @@
 ;     (bit 0 haut-gauche, 1 haut-droite, 2 milieu-gauche, 3 milieu-droite,
 ;     4 bas-gauche, 5 bas-droite). Chaque sprite fait 3 caracteres = 6 x 3 pixels.
 ;   - Le clavier est lu directement dans sa matrice (3801h-3880h).
+;   - Le son passe par la sortie cassette (bits 0-1 du port FFh), basculee par le
+;     processeur lui-meme : le jeu s'arrete un instant pendant chaque effet,
+;     comme dans les jeux TRS-80 d'epoque.
 ; =============================================================================
 
 VIDEO   EQU     3C00H           ; memoire video : 16 lignes x 64 colonnes
@@ -333,7 +336,7 @@ PL2:    LD      (PX),A
         LD      (MX),A
         LD      A,PLINE-1
         LD      (MY),A
-        RET
+        JP      SNDFIRE
 
 ; Missile du joueur : monte d'une ligne par image et touche ce qu'il rencontre.
 MISSILE:
@@ -370,6 +373,7 @@ MSU1:   INC     A
 MSU2:   ADD     HL,DE
         DJNZ    MSU2
         CALL    ADDSCORE
+        CALL    SNDUFO
         JP      MSOFF
 MS1:    ; Boucliers
         LD      A,(MY)
@@ -421,6 +425,7 @@ MS2:    ; Envahisseurs : rangee = (MY - FY) / 2, colonne = (MX - FX) / 4
         JR      C,MS3
         LD      HL,10
 MS3:    CALL    ADDSCORE
+        CALL    SNDHIT
 MSOFF:  XOR     A
         LD      (MACT),A
         RET
@@ -492,7 +497,8 @@ BBNEXT: LD      DE,3
         RET
 
 ; Le canon est detruit.
-KILLED: LD      A,DEATHT
+KILLED: CALL    SNDDEATH
+        LD      A,DEATHT
         LD      (DEAD),A
         LD      HL,LIVES
         DEC     (HL)
@@ -603,6 +609,7 @@ MARCH:  LD      A,(ALIVECNT)    ; formation detruite : plus rien ne bouge
         LD      A,(ANIM)
         XOR     1
         LD      (ANIM),A
+        CALL    SNDSTEP
         CALL    EXTENT          ; B = col. min, C = col. max, D = rangee max
         LD      A,(FDIR)
         DEC     A
@@ -1040,6 +1047,83 @@ PA1:    DEC     BC
         RET
 
 ; =============================================================================
+; Son : sortie cassette (port FFh, bits 0-1 : 1 = haut, 2 = bas, 0 = repos).
+; Le bit 3 reste a 0 (sinon l'ecran passerait en 32 colonnes). IX est preserve.
+; =============================================================================
+
+; Onde carree : H = demi-periode (tours de DJNZ de 13 cycles), L = demi-periodes.
+BEEP:   LD      A,1
+BP1:    OUT     (0FFH),A
+        LD      B,H
+BP2:    DJNZ    BP2
+        XOR     3               ; 1 <-> 2
+        DEC     L
+        JR      NZ,BP1
+        XOR     A
+        OUT     (0FFH),A
+        RET
+
+; Bruit : L = impulsions de niveau aleatoire, H = duree d'une impulsion.
+NOISE:  CALL    RANDOM
+        AND     1
+        INC     A               ; 1 ou 2
+        OUT     (0FFH),A
+        LD      B,H
+NS1:    DJNZ    NS1
+        DEC     L
+        JR      NZ,NOISE
+        XOR     A
+        OUT     (0FFH),A
+        RET
+
+; Tir : glissando descendant (« piou »).
+SNDFIRE:
+        LD      H,6
+SF1:    LD      L,4
+        PUSH    HL
+        CALL    BEEP
+        POP     HL
+        INC     H
+        INC     H
+        LD      A,H
+        CP      30
+        JR      C,SF1
+        RET
+
+; Envahisseur touche : bref bruit.
+SNDHIT: LD      HL,10*256+90
+        JP      NOISE
+
+; Soucoupe touchee : deux notes.
+SNDUFO: LD      HL,20*256+60
+        CALL    BEEP
+        LD      HL,12*256+100
+        JP      BEEP
+
+; Canon detruit : long bruit qui descend.
+SNDDEATH:
+        LD      HL,60*256+250
+        CALL    NOISE
+        LD      HL,90*256+200
+        JP      NOISE
+
+; Pas de la formation : quatre notes graves, en boucle.
+SNDSTEP:
+        LD      A,(STEPNOTE)
+        INC     A
+        AND     3
+        LD      (STEPNOTE),A
+        LD      C,A
+        LD      B,0
+        LD      HL,STEPS
+        ADD     HL,BC
+        LD      H,(HL)
+        LD      L,6
+        JP      BEEP
+
+STEPS:  DEFB    150,165,180,195
+
+; =============================================================================
 ; Sprites : 3 caracteres semi-graphiques (6 x 3 pixels)
 ; =============================================================================
                                 ; ..XX..  .XXXX.  X.XX.X
@@ -1148,6 +1232,7 @@ UFODIR:   DEFS  1
 BOMBTAB:  DEFS  NBOMBS*3        ; par bombe : active, colonne, ligne
 SHIELDS:  DEFS  64              ; la ligne des boucliers
 NUMSTR:   DEFS  6
+STEPNOTE: DEFS  1               ; note du prochain pas de la formation
 SAVESP:   DEFS  2               ; pile sauvegardee pendant CLSBUF
 
         END     START

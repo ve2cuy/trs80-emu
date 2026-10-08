@@ -26,6 +26,7 @@ const cmdButton = document.getElementById('cmd-button');
 const programsHint = document.getElementById('programs-hint');
 const typeButton = document.getElementById('type-button');
 const expansion = document.getElementById('expansion');
+const soundBox = document.getElementById('sound');
 
 // Toute erreur imprévue est affichée sous l'écran plutôt que de figer la page en silence.
 function showStatus(message, isError = false) {
@@ -193,6 +194,8 @@ function setRunning(running) {
   cmdButton.classList.toggle('disabled', !running);
   typeButton.disabled = !running;
   programsHint.hidden = running;
+  diskList.disabled = !running;
+  for (const row of driveRows) row.setEnabled(running);
 }
 
 function start(bytes) {
@@ -207,6 +210,9 @@ function start(bytes) {
   }
   errorBox.textContent = '';
   emulator.set_expansion_interface(expansion.checked);
+  if (audioCtx && soundBox.checked) emulator.set_audio_rate(audioCtx.sampleRate);
+  // Nouvelle ROM : les disquettes déjà insérées le restent (images d'origine).
+  for (const row of driveRows) row.reinsert();
   setRunning(true);
   canvas.focus();
   return true;
@@ -305,6 +311,140 @@ cmdFile.addEventListener('change', async (event) => {
   event.target.value = '';
 });
 
+// ------------------------------------------------------------------ disquettes
+
+const diskList = document.getElementById('disk-list');
+const diskInfo = document.getElementById('disk-info');
+let disks = [];
+
+/** Une rangée de l'interface par lecteur : nom, Insert…, Eject, Save. */
+function makeDriveRow(drive) {
+  const row = document.createElement('div');
+  row.className = 'drive';
+  const name = document.createElement('span');
+  name.className = 'drive-name';
+  const insertLabel = document.createElement('label');
+  insertLabel.className = 'button secondary';
+  insertLabel.textContent = 'Insert…';
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = '.dsk,.dmk,.jv1,.jv3';
+  input.hidden = true;
+  insertLabel.append(input);
+  const eject = document.createElement('button');
+  eject.type = 'button';
+  eject.className = 'secondary';
+  eject.textContent = 'Eject';
+  const save = document.createElement('button');
+  save.type = 'button';
+  save.className = 'secondary';
+  save.textContent = 'Save';
+  row.append(name, insertLabel, eject, save);
+  document.getElementById('drives').append(row);
+
+  let current = null; // { name, bytes } : image d'origine
+
+  function refresh() {
+    name.textContent = `Drive ${drive}: ${current ? current.name : '(empty)'}`;
+    name.classList.toggle('modified', !!(current && emulator?.disk_modified(drive)));
+    eject.disabled = !current || !emulator;
+    save.disabled = !current || !emulator;
+  }
+
+  function insert(fileName, bytes) {
+    if (!emulator) return false;
+    try {
+      const desc = emulator.insert_disk(drive, bytes);
+      current = { name: fileName, bytes };
+      showStatus(`Drive ${drive}: ${fileName} (${desc}).`);
+      refresh();
+      return true;
+    } catch (e) {
+      showStatus(`Cannot insert ${fileName}: ${e.message ?? e}`, true);
+      return false;
+    }
+  }
+
+  input.addEventListener('change', async (event) => {
+    const file = event.target.files[0];
+    event.target.value = '';
+    if (file) insert(file.name, new Uint8Array(await file.arrayBuffer()));
+    canvas.focus();
+  });
+  eject.addEventListener('click', () => {
+    emulator?.eject_disk(drive);
+    current = null;
+    refresh();
+    canvas.focus();
+  });
+  save.addEventListener('click', () => {
+    const image = emulator?.disk_image(drive);
+    if (!image) {
+      showStatus('Saving is only supported for JV1 and JV3 images.', true);
+      return;
+    }
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(new Blob([image], { type: 'application/octet-stream' }));
+    link.download = current.name;
+    link.click();
+    URL.revokeObjectURL(link.href);
+  });
+
+  refresh();
+  return {
+    insert,
+    refresh,
+    setEnabled(on) {
+      insertLabel.classList.toggle('disabled', !on);
+      input.disabled = !on;
+      refresh();
+    },
+    reinsert() {
+      if (current) insert(current.name, current.bytes);
+      refresh();
+    },
+  };
+}
+
+const driveRows = [0, 1, 2, 3].map(makeDriveRow);
+// Le DOS peut écrire sur la disquette : on met à jour l'indication « modified ».
+setInterval(() => driveRows.forEach((r) => r.refresh()), 1000);
+
+async function loadDiskIndex() {
+  try {
+    const res = await fetch(`disks/index.json${V}`);
+    disks = res.ok ? await res.json() : [];
+  } catch {
+    disks = [];
+  }
+  for (const d of disks) diskList.append(new Option(`${d.title} (${d.year})`, d.id));
+}
+
+async function bootDisk(id) {
+  const d = disks.find((x) => x.id === id);
+  diskInfo.replaceChildren();
+  diskInfo.hidden = !d;
+  if (!d) return;
+  for (const [tag, text] of [['strong', `${d.title} — ${d.authors}`], ['span', d.description], ['span', d.license]]) {
+    const el = document.createElement(tag);
+    el.textContent = text;
+    diskInfo.append(el);
+  }
+  try {
+    const res = await fetch(`disks/${d.file}${V}`);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    if (driveRows[0].insert(d.file, new Uint8Array(await res.arrayBuffer()))) {
+      emulator.reset();
+      showStatus(`Booting ${d.title} from drive 0…`);
+    }
+  } catch (e) {
+    showStatus(`Cannot download ${d.title}: ${e.message ?? e}`, true);
+  }
+  canvas.focus();
+}
+
+diskList.addEventListener('change', () => bootDisk(diskList.value));
+
 // ------------------------------------------------------------------ frappe de texte
 
 const typePanel = document.getElementById('type-panel');
@@ -398,6 +538,64 @@ window.addEventListener('blur', () => {
   emulator?.release_all_keys();
 });
 
+// ------------------------------------------------------------------ son
+
+// Le son vient de la sortie cassette du TRS-80 (port FFh), échantillonnée par Rust.
+// Les fureteurs n'autorisent l'audio qu'après une action de l'utilisateur : l'AudioContext
+// est créé à la première touche ou au premier clic.
+let audioCtx = null;
+let nextAudioTime = 0;
+const AUDIO_LATENCY = 0.06; // secondes d'avance pour éviter les coupures
+
+function ensureAudio() {
+  if (!soundBox.checked) return;
+  if (!audioCtx) {
+    try {
+      audioCtx = new AudioContext();
+    } catch {
+      return; // pas de WebAudio : l'émulateur fonctionne sans son
+    }
+    emulator?.set_audio_rate(audioCtx.sampleRate);
+  }
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+}
+window.addEventListener('keydown', ensureAudio, { capture: true });
+window.addEventListener('pointerdown', ensureAudio, { capture: true });
+
+soundBox.addEventListener('change', () => {
+  if (soundBox.checked) {
+    ensureAudio();
+    if (audioCtx) emulator?.set_audio_rate(audioCtx.sampleRate);
+  } else {
+    emulator?.set_audio_rate(0);
+  }
+  canvas.focus();
+});
+
+/** Joue les échantillons produits pendant les dernières images. */
+function playAudio(fast) {
+  const len = emulator.audio_len();
+  if (len === 0) return;
+  if (!audioCtx || audioCtx.state !== 'running' || fast) {
+    emulator.clear_audio(); // Turbo ou frappe automatique : son accéléré, on le jette
+    return;
+  }
+  const samples = new Float32Array(wasm.memory.buffer, emulator.audio_ptr(), len);
+  const duration = len / audioCtx.sampleRate;
+  const now = audioCtx.currentTime;
+  if (nextAudioTime < now + 0.01 || nextAudioTime > now + 0.3) nextAudioTime = now + AUDIO_LATENCY;
+  if (samples.some((x) => Math.abs(x) > 1e-4)) {
+    const buffer = audioCtx.createBuffer(1, len, audioCtx.sampleRate);
+    buffer.copyToChannel(samples, 0);
+    const source = audioCtx.createBufferSource();
+    source.buffer = buffer;
+    source.connect(audioCtx.destination);
+    source.start(nextAudioTime);
+  }
+  nextAudioTime += duration;
+  emulator.clear_audio();
+}
+
 // ------------------------------------------------------------------ boucle
 
 // L'émulateur produit une image de 384 × 192; elle est agrandie dans le canvas (1536 × 1152)
@@ -478,6 +676,7 @@ function loop(now) {
       frameDebt -= frames;
       const emulated = frames * (turbo.checked ? 10 : emulator.typing() ? 4 : 1);
       emulator.run_frames(emulated);
+      playAudio(emulated !== frames);
       frameCount += emulated;
       releaseDueKeys();
       if (screenChanged()) draw();
@@ -494,7 +693,7 @@ function loop(now) {
   requestAnimationFrame(loop);
 }
 
-await Promise.all([loadProgramIndex(), loadRomIndex()]);
+await Promise.all([loadProgramIndex(), loadRomIndex(), loadDiskIndex()]);
 const params = new URLSearchParams(location.search);
 // Police : ?font=<id>, sinon la dernière choisie.
 let savedFont = null;
@@ -516,6 +715,12 @@ if (romParam && roms.some((r) => r.id === romParam && r.source === 'url')) {
   }
 }
 if (emulator) {
+  // Lien direct vers une disquette : ?disk=ldos-531
+  const diskParam = params.get('disk');
+  if (diskParam) {
+    diskList.value = diskParam;
+    await bootDisk(diskParam);
+  }
   // Lien direct vers un programme : ?program=seadragon
   const program = params.get('program');
   if (program) {
