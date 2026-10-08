@@ -1,39 +1,41 @@
 # 🖥️ trs80-emu
 
-Émulateur du **TRS-80 Model 1**, écrit en Rust, qui s'exécute dans un fureteur
-web (WebAssembly).
+🇫🇷 [Version française](README_FR.md)
 
-> Version 0.2 : démarrage de la ROM Level II, BASIC au clavier, texte et
-> semi-graphiques, programmes `.CMD`. À venir : cassette, disquettes.
-> Voir [docs/conception.md](docs/conception.md).
+An emulator of the **TRS-80 Model I**, written in Rust, that runs in a web
+browser (WebAssembly).
 
-**▶️ Essayer en ligne : <https://ve2cuy.github.io/trs80-emu/>**
+> Version 0.2: boots the Level II ROM, BASIC from the keyboard, text and
+> semigraphics, `.CMD` programs. Coming next: cassette, floppy disks.
+> See [docs/conception.md](docs/conception.md) (in French).
 
-## ROM
+**▶️ Try it online: <https://ve2cuy.github.io/trs80-emu/>**
 
-Aucune ROM n'est hébergée dans ce dépôt : elles sont © Tandy / Microsoft. La liste
-déroulante de la page ([`www/roms.json`](www/roms.json)) les télécharge, au moment où
-on les choisit, depuis le dépôt tiers
-[kiwisincebirth/TRS-80-ROMS](https://github.com/kiwisincebirth/TRS-80-ROMS) :
+## ROMs
 
-| ROM | Téléchargement |
+No ROM is hosted in this repository: they are © Tandy / Microsoft. The drop-down
+list on the page ([`www/roms.json`](www/roms.json)) downloads them, when you choose
+one, from the third-party repository
+[kiwisincebirth/TRS-80-ROMS](https://github.com/kiwisincebirth/TRS-80-ROMS):
+
+| ROM | Download |
 | --- | --- |
-| Level II 1.3 et 1.2 (Tandy, officielles) | Direct, à un commit épinglé, empreinte SHA-256 vérifiée |
-| Level II 1.3 avec correctifs, Enhanced Level II 1.4 (kiwisincebirth) | Depuis l'archive `.tar` de leur release, que l'utilisateur télécharge puis ouvre dans la page (GitHub n'autorise pas le fureteur à la télécharger lui-même) |
+| Level II 1.3 and 1.2 (Tandy, official) | Direct, from a pinned commit, SHA-256 checksum verified |
+| Level II 1.3 with bug fixes, Enhanced Level II 1.4 (kiwisincebirth) | From their release `.tar` archive, which you download and then open in the page (GitHub does not let the browser download it by itself) |
 
-On peut aussi charger son propre fichier (« Load ROM file… »). Lien direct :
-`?rom=level2-1.3`. La ROM choisie est conservée dans le fureteur.
+You can also load your own file ("Load ROM file…"). Direct link:
+`?rom=level2-1.3`. The chosen ROM is kept in your browser.
 
-## Lancer l'émulateur localement
+## Running the emulator locally
 
-Prérequis (une seule fois) :
+Prerequisites (once):
 
 ```bash
 rustup target add wasm32-unknown-unknown
 cargo install wasm-pack
 ```
 
-Compiler, puis servir le dossier `www/` :
+Build, then serve the `www/` folder:
 
 ```bash
 wasm-pack build crates/web --target web --out-dir ../../www/pkg --no-pack
@@ -41,62 +43,63 @@ cd www
 python -m http.server 8080
 ```
 
-Ouvrir <http://localhost:8080>, choisir une ROM dans la liste (ou votre fichier), puis
-répondre à `MEM SIZE?` avec ENTRÉE.
+Open <http://localhost:8080>, choose a ROM in the list (or your own file), then
+answer `MEM SIZE?` with ENTER.
 
-- Un serveur local est nécessaire : un fureteur refuse de charger un module
-  WebAssembly ouvert directement en `file://`.
-- En développement, une ROM copiée dans `www/rom/level2.rom` (exclue de Git) est
-  chargée automatiquement.
+- A local server is required: browsers refuse to load a WebAssembly module
+  opened directly from `file://`.
+- During development, a ROM copied to `www/rom/level2.rom` (ignored by Git) is
+  loaded automatically.
 
-### Programmes
+### Programs
 
-- **Liste intégrée** : jeux dont l'auteur a autorisé la redistribution (Sea Dragon,
-  Armored Patrol). Voir [www/programs/README.md](www/programs/README.md) avant d'en ajouter.
-- **« Load CMD file… »** : n'importe quel `.CMD` de votre disque; rien n'est envoyé.
-- Lien direct vers un programme : `?program=seadragon`.
+- **Built-in list**: games whose author allowed redistribution (Sea Dragon,
+  Armored Patrol). Read [www/programs/README.md](www/programs/README.md) (in French)
+  before adding one.
+- **"Load CMD file…"**: any `.CMD` file from your disk; nothing is uploaded.
+- Direct link to a program: `?program=seadragon`.
 
-Les appels de fichiers de TRSDOS sont remplacés par des routines minimales : les
-programmes conçus pour disquette démarrent, mais rien n'est enregistré.
+TRSDOS file calls are replaced by minimal routines: programs made for floppy disk
+start, but nothing is saved.
 
-### Clavier
+### Keyboard
 
 | TRS-80 | PC |
 | --- | --- |
-| ENTER | Entrée |
-| BREAK | Échap ou Fin |
-| CLEAR | Origine ou Suppr |
-| ← (effacer) | Retour arrière ou flèche gauche |
-| → (tabulation) | Tab ou flèche droite |
+| ENTER | Enter |
+| BREAK | Esc or End |
+| CLEAR | Home or Delete |
+| ← (backspace) | Backspace or Left arrow |
+| → (tab) | Tab or Right arrow |
 
-Les symboles se tapent comme sur un PC (`"`, `*`, `+`, ...) : l'émulateur
-s'occupe de la touche MAJ du TRS-80, dont la disposition est différente.
+Type symbols as you would on a PC (`"`, `*`, `+`, ...): the emulator handles the
+TRS-80 Shift key, whose layout is different.
 
 ## Structure
 
-| Dossier | Rôle |
+| Folder | Role |
 | --- | --- |
-| `crates/z80` | Cœur Z80 `no_std` : réutilisable en natif, en WebAssembly ou sur microcontrôleur |
-| `crates/trs80` | La machine (`no_std`) : carte mémoire, clavier, vidéo, rendu en pixels |
-| `crates/web` | Liaison WebAssembly (`wasm-bindgen`) |
-| `www/` | La page web : `index.html`, `main.js`, `style.css` |
-| `www/programs/` | Programmes `.CMD` libres de droits et leur liste (`index.json`) |
-| `docs/` | Notes de conception |
+| `crates/z80` | `no_std` Z80 core: reusable natively, in WebAssembly or on a microcontroller |
+| `crates/trs80` | The machine (`no_std`): memory map, keyboard, video, pixel rendering |
+| `crates/web` | WebAssembly binding (`wasm-bindgen`) |
+| `www/` | The web page: `index.html`, `main.js`, `style.css` |
+| `www/programs/` | Freely redistributable `.CMD` programs and their list (`index.json`) |
+| `docs/` | Design notes (in French) |
 
 ## Tests
 
 ```bash
-# Tests rapides : instructions Z80, démarrage de la ROM, session BASIC (si ROM présente)
+# Quick tests: Z80 instructions, ROM boot, BASIC session (if a ROM is present)
 cargo test
 
-# Validation complète du Z80 (ZEXDOC et ZEXALL) : environ 30 secondes
+# Full Z80 validation (ZEXDOC and ZEXALL): about 30 seconds
 cargo test --release -p z80 --test zex -- --ignored --nocapture
 ```
 
-Les tests qui démarrent la ROM Level II l'attendent dans `crates/z80/tests/roms/`.
-Elle **n'est pas fournie** (droit d'auteur Tandy / Microsoft) : voir
-[crates/z80/tests/roms/README.md](crates/z80/tests/roms/README.md).
+The tests that boot the Level II ROM expect it in `crates/z80/tests/roms/`.
+It is **not included** (Tandy / Microsoft copyright): see
+[crates/z80/tests/roms/README.md](crates/z80/tests/roms/README.md) (in French).
 
-## Auteur
+## Author
 
 Alain Boudreault (VE2CUY) — [ve2cuy.github.io](https://ve2cuy.github.io/)
