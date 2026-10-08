@@ -1,0 +1,22 @@
+[
+  {
+    "id": "seadragon",
+    "file": "seadragon.cmd",
+    "title": "Sea Dragon",
+    "year": 1982,
+    "authors": "Wayne Westmoreland & Terry Gilman",
+    "description": "Steer a submarine through an undersea cavern, dodging mines and depth charges.",
+    "controls": "Arrow keys to move, Space to fire. Shift+Break (Shift+Esc) quits.",
+    "license": "Public domain (released by Wayne Westmoreland, 1995)"
+  },
+  {
+    "id": "armored-patrol",
+    "file": "armored-patrol.cmd",
+    "title": "Armored Patrol",
+    "year": 1981,
+    "authors": "Wayne Westmoreland & Terry Gilman",
+    "description": "First-person tank battle in a 3-D landscape.",
+    "controls": "Instructions are shown in the game. Shift+Break (Shift+Esc) quits.",
+    "license": "Public domain (released by Wayne Westmoreland, 1995)"
+  }
+]

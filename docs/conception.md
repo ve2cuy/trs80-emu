@@ -64,8 +64,10 @@ l'utilisateur chargera son propre fichier ROM, conservé ensuite dans IndexedDB.
    ⬜ Reste : interruption 40 Hz de l'interface d'expansion (horloge, `TIME$`).
 5. ✅ Couche web : `wasm-pack`, `<canvas>` 384 × 192 affiché en 4:3, ROM choisie par
    l'utilisateur et conservée dans IndexedDB, Reset, Turbo ×10.
-6. ⬜ Chargement de programmes `.CAS` et `.CMD` (écriture directe en mémoire); boucle
-   de développement avec zmac.
+6. ✅ Chargement de programmes `.CMD` (écriture directe en mémoire, après avoir amené
+   le BASIC à « READY »), routines minimales à la place des appels de fichiers TRSDOS,
+   liste de programmes libres de droits (`www/programs/`). Interface en anglais.
+   ⬜ Reste : fichiers `.CAS` (cassette).
 7. ⬜ Confort : Reset, Turbo, collage de texte, sauvegarde et restauration de l'état.
 8. ⬜ Facultatif : son de la cassette (WebAudio), modification minuscules, disquettes
    (WD1771, images `.DSK` / `.DMK`), Model III.

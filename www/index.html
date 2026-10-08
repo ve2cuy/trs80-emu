@@ -1,23 +1,23 @@
 <!doctype html>
-<html lang="fr-CA">
+<html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>TRS-80 Model 1</title>
+  <title>TRS-80 Model I</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
   <main>
-    <h1>TRS-80 Model 1</h1>
+    <h1>TRS-80 Model I</h1>
 
     <div class="monitor">
       <canvas id="screen" width="384" height="192" tabindex="0"
-              aria-label="Écran du TRS-80 : cliquer puis taper au clavier"></canvas>
+              aria-label="TRS-80 screen: click, then type on your keyboard"></canvas>
       <div id="overlay" class="overlay">
-        <p>Pour démarrer, choisissez votre fichier ROM <strong>Level II</strong> (12 Ko).</p>
-        <p class="small">La ROM n'est pas fournie : elle est protégée par le droit d'auteur.
-          Elle reste dans votre fureteur et n'est envoyée nulle part.</p>
-        <label class="button">Choisir la ROM…
+        <p>To start, choose your <strong>Level II</strong> ROM file (12 KB).</p>
+        <p class="small">The ROM is not included: it is protected by copyright.
+          It stays in your browser and is never uploaded.</p>
+        <label class="button">Choose ROM…
           <input id="rom-file" type="file" accept=".rom,.bin,application/octet-stream" hidden>
         </label>
         <p id="error" class="error" role="alert"></p>
@@ -27,25 +27,47 @@
     <div class="controls">
       <button id="reset" type="button" disabled>Reset</button>
       <label><input id="turbo" type="checkbox"> Turbo (×10)</label>
-      <label class="button secondary">Changer de ROM…
+      <label class="button secondary">Change ROM…
         <input id="rom-change" type="file" accept=".rom,.bin,application/octet-stream" hidden>
       </label>
-      <span id="status" class="status"></span>
+      <span id="speed" class="speed" title="Emulated CPU speed"></span>
     </div>
+    <p id="status" class="status" role="status"></p>
+
+    <section class="programs" aria-labelledby="programs-title">
+      <h2 id="programs-title">Programs</h2>
+      <div class="controls">
+        <label for="program-list">Run a program:</label>
+        <select id="program-list" disabled>
+          <option value="">Choose…</option>
+        </select>
+        <label class="button secondary">Load CMD file…
+          <input id="cmd-file" type="file" accept=".cmd,.CMD" hidden disabled>
+        </label>
+      </div>
+      <div id="program-info" class="program-info" hidden></div>
+    </section>
 
     <details class="help">
-      <summary>Clavier</summary>
+      <summary>Keyboard</summary>
       <table>
         <tr><th>TRS-80</th><th>PC</th></tr>
-        <tr><td>ENTER</td><td>Entrée</td></tr>
-        <tr><td>BREAK</td><td>Échap ou Fin</td></tr>
-        <tr><td>CLEAR</td><td>Origine ou Suppr</td></tr>
-        <tr><td>← (effacer)</td><td>Retour arrière ou flèche gauche</td></tr>
-        <tr><td>→ (tabulation)</td><td>Tab ou flèche droite</td></tr>
-        <tr><td>↑ ↓</td><td>Flèches haut et bas</td></tr>
+        <tr><td>ENTER</td><td>Enter</td></tr>
+        <tr><td>BREAK</td><td>Esc or End</td></tr>
+        <tr><td>CLEAR</td><td>Home or Delete</td></tr>
+        <tr><td>← (backspace)</td><td>Backspace or Left arrow</td></tr>
+        <tr><td>→ (tab)</td><td>Tab or Right arrow</td></tr>
+        <tr><td>↑ ↓</td><td>Up and Down arrows</td></tr>
       </table>
-      <p>Les symboles se tapent comme sur un PC : l'émulateur s'occupe de la touche MAJ du TRS-80.</p>
+      <p>Type symbols as you would on a PC: the emulator handles the TRS-80 Shift key,
+        whose layout is different.</p>
     </details>
+
+    <p class="footer">
+      Written in Rust and WebAssembly ·
+      <a href="https://github.com/ve2cuy/trs80-emu">Source code</a> ·
+      <a href="https://ve2cuy.github.io/blog/">VE2CUY's blog</a>
+    </p>
   </main>
   <script type="module" src="main.js"></script>
 </body>

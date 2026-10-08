@@ -36,6 +36,11 @@ impl Emulator {
         self.machine.reset();
     }
 
+    /// Charge et lance un programme `.CMD`; retourne son adresse de lancement.
+    pub fn load_cmd(&mut self, data: &[u8]) -> Result<u16, JsError> {
+        self.machine.load_cmd(data).map_err(|e| JsError::new(&e.to_string()))
+    }
+
     /// Touche enfoncée, selon `KeyboardEvent.key`. Retourne `true` si la touche
     /// existe sur le TRS-80 (la page annule alors l'action par défaut du fureteur).
     pub fn key_down(&mut self, name: &str) -> bool {

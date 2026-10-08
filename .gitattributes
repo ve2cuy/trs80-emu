@@ -5,3 +5,7 @@
 *.com binary
 *.bin binary
 *.rom binary
+*.cmd binary
+*.CMD binary
+*.cas binary
+*.dsk binary

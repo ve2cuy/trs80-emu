@@ -1,5 +1,6 @@
-// Page de l'émulateur : charge le module WebAssembly, la ROM, puis fait tourner
-// la boucle d'affichage. Toute l'émulation est dans Rust (crates/web).
+// Page de l'émulateur : charge le module WebAssembly, la ROM et les programmes, puis
+// fait tourner la boucle d'affichage. Toute l'émulation est dans Rust (crates/web).
+// Les textes de l'interface sont en anglais.
 
 import init, { Emulator } from './pkg/trs80_web.js';
 
@@ -8,16 +9,21 @@ const ctx = canvas.getContext('2d');
 const overlay = document.getElementById('overlay');
 const errorBox = document.getElementById('error');
 const statusBox = document.getElementById('status');
+const speedBox = document.getElementById('speed');
 const resetButton = document.getElementById('reset');
 const turbo = document.getElementById('turbo');
+const programList = document.getElementById('program-list');
+const programInfo = document.getElementById('program-info');
+const cmdFile = document.getElementById('cmd-file');
 
 // Toute erreur imprévue est affichée sous l'écran plutôt que de figer la page en silence.
-function showError(message) {
-  statusBox.textContent = `Erreur : ${message}`;
-  statusBox.classList.add('error');
+function showStatus(message, isError = false) {
+  statusBox.textContent = message;
+  statusBox.classList.toggle('error', isError);
 }
-window.addEventListener('error', (e) => showError(e.message));
-window.addEventListener('unhandledrejection', (e) => showError(e.reason?.message ?? e.reason));
+window.addEventListener('error', (e) => showStatus(`Error: ${e.message}`, true));
+window.addEventListener('unhandledrejection', (e) =>
+  showStatus(`Error: ${e.reason?.message ?? e.reason}`, true));
 
 const wasm = await init();
 const WIDTH = Emulator.width();
@@ -69,19 +75,25 @@ async function loadDevRom() {
   }
 }
 
+function setRunning(running) {
+  overlay.hidden = running;
+  resetButton.disabled = !running;
+  programList.disabled = !running;
+  cmdFile.disabled = !running;
+}
+
 function start(bytes) {
   try {
     emulator?.free();
     emulator = new Emulator(bytes);
   } catch (e) {
     emulator = null;
-    errorBox.textContent = `ROM refusée : ${e.message ?? e}`;
-    overlay.hidden = false;
+    errorBox.textContent = `ROM rejected: ${e.message ?? e}`;
+    setRunning(false);
     return false;
   }
   errorBox.textContent = '';
-  overlay.hidden = true;
-  resetButton.disabled = false;
+  setRunning(true);
   canvas.focus();
   return true;
 }
@@ -98,15 +110,92 @@ document.getElementById('rom-file').addEventListener('change', onRomFile);
 document.getElementById('rom-change').addEventListener('change', onRomFile);
 resetButton.addEventListener('click', () => { emulator?.reset(); canvas.focus(); });
 
+// ------------------------------------------------------------------ programmes
+
+let programs = [];
+
+async function loadProgramIndex() {
+  try {
+    const res = await fetch('programs/index.json');
+    programs = res.ok ? await res.json() : [];
+  } catch {
+    programs = [];
+  }
+  for (const p of programs) {
+    const option = document.createElement('option');
+    option.value = p.id;
+    option.textContent = `${p.title} (${p.year})`;
+    programList.append(option);
+  }
+}
+
+function runCmd(bytes, label) {
+  if (!emulator) return;
+  try {
+    const entry = emulator.load_cmd(bytes);
+    showStatus(`${label} loaded, started at ${entry.toString(16).toUpperCase().padStart(4, '0')}h`);
+  } catch (e) {
+    showStatus(`Cannot run ${label}: ${e.message ?? e}`, true);
+  }
+  canvas.focus();
+}
+
+function showProgramInfo(p) {
+  programInfo.replaceChildren();
+  if (!p) {
+    programInfo.hidden = true;
+    return;
+  }
+  const lines = [
+    ['strong', `${p.title} (${p.year}) — ${p.authors}`],
+    ['span', p.description],
+    ['span', `Controls: ${p.controls}`],
+    ['span', p.license],
+  ];
+  for (const [tag, text] of lines) {
+    const el = document.createElement(tag);
+    el.textContent = text;
+    programInfo.append(el);
+  }
+  programInfo.hidden = false;
+}
+
+async function runProgram(id) {
+  const p = programs.find((x) => x.id === id);
+  showProgramInfo(p);
+  if (!p) return;
+  try {
+    const res = await fetch(`programs/${p.file}`);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    runCmd(new Uint8Array(await res.arrayBuffer()), p.title);
+  } catch (e) {
+    showStatus(`Cannot download ${p.title}: ${e.message ?? e}`, true);
+  }
+}
+
+programList.addEventListener('change', () => runProgram(programList.value));
+
+cmdFile.addEventListener('change', async (event) => {
+  const file = event.target.files[0];
+  if (!file) return;
+  programList.value = '';
+  showProgramInfo(null);
+  runCmd(new Uint8Array(await file.arrayBuffer()), file.name);
+  event.target.value = '';
+});
+
 // ------------------------------------------------------------------ clavier
 
 // La touche relâchée peut avoir un autre nom que la touche enfoncée (ex. : « a » puis « A »
 // si MAJ a été enfoncée entre-temps) : on mémorise le nom par touche physique.
 const pressed = new Map();
 
+function typingInForm(target) {
+  return target instanceof HTMLInputElement || target instanceof HTMLSelectElement;
+}
+
 window.addEventListener('keydown', (e) => {
-  if (!emulator || e.ctrlKey || e.altKey || e.metaKey) return;
-  if (e.target instanceof HTMLInputElement) return;
+  if (!emulator || e.ctrlKey || e.altKey || e.metaKey || typingInForm(e.target)) return;
   if (e.repeat) { e.preventDefault(); return; }
   if (emulator.key_down(e.key)) {
     pressed.set(e.code, e.key);
@@ -154,8 +243,8 @@ function loop(now) {
       fpsFrames += frames;
     }
     if (now - fpsTime >= 1000) {
-      const mhz = (fpsFrames * (turbo.checked ? 10 : 1) * Emulator.clock_hz() / 60 / 1e6).toFixed(2);
-      statusBox.textContent = `${mhz} MHz émulés`;
+      const mhz = fpsFrames * (turbo.checked ? 10 : 1) * Emulator.clock_hz() / 60 / 1e6;
+      speedBox.textContent = `${mhz.toFixed(2)} MHz`;
       fpsFrames = 0;
       fpsTime = now;
     }
@@ -164,10 +253,18 @@ function loop(now) {
   requestAnimationFrame(loop);
 }
 
+await loadProgramIndex();
 const saved = (await loadDevRom()) ?? (await loadSavedRom());
 if (saved && start(saved)) {
+  const params = new URLSearchParams(location.search);
+  // Lien direct vers un programme : ?program=seadragon
+  const program = params.get('program');
+  if (program) {
+    programList.value = program;
+    await runProgram(program);
+  }
   // Développement : ?frames=N exécute N images dès le chargement (captures d'écran, tests).
-  const warmup = Number(new URLSearchParams(location.search).get('frames') ?? 0);
+  const warmup = Number(params.get('frames') ?? 0);
   if (warmup > 0) {
     emulator.run_frames(warmup);
     draw();

@@ -83,7 +83,36 @@ button, .button {
 .button.secondary, button:disabled { background: var(--panel); color: var(--text); }
 button:disabled { cursor: default; opacity: 0.6; }
 
-.status { color: var(--muted); font-size: 0.9rem; margin-left: auto; }
+.speed { color: var(--muted); font-size: 0.9rem; margin-left: auto; }
+.status { color: var(--muted); font-size: 0.9rem; min-height: 1.4em; margin: 8px 0 0; }
+.status.error { color: var(--error); }
+
+h2 { font-size: 1.1rem; margin: 20px 0 4px; }
+
+select {
+  padding: 6px 8px;
+  border-radius: 6px;
+  border: 1px solid #4a4e57;
+  background: var(--panel);
+  color: var(--text);
+  font: inherit;
+}
+
+.program-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-top: 10px;
+  padding: 10px 12px;
+  border-left: 3px solid var(--accent);
+  background: var(--panel);
+  font-size: 0.95rem;
+}
+
+.program-info[hidden] { display: none; }
+
+.footer { margin-top: 24px; color: var(--muted); font-size: 0.85rem; }
+.footer a { color: var(--accent); }
 
 .help { margin-top: 16px; color: var(--muted); }
 .help table { border-collapse: collapse; margin: 8px 0; }
