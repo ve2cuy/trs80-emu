@@ -7,7 +7,9 @@ web (WebAssembly).
 > semi-graphiques. À venir : cassette, programmes `.CMD`, disquettes.
 > Voir [docs/conception.md](docs/conception.md).
 
-## Lancer l'émulateur dans le fureteur
+**▶️ Essayer en ligne : <https://ve2cuy.github.io/trs80-emu/>** (vous fournissez votre ROM Level II).
+
+## Lancer l'émulateur localement
 
 Prérequis (une seule fois) :
 

@@ -1,0 +1,54 @@
+# Compile l'émulateur en WebAssembly et publie www/ sur GitHub Pages à chaque push sur main.
+# Aucune ROM n'est publiée : chaque visiteur fournit la sienne.
+name: GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: wasm-pack
+
+      - name: Tests (sans ROM, les tests de démarrage sont ignorés)
+        run: cargo test --workspace
+
+      - name: Compilation WebAssembly
+        run: wasm-pack build crates/web --target web --out-dir ../../www/pkg --no-pack
+
+      - name: Nettoyage
+        run: rm -f www/pkg/.gitignore
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: www
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

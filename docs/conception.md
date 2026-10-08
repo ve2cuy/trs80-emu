@@ -69,7 +69,8 @@ l'utilisateur chargera son propre fichier ROM, conservé ensuite dans IndexedDB.
 7. ⬜ Confort : Reset, Turbo, collage de texte, sauvegarde et restauration de l'état.
 8. ⬜ Facultatif : son de la cassette (WebAudio), modification minuscules, disquettes
    (WD1771, images `.DSK` / `.DMK`), Model III.
-9. ⬜ Déploiement GitHub Pages par une GitHub Action.
+9. ✅ Déploiement GitHub Pages par une GitHub Action (`.github/workflows/pages.yml`) :
+   <https://ve2cuy.github.io/trs80-emu/>
 
 ## Références
 
