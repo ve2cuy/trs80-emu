@@ -33,6 +33,9 @@ jobs:
       - name: Tests (sans ROM, les tests de démarrage sont ignorés)
         run: cargo test --workspace
 
+      - name: Liste des disquettes publiées à jour
+        run: python3 www/disks/make_index.py --check
+
       - name: Compilation WebAssembly
         run: wasm-pack build crates/web --target web --out-dir ../../www/pkg --no-pack
 

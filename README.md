@@ -88,8 +88,12 @@ start, but nothing is saved.
 - **"Boot a disk"**: LDOS 5.3.1, freely redistributable (see [www/disks/README.md](www/disks/README.md)).
   At boot, enter a date from its era, e.g. `10/08/91`. Direct link: `?disk=ldos-531`.
 - **Local disks** (development): disks you may not publish (e.g. TRSDOS) go in
-  `www/disks/local/` with an `index.json` like `www/disks/index.json`; this folder is
-  ignored by Git and its disks appear in "Boot a disk" marked "local".
+  `www/disks/local/`; this folder is ignored by Git and its disks appear in "Boot a
+  disk" marked "local" (with `python serve.py`).
+- **Disk lists**: after adding or removing images in `www/disks/` or `www/disks/local/`,
+  run `python www/disks/make_index.py`. It updates both `index.json` files (new images
+  get an entry, entries of missing images are removed, existing titles and
+  descriptions are kept). Only put images you may redistribute in `www/disks/`.
 - **Drives 0 to 3**: "Insert…" any JV1, JV3 or DMK image, "Eject", and "Save" to download
   a disk modified by the TRS-80 (JV1 and JV3). Drive 0 is the boot drive: inserting a disk
   there restarts the TRS-80 on it.

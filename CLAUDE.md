@@ -21,6 +21,8 @@ départ, si plus de contexte est nécessaire.
 - `crates/z80/tests/zex/` : ZEXDOC et ZEXALL (GPL, versionnés). Le cœur Z80 ne dépend
   d'aucun fichier de `crates/trs80`.
 - Licence Apache 2.0; les fichiers de tiers sont listés dans `NOTICE` (à tenir à jour).
+- Listes de « Boot a disk » : `python www/disks/make_index.py` (publiées et locales);
+  la GitHub Action lance `--check`.
 - Disquettes publiées (`www/disks/`) : seulement avec une autorisation vérifiable; LDOS 5.3.1
   exige de conserver l'avis de MISOSYS (voir `www/disks/README.md`).
 - **Ne jamais committer de ROM TRS-80** (droit d'auteur, y compris les versions modifiées

@@ -87,9 +87,13 @@ programmes conçus pour disquette démarrent, mais rien n'est enregistré.
 - **« Boot a disk »** : LDOS 5.3.1, redistribuable (voir [www/disks/README.md](www/disks/README.md)).
   Au démarrage, entrer une date de son époque, ex. `10/08/91`. Lien direct : `?disk=ldos-531`.
 - **Disquettes locales** (développement) : les disquettes qu'on ne peut pas publier
-  (ex. TRSDOS) vont dans `www/disks/local/` avec un `index.json` comme celui de
-  `www/disks/`; ce dossier est exclu de Git et ses disquettes apparaissent dans
-  « Boot a disk », marquées « local ».
+  (ex. TRSDOS) vont dans `www/disks/local/`; ce dossier est exclu de Git et ses
+  disquettes apparaissent dans « Boot a disk », marquées « local » (avec `python serve.py`).
+- **Listes de disquettes** : après avoir ajouté ou retiré des images dans `www/disks/` ou
+  `www/disks/local/`, lancer `python www/disks/make_index.py`. Il met à jour les deux
+  `index.json` (une entrée pour chaque nouvelle image, retrait des images absentes, titres
+  et descriptions existants conservés). Ne placer dans `www/disks/` que des images dont la
+  redistribution est autorisée.
 - **Lecteurs 0 à 3** : « Insert… » pour une image JV1, JV3 ou DMK, « Eject », et « Save » pour
   récupérer une disquette modifiée par le TRS-80 (JV1 et JV3). Le lecteur 0 sert au
   démarrage : y insérer une disquette redémarre le TRS-80 dessus.

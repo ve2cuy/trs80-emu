@@ -7,6 +7,17 @@ Comme pour les programmes, seules des disquettes dont la redistribution est
 | --- | --- | --- |
 | `ldos-531.dsk` | LDOS 5.3.1 pour le Model I, disquette système | JV1, 35 pistes, simple densité |
 
+## Ajouter une disquette
+
+Copier l'image dans ce dossier (publiée) ou dans `local/` (non publiée), puis :
+
+    python www/disks/make_index.py
+
+Le script met à jour `index.json` et `local/index.json` : une entrée pour chaque nouvelle
+image (titre tiré du nom de fichier, à compléter au besoin), retrait des images absentes.
+Les titres, descriptions et licences déjà écrits sont conservés. La GitHub Action vérifie
+que `index.json` correspond aux fichiers publiés (`make_index.py --check`).
+
 ## LDOS 5.3.1
 
 Copyright 1991 MISOSYS, Inc. Fichier `ld1-531.dsk` de l'archive `ld1-531.zip`
