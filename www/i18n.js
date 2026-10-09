@@ -1247,6 +1247,12 @@ Object.assign(STRINGS.zh, {
   'asm.svc.@DATE': '把日期 MM/DD/YY 放到 HL（8 字节）',
 });
 
+// ---------------------------------------------------------------- modèles
+Object.assign(STRINGS.en, { 'model.label': 'Model', 'model.1': 'TRS-80 Model I', 'model.3': 'TRS-80 Model III', 'model.4': 'TRS-80 Model 4' });
+Object.assign(STRINGS.fr, { 'model.label': 'Modèle', 'model.1': 'TRS-80 Model I', 'model.3': 'TRS-80 Model III', 'model.4': 'TRS-80 Model 4' });
+Object.assign(STRINGS.es, { 'model.label': 'Modelo', 'model.1': 'TRS-80 Model I', 'model.3': 'TRS-80 Model III', 'model.4': 'TRS-80 Model 4' });
+Object.assign(STRINGS.zh, { 'model.label': '型号', 'model.1': 'TRS-80 Model I', 'model.3': 'TRS-80 Model III', 'model.4': 'TRS-80 Model 4' });
+
 let lang = 'en';
 
 /** Langue préférée du fureteur parmi celles offertes, sinon l'anglais. */

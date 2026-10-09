@@ -22,6 +22,9 @@ enum State {
 }
 
 pub(crate) struct Typer {
+    /// Images pendant lesquelles une touche reste enfoncée, puis pause (voir HOLD et GAP).
+    hold: u8,
+    gap: u8,
     queue: [u8; CAPACITY],
     head: usize,
     len: usize,
@@ -30,7 +33,7 @@ pub(crate) struct Typer {
 
 impl Typer {
     pub(crate) fn new() -> Self {
-        Typer { queue: [0; CAPACITY], head: 0, len: 0, state: State::Idle }
+        Typer { hold: HOLD, gap: GAP, queue: [0; CAPACITY], head: 0, len: 0, state: State::Idle }
     }
 
     /// Ajoute du texte à taper; retourne le nombre de caractères acceptés. Les fins de ligne
@@ -54,6 +57,13 @@ impl Typer {
             accepted += 1;
         }
         accepted
+    }
+
+    /// Durées plus longues pour les systèmes qui lisent le clavier moins souvent (le Model III
+    /// le lit à chaque interruption d'horloge, 30 fois par seconde).
+    pub(crate) fn set_timing(&mut self, hold: u8, gap: u8) {
+        self.hold = hold;
+        self.gap = gap;
     }
 
     pub(crate) fn busy(&self) -> bool {
@@ -84,7 +94,7 @@ impl Typer {
                 Some(b) => {
                     let key = key_for(b).expect("caractère validé par push");
                     keyboard.press(key);
-                    State::Down { key, frames: HOLD, enter: b == b'\n' }
+                    State::Down { key, frames: self.hold, enter: b == b'\n' }
                 }
                 None => State::Idle,
             },
@@ -93,7 +103,7 @@ impl Typer {
             }
             State::Down { key, enter, .. } => {
                 keyboard.release(key);
-                State::Gap { frames: if enter { ENTER_GAP } else { GAP } }
+                State::Gap { frames: if enter { ENTER_GAP } else { self.gap } }
             }
             State::Gap { frames } if frames > 1 => State::Gap { frames: frames - 1 },
             State::Gap { .. } => State::Idle,

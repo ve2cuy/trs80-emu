@@ -20,7 +20,8 @@
         "title": "LDOS 5.3.1（系统盘）",
         "description": "LDOS 的 Model I 版本。启动时输入那个年代的日期（例如 10/08/91），然后输入时间。可以试试 DIR、FREE、LIB。"
       }
-    }
+    },
+    "model": 1
   },
   {
     "id": "ldos-531-dd",
@@ -43,6 +44,7 @@
         "title": "LDOS 5.3.1 双密度（完整系统）",
         "description": "180 KB 双密度软盘上的 LDOS（Radio Shack 倍密器，0 磁道为单密度以便启动），包含两张 LDOS 软盘的全部文件：帮助（HELP DIR）、BASIC、实用工具。在本模拟器中用 LDOS 自身制作（FDUBL、FORMAT、BACKUP、SYSGEN、SOLE）。启动时输入那个年代的日期，例如 10/08/91。"
       }
-    }
+    },
+    "model": 1
   }
 ]

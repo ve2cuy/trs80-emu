@@ -44,6 +44,23 @@ Fonts are condensed to fit the narrow 64 × 16 grid; semigraphics are unchanged.
 Web fonts are downloaded from Google Fonts only when chosen. Direct link:
 `?font=vt323`.
 
+## Models
+
+The "Model" list (Machine section) chooses the computer; direct link `?model=3`:
+
+- **Model I**: Level II ROM (12 KB), expansion interface (40 Hz clock, floppy disks).
+- **Model III**: 14 KB ROM (Model III rev. C, downloaded from kiwisincebirth/TRS-80-ROMS),
+  lowercase, WD1793 floppy controller on ports F0h-F4h with NMI, 30 Hz clock. Tested with
+  TRSDOS 1.3.
+- **Model 4**: the Model III ROM plus 128 KB of RAM in banks, the four memory maps and the
+  80 × 24 screen (port 84h), 4 MHz and 60 Hz clock. TRSDOS 6 / LS-DOS boots in Model 4 mode
+  (tested with TRSDOS 6.2.1).
+
+Not emulated yet: Model II; Model 4 RS-232, sound board and graphics board; the Model III
+special characters (C0h-FFh are shown as graphics blocks). Model III and 4 system disks are
+not published here (copyright): put yours in `www/disks/local/` with `"model": 3` or `4` in
+`index.json`.
+
 ## Interface
 
 - **Side menu**: Machine (ROM, expansion interface, sound, disk drive sounds), Programs,

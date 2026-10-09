@@ -117,6 +117,11 @@ pub(crate) struct Fdc {
     now: u64,
     /// Commande de type I en cours : fin prévue et état final.
     pending: Option<(u64, u8)>,
+    /// Doubleurs de densité du Model I (Percom : commandes FEh/FFh; Radio Shack : registre
+    /// de secteur). Sur le Model III, la densité vient du port F4h (`set_density`).
+    pub(crate) doubler: bool,
+    /// Face choisie (Model III et 4 : bit 4 du port F4h).
+    pub(crate) side: u8,
     /// Compteurs cumulatifs (qui reviennent à zéro après u32::MAX) pour le bruit des
     /// lecteurs : pas de la tête, et accès (commandes, sélections qui démarrent le moteur).
     pub(crate) steps: u32,
@@ -144,6 +149,8 @@ impl Fdc {
             trace: Vec::new(),
             now: 0,
             pending: None,
+            doubler: true,
+            side: 0,
             steps: 0,
             accesses: 0,
         }
@@ -175,6 +182,11 @@ impl Fdc {
         self.intrq = false;
         self.type_one(0x03);
         self.intrq = false;
+    }
+
+    /// Densité choisie par la machine (Model III : bit 7 du port F4h).
+    pub(crate) fn set_density(&mut self, dd: bool) {
+        self.wd1791 = dd;
     }
 
     /// Double densité active ?
@@ -220,8 +232,8 @@ impl Fdc {
             2 => {
                 // Doubleur Radio Shack : sélection du contrôleur par le registre de secteur.
                 match val & 0xE0 {
-                    0x80 => self.wd1791 = true,
-                    0xA0 => self.wd1791 = false,
+                    0x80 if self.doubler => self.wd1791 = true,
+                    0xA0 if self.doubler => self.wd1791 = false,
                     _ => {}
                 }
                 self.sector = val;
@@ -289,7 +301,7 @@ impl Fdc {
             }
             // Doubleur Percom : FEh = WD1771, FFh = WD1791. Se comporte comme une
             // interruption forcée, sans demande d'interruption.
-            _ if cmd >= 0xFE => {
+            _ if cmd >= 0xFE && self.doubler => {
                 self.wd1791 = cmd == 0xFF;
                 self.type1 = true;
                 self.transfer = Transfer::None;
@@ -343,7 +355,7 @@ impl Fdc {
             }
             // Vérification : un secteur de la piste porte-t-il le bon numéro de piste ?
             if cmd & 0x04 != 0
-                && disk.on_track(self.head[d], 0, self.wd1791).next().is_none_or(|(_, s)| s.track != self.track)
+                && disk.on_track(self.head[d], self.side, self.wd1791).next().is_none_or(|(_, s)| s.track != self.track)
             {
                 status |= NOT_FOUND;
             }
@@ -376,7 +388,7 @@ impl Fdc {
     /// Le secteur demandé, sur la piste où se trouve la tête et dans la densité active.
     fn locate(&self) -> Option<usize> {
         let disk = self.disk()?;
-        disk.find(self.track, 0, self.sector, self.wd1791)
+        disk.find(self.track, self.side, self.sector, self.wd1791)
     }
 
     fn read_sector(&mut self, multiple: bool) {
@@ -497,7 +509,7 @@ impl Fdc {
                 let sectors = Self::parse_track(&self.buffer, self.wd1791);
                 let head = self.head[self.selected];
                 if let Some(disk) = self.drives[self.selected].as_mut() {
-                    disk.format_track(head, 0, sectors);
+                    disk.format_track(head, self.side, sectors);
                 }
                 self.finish(0);
             }
@@ -525,7 +537,7 @@ impl Fdc {
             return self.finish(NOT_READY);
         };
         let head = self.head[self.selected];
-        let on_track: Vec<_> = disk.on_track(head, 0, self.wd1791).map(|(_, s)| *s).collect();
+        let on_track: Vec<_> = disk.on_track(head, self.side, self.wd1791).map(|(_, s)| *s).collect();
         if on_track.is_empty() {
             return self.finish(NOT_FOUND);
         }

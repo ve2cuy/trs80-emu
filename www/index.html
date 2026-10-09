@@ -70,7 +70,7 @@
           </g></svg>
         </div>
         <div class="sb-title">
-          <strong>TRS-80 Model I</strong>
+          <strong class="machine-name">TRS-80 Model I</strong>
           <span data-i18n="app.byline">Emulator by VE2CUY</span>
         </div>
         <button id="sb-collapse" type="button" class="sb-collapse" aria-label="Collapse the menu" title="Collapse the menu">
@@ -91,6 +91,13 @@
             <span class="label" data-i18n="nav.machine">Machine</span>
           </button>
           <div id="panel-machine" class="nav-panel" hidden>
+            <label class="field"><span data-i18n="model.label">Model</span>
+              <select id="model-list">
+                <option value="1" data-i18n="model.1">TRS-80 Model I</option>
+                <option value="3" data-i18n="model.3">TRS-80 Model III</option>
+                <option value="4" data-i18n="model.4">TRS-80 Model 4</option>
+              </select>
+            </label>
             <label class="field"><span data-i18n="rom.label">ROM</span>
               <select id="rom-list"><option value="" data-i18n="choose">Choose…</option></select>
             </label>
@@ -295,7 +302,7 @@
         <button id="menu-button" type="button" class="icon-button menu-button" aria-label="Open the menu" data-i18n-aria="menu.open" aria-controls="sidebar">
           <svg class="icon"><use href="#i-menu"/></svg>
         </button>
-        <h1>TRS-80 Model I</h1>
+        <h1 class="machine-name">TRS-80 Model I</h1>
         <div class="toolbar-actions">
           <span id="speed" class="speed" title="Emulated CPU speed" data-i18n-title="speed.tip"></span>
           <label class="switch compact" title="Run ten times faster" data-i18n-title="turbo.tip"><input id="turbo" type="checkbox"><span class="knob"></span><span data-i18n="turbo">Turbo</span></label>

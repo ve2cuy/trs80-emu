@@ -1,10 +1,8 @@
-//! Son : la sortie cassette du Model I (bits 0-1 du port FFh) sert de haut-parleur.
+//! Son : la sortie cassette (bits 0-1 du port FFh) sert de haut-parleur.
 //! Les programmes font du son en basculant ces bits; on en tire des échantillons audio.
 //!
 //! Le niveau de sortie est moyenné entre deux échantillons (filtre « boîte »), puis un
 //! filtre passe-haut retire la composante continue (pas de clic quand le son s'arrête).
-
-use crate::CLOCK_HZ;
 
 /// Échantillons conservés entre deux lectures par l'hôte (environ 0,18 s à 44,1 kHz).
 pub const AUDIO_CAPACITY: usize = 8192;
@@ -23,9 +21,16 @@ pub(crate) struct Audio {
     phase: u64,
     prev_in: f32,
     prev_out: f32,
+    /// Fréquence du processeur (T-states par seconde).
+    clock: u64,
 }
 
 impl Audio {
+    /// Fréquence du processeur de la machine (T-states par seconde).
+    pub(crate) fn set_clock(&mut self, hz: u32) {
+        self.clock = hz as u64;
+    }
+
     pub(crate) fn new() -> Self {
         Audio {
             rate: 0,
@@ -36,6 +41,7 @@ impl Audio {
             phase: 0,
             prev_in: 0.0,
             prev_out: 0.0,
+            clock: crate::CLOCK_HZ as u64,
         }
     }
 
@@ -62,8 +68,8 @@ impl Audio {
         self.sum += level * t as f32;
         self.cycles += t;
         self.phase += t as u64 * self.rate as u64;
-        while self.phase >= CLOCK_HZ as u64 {
-            self.phase -= CLOCK_HZ as u64;
+        while self.phase >= self.clock {
+            self.phase -= self.clock;
             let x = if self.cycles > 0 { self.sum / self.cycles as f32 } else { level };
             self.sum = 0.0;
             self.cycles = 0;

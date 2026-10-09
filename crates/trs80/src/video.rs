@@ -1,66 +1,117 @@
-//! Affichage : 16 lignes de 64 caractères, chaque cellule fait 6 × 12 pixels.
+//! Affichage : 16 lignes de 64 caractères (cellules de 6 × 12 pixels), ou 24 lignes de 80
+//! caractères sur le Model 4 (cellules de 8 × 10 pixels).
 //!
-//! - Codes 00h-7Fh : caractères. Sans la modification minuscules, la mémoire vidéo
-//!   n'a pas de bit 6 : 00h-1Fh et 60h-7Fh s'affichent comme les majuscules 40h-5Fh.
-//! - Codes 80h-FFh : blocs semi-graphiques 2 × 3 (bits 0-5), 3 × 4 pixels chacun.
+//! - Codes 00h-7Fh : caractères. Sans la modification minuscules, la mémoire vidéo du
+//!   Model I n'a pas de bit 6 : 00h-1Fh et 60h-7Fh s'affichent comme les majuscules 40h-5Fh.
+//!   Les Model III et 4 affichent les minuscules (60h-7Fh).
+//! - Codes 80h-FFh : blocs semi-graphiques 2 × 3 (bits 0-5). Model 4 en vidéo inversée :
+//!   le caractère 00h-7Fh correspondant, en inverse. (Sur les Model III et 4, C0h-FFh sont
+//!   des caractères spéciaux; ils s'affichent ici comme des blocs.)
 //! - Mode 32 caractères : seules les colonnes paires s'affichent, en double largeur.
 
-use crate::font::FONT;
+use crate::font::{FONT, LOWER};
 
-pub const SCREEN_WIDTH: usize = 64 * CELL_W;
-pub const SCREEN_HEIGHT: usize = 16 * CELL_H;
+/// Taille de l'image en 64 × 16 (et taille maximale : voir `MAX_WIDTH`).
+pub const SCREEN_WIDTH: usize = 64 * 6;
+pub const SCREEN_HEIGHT: usize = 16 * 12;
+/// Image la plus grande (80 × 24 du Model 4) : taille du tampon d'affichage à prévoir.
+pub const MAX_WIDTH: usize = 80 * 8;
+pub const MAX_HEIGHT: usize = 24 * 10;
 
-const CELL_W: usize = 6;
-const CELL_H: usize = 12;
-/// Ligne où commence le caractère de 5 × 7 dans sa cellule.
-const GLYPH_TOP: usize = 2;
+/// Géométrie d'un mode texte.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct Mode {
+    pub cols: usize,
+    pub rows: usize,
+    cell_w: usize,
+    cell_h: usize,
+    /// Position du caractère de 5 × 7 dans sa cellule.
+    glyph_x: usize,
+    glyph_y: usize,
+}
+
+impl Mode {
+    pub fn width(&self) -> usize {
+        self.cols * self.cell_w
+    }
+
+    pub fn height(&self) -> usize {
+        self.rows * self.cell_h
+    }
+
+    /// Rangée (0 à 2) d'un bloc semi-graphique pour la ligne `y` de la cellule.
+    fn block_row(&self, y: usize) -> usize {
+        if self.cell_h == 12 { y / 4 } else { [0, 0, 0, 1, 1, 1, 1, 2, 2, 2][y] }
+    }
+}
+
+pub const MODE64: Mode = Mode { cols: 64, rows: 16, cell_w: 6, cell_h: 12, glyph_x: 0, glyph_y: 2 };
+pub const MODE80: Mode = Mode { cols: 80, rows: 24, cell_w: 8, cell_h: 10, glyph_x: 1, glyph_y: 1 };
 
 /// Phosphore blanc légèrement bleuté sur fond noir.
 const FG: [u8; 4] = [0xE6, 0xEE, 0xFF, 0xFF];
 const BG: [u8; 4] = [0x08, 0x08, 0x0A, 0xFF];
 
-/// Code ASCII (20h-5Fh) réellement affiché pour un code de caractère.
-fn ascii(code: u8) -> u8 {
+/// Code ASCII (20h-7Fh) réellement affiché pour un code de caractère.
+fn ascii(code: u8, lowercase: bool) -> u8 {
     match code & 0x7F {
         c @ 0x00..=0x1F => c + 0x40,
-        c @ 0x60..=0x7F => c - 0x20,
+        c @ 0x60..=0x7F if !lowercase => c - 0x20,
         c => c,
     }
 }
 
 /// Caractère affiché pour un octet de la mémoire vidéo (blocs graphiques : espace).
-pub(crate) fn display_char(code: u8) -> char {
-    if code & 0x80 != 0 { ' ' } else { ascii(code) as char }
+pub(crate) fn display_char(code: u8, lowercase: bool, inverse: bool) -> char {
+    if code & 0x80 != 0 && !inverse { ' ' } else { ascii(code, lowercase) as char }
 }
 
-/// Le pixel (x, y) d'une cellule (6 × 12) est-il allumé ?
-/// Avec `text` faux, les caractères ne sont pas dessinés (seulement les blocs graphiques).
-fn cell_pixel(code: u8, x: usize, y: usize, text: bool) -> bool {
-    if code & 0x80 != 0 {
-        let bit = (y / 4) * 2 + x / 3;
-        code & (1 << bit) != 0
-    } else if text && x < 5 && (GLYPH_TOP..GLYPH_TOP + 7).contains(&y) {
-        let row = FONT[(ascii(code) - 0x20) as usize][y - GLYPH_TOP];
-        row & (0x10 >> x) != 0
-    } else {
-        false
+/// Le pixel (x, y) du caractère `c` (20h-7Fh), relatif au coin de son dessin de 5 × 8.
+fn glyph_pixel(c: u8, x: usize, y: usize) -> bool {
+    if x >= 5 {
+        return false;
     }
+    let row = if c >= 0x60 {
+        LOWER[(c - 0x60) as usize].get(y).copied().unwrap_or(0)
+    } else {
+        FONT[(c - 0x20) as usize].get(y).copied().unwrap_or(0)
+    };
+    row & (0x10 >> x) != 0
 }
 
-pub(crate) fn render(video: &[u8; 1024], wide: bool, text: bool, out: &mut [u8]) {
-    assert!(out.len() >= SCREEN_WIDTH * SCREEN_HEIGHT * 4, "tampon d'affichage trop petit");
-    for y in 0..SCREEN_HEIGHT {
-        let row = y / CELL_H;
-        let cy = y % CELL_H;
-        for x in 0..SCREEN_WIDTH {
+/// Le pixel (x, y) d'une cellule est-il allumé ? Avec `text` faux, les caractères ne sont
+/// pas dessinés (seulement les blocs graphiques et le fond des caractères inversés).
+fn cell_pixel(code: u8, x: usize, y: usize, m: &Mode, text: bool, lowercase: bool, inverse: bool) -> bool {
+    if code & 0x80 != 0 && !inverse {
+        let bit = m.block_row(y) * 2 + x * 2 / m.cell_w;
+        return code & (1 << bit) != 0;
+    }
+    let inverted = code & 0x80 != 0;
+    let lit = text
+        && x >= m.glyph_x
+        && y >= m.glyph_y
+        && glyph_pixel(ascii(code, lowercase), x - m.glyph_x, y - m.glyph_y);
+    lit != inverted
+}
+
+/// Dessine l'écran dans `out` (RGBA, `m.width()` × `m.height()`). `video` contient les
+/// `m.cols × m.rows` caractères affichés, ligne par ligne.
+pub(crate) fn render(video: &[u8], m: &Mode, wide: bool, text: bool, lowercase: bool, inverse: bool, out: &mut [u8]) {
+    let (w, h) = (m.width(), m.height());
+    assert!(out.len() >= w * h * 4, "tampon d'affichage trop petit");
+    for y in 0..h {
+        let row = y / m.cell_h;
+        let cy = y % m.cell_h;
+        for x in 0..w {
             let (col, cx) = if wide {
-                // Double largeur : une cellule de 12 pixels par colonne paire.
-                ((x / (2 * CELL_W)) * 2, (x % (2 * CELL_W)) / 2)
+                // Double largeur : une cellule de deux largeurs par colonne paire.
+                ((x / (2 * m.cell_w)) * 2, (x % (2 * m.cell_w)) / 2)
             } else {
-                (x / CELL_W, x % CELL_W)
+                (x / m.cell_w, x % m.cell_w)
             };
-            let on = cell_pixel(video[row * 64 + col], cx, cy, text);
-            let i = (y * SCREEN_WIDTH + x) * 4;
+            let code = video.get(row * m.cols + col).copied().unwrap_or(0x20);
+            let on = cell_pixel(code, cx, cy, m, text, lowercase, inverse);
+            let i = (y * w + x) * 4;
             out[i..i + 4].copy_from_slice(if on { &FG } else { &BG });
         }
     }

@@ -47,6 +47,7 @@ const prefs = {
   repo: 'https://ve2cuy.com/trs80', // dépôt externe (dossiers rom, disk, cmd, bas)
   repoKind: 'rom',
   lang: null,           // langue de l'interface (null : celle du fureteur)
+  model: 1,             // modèle émulé : 1, 3 ou 4
   ...readPrefs(),
 };
 
@@ -223,8 +224,6 @@ document.documentElement.classList.add('js-ready');
 function failure(e) {
   return e instanceof TypeError ? t('net.blocked') : (e.message ?? e);
 }
-const WIDTH = Emulator.width();
-const HEIGHT = Emulator.height();
 
 let emulator = null;
 
@@ -265,15 +264,25 @@ async function dbRequest(store, mode, operation) {
 
 // Valeur conservée : { id, bytes } (id = entrée de roms.json, ou 'custom' pour un fichier
 // de l'utilisateur). Les versions précédentes conservaient seulement les octets.
+/** Famille de ROM du modèle choisi : 1 (Model I) ou 3 (Model III, aussi pour le Model 4). */
+function romFamily() {
+  return prefs.model === 1 ? 1 : 3;
+}
+
+/** Clé de la ROM conservée (la ROM du Model I garde sa clé d'origine). */
+function romKey() {
+  return romFamily() === 1 ? 'level2' : 'model3';
+}
+
 async function saveRom(id, bytes) {
   try {
-    await dbRequest('roms', 'readwrite', (s) => s.put({ id, bytes }, 'level2'));
+    await dbRequest('roms', 'readwrite', (s) => s.put({ id, bytes }, romKey()));
   } catch { /* stockage indisponible (navigation privée) : on s'en passe */ }
 }
 
 async function loadSavedRom() {
   try {
-    const value = await dbRequest('roms', 'readonly', (s) => s.get('level2'));
+    const value = await dbRequest('roms', 'readonly', (s) => s.get(romKey()));
     if (value instanceof Uint8Array) return { id: 'custom', bytes: value };
     return value ?? null;
   } catch {
@@ -284,7 +293,7 @@ async function loadSavedRom() {
 // En développement : une ROM placée dans www/rom/level2.rom (exclue de Git) est chargée d'office.
 async function loadDevRom() {
   try {
-    const res = await fetch('rom/level2.rom');
+    const res = await fetch(romFamily() === 1 ? 'rom/level2.rom' : 'rom/model3.rom');
     return res.ok ? { id: 'custom', bytes: new Uint8Array(await res.arrayBuffer()) } : null;
   } catch {
     return null;
@@ -293,7 +302,8 @@ async function loadDevRom() {
 
 // ROM proposées (roms.json) : téléchargées chez un tiers quand on les choisit, ou au premier
 // démarrage pour la ROM par défaut.
-const DEFAULT_ROM = 'level2-1.3';
+const DEFAULT_ROMS = { 1: 'level2-1.3', 3: 'model3-revc' };
+const defaultRom = () => DEFAULT_ROMS[romFamily()];
 const romList = document.getElementById('rom-list');
 const romTar = document.getElementById('rom-tar');
 const romTarMember = document.getElementById('rom-tar-member');
@@ -306,7 +316,13 @@ async function loadRomIndex() {
   } catch {
     roms = [];
   }
-  for (const r of roms) {
+  fillRomList();
+}
+
+/** Liste des ROM du modèle choisi (le Model 4 utilise celles du Model III). */
+function fillRomList() {
+  romList.replaceChildren(romList.options[0]);
+  for (const r of roms.filter((x) => (x.model ?? 1) === romFamily())) {
     romList.append(new Option(localized(r, 'title'), r.id));
   }
 }
@@ -379,6 +395,46 @@ async function chooseListedRom(id) {
 
 romList.addEventListener('change', () => chooseListedRom(romList.value));
 
+// ------------------------------------------------------------------ modèle
+
+const modelList = document.getElementById('model-list');
+
+/** Titres de la page, listes de ROM et de disquettes du modèle choisi. */
+function applyModel() {
+  modelList.value = String(prefs.model);
+  // L'interface d'expansion (horloge à 40 Hz) n'existe que sur le Model I.
+  expansion.closest('label').hidden = prefs.model !== 1;
+  const name = t(`model.${prefs.model}`);
+  document.title = name;
+  for (const el of document.querySelectorAll('.machine-name')) el.textContent = name;
+  fillRomList();
+  if (disks.length) fillDiskList();
+}
+languageListeners.push(() => {
+  const name = t(`model.${prefs.model}`);
+  document.title = name;
+  for (const el of document.querySelectorAll('.machine-name')) el.textContent = name;
+});
+
+/** Autre modèle : la ROM de sa famille (conservée, sinon celle de la liste) le démarre. */
+async function changeModel(model) {
+  prefs.model = model;
+  savePrefs();
+  applyModel();
+  romTar.hidden = true;
+  hideNowInfo();
+  for (const row of driveRows) row.clear();
+  showStatus('');
+  const saved = (await loadDevRom()) ?? (await loadSavedRom());
+  if (saved) {
+    if (start(saved.bytes)) selectRomInList(saved.id);
+  } else {
+    selectRomInList(defaultRom());
+    await chooseListedRom(defaultRom());
+  }
+}
+modelList.addEventListener('change', () => changeModel(Number(modelList.value)));
+
 document.getElementById('tar-file').addEventListener('change', async (event) => {
   const file = event.target.files[0];
   event.target.value = '';
@@ -412,7 +468,7 @@ function setRunning(running) {
 function start(bytes) {
   try {
     emulator?.free();
-    emulator = new Emulator(bytes);
+    emulator = Emulator.with_model(bytes, prefs.model);
   } catch (e) {
     emulator = null;
     errorBox.textContent = t('rom.rejected', { msg: e.message ?? e });
@@ -857,6 +913,12 @@ function makeDriveRow(drive) {
       refresh();
     },
     hasDisk: () => !!current,
+    /** Vide le lecteur (autre modèle : ses disquettes ne conviennent plus). */
+    clear() {
+      current = null;
+      error.textContent = '';
+      refresh();
+    },
   };
 }
 
@@ -881,7 +943,16 @@ async function loadDiskIndex() {
   const local = (await fetchJson(`disks/local/index.json${V}`))
     .map((d) => ({ ...d, file: `local/${d.file}`, local: true }));
   disks = [...published, ...local];
-  for (const d of disks) diskList.append(new Option('', d.id));
+  fillDiskList();
+}
+
+/** Disquettes du modèle choisi (champ « model » de l'index : un nombre ou une liste). */
+function fillDiskList() {
+  diskList.replaceChildren(diskList.options[0]);
+  for (const d of disks) {
+    const models = [d.model ?? 1].flat();
+    if (models.includes(prefs.model)) diskList.append(new Option('', d.id));
+  }
   relabelDiskList();
 }
 
@@ -1591,10 +1662,8 @@ function playAudio(fast) {
 // sans lissage. Avec une police autre que celle d'origine, Rust ne dessine que les blocs
 // graphiques et la page dessine le texte par-dessus (fonts.js).
 const small = document.createElement('canvas');
-small.width = WIDTH;
-small.height = HEIGHT;
 const smallCtx = small.getContext('2d');
-const image = smallCtx.createImageData(WIDTH, HEIGHT);
+let image = null;
 let lastTime = performance.now();
 let frameDebt = 0;
 let fpsFrames = 0;
@@ -1649,8 +1718,15 @@ fontList.addEventListener('change', () => { selectFont(fontList.value); focusScr
 let lastVideo = null;
 let lastWide = false;
 
+/** Caractères affichés (64 × 16, ou 80 × 24 sur le Model 4). */
+function shownText() {
+  const len = emulator.text_cols() * emulator.text_rows();
+  return new Uint8Array(wasm.memory.buffer, emulator.video_ptr(), len);
+}
+
 function screenChanged() {
-  const video = new Uint8Array(wasm.memory.buffer, emulator.video_ptr(), 1024);
+  const video = shownText();
+  if (lastVideo && lastVideo.length !== video.length) lastVideo = null;
   const wide = emulator.wide();
   if (lastVideo && wide === lastWide && video.every((b, i) => b === lastVideo[i])) return false;
   lastVideo = video.slice();
@@ -1659,16 +1735,22 @@ function screenChanged() {
 }
 
 function draw() {
-  const ptr = atlas ? emulator.render_graphics() : emulator.render();
+  // Les polices de fonts.js sont prévues pour 64 × 16 : en 80 × 24, la police d'origine.
+  const fontText = atlas && emulator.text_cols() === 64;
+  const ptr = fontText ? emulator.render_graphics() : emulator.render();
+  const w = emulator.screen_width();
+  const h = emulator.screen_height();
+  if (!image || image.width !== w || image.height !== h) {
+    small.width = w;
+    small.height = h;
+    image = smallCtx.createImageData(w, h);
+  }
   // Lecture directe de l'image dans la mémoire Wasm, sans copie intermédiaire.
-  image.data.set(new Uint8ClampedArray(wasm.memory.buffer, ptr, WIDTH * HEIGHT * 4));
+  image.data.set(new Uint8ClampedArray(wasm.memory.buffer, ptr, w * h * 4));
   smallCtx.putImageData(image, 0, 0);
   ctx.imageSmoothingEnabled = false;
   ctx.drawImage(small, 0, 0, canvas.width, canvas.height);
-  if (atlas) {
-    const video = new Uint8Array(wasm.memory.buffer, emulator.video_ptr(), 1024);
-    drawText(ctx, atlas, video, emulator.wide());
-  }
+  if (fontText) drawText(ctx, atlas, shownText(), emulator.wide());
 }
 
 // ------------------------------------------------------------------ atelier d'assemblage
@@ -1734,7 +1816,7 @@ function loop(now) {
       fpsFrames += frames;
     }
     if (now - fpsTime >= 1000) {
-      const mhz = fpsFrames * (turbo.checked ? 10 : 1) * Emulator.clock_hz() / 60 / 1e6;
+      const mhz = fpsFrames * (turbo.checked ? 10 : 1) * emulator.current_hz() / 60 / 1e6;
       speedBox.textContent = `${mhz.toFixed(2)} MHz`;
       fpsFrames = 0;
       fpsTime = now;
@@ -1752,6 +1834,9 @@ let savedFont = null;
 try { savedFont = localStorage.getItem('trs80-font'); } catch { /* stockage indisponible */ }
 await selectFont(params.get('font') ?? savedFont ?? 'trs80');
 // Lien direct vers une ROM de la liste : ?rom=level2-1.3 (a priorité sur la ROM conservée).
+const modelParam = Number(params.get('model'));
+if ([1, 3, 4].includes(modelParam)) prefs.model = modelParam;
+applyModel();
 const romParam = params.get('rom');
 if (romParam && roms.some((r) => r.id === romParam && r.source === 'url')) {
   selectRomInList(romParam);
@@ -1761,9 +1846,9 @@ if (romParam && roms.some((r) => r.id === romParam && r.source === 'url')) {
   if (saved) {
     if (start(saved.bytes)) selectRomInList(saved.id);
   } else {
-    // Première visite : démarrage avec la ROM Level II 1.3 officielle de la liste.
-    selectRomInList(DEFAULT_ROM);
-    await chooseListedRom(DEFAULT_ROM);
+    // Première visite : démarrage avec la ROM officielle de la liste (Level II 1.3 ou Model III).
+    selectRomInList(defaultRom());
+    await chooseListedRom(defaultRom());
   }
 }
 if (emulator) {

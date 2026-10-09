@@ -4,25 +4,48 @@
 //! L'image de l'écran est lue directement dans la mémoire Wasm, sans copie
 //! (voir `framebuffer_ptr`).
 
-use trs80::{Key, Loaded, SCREEN_HEIGHT, SCREEN_WIDTH, Trs80};
+use trs80::{Key, Loaded, MAX_HEIGHT, MAX_WIDTH, Model, Trs80};
 use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen]
 pub struct Emulator {
     machine: Box<Trs80>,
     framebuffer: Vec<u8>,
+    /// Caractères affichés (copie, lue par la page : voir `video_ptr`).
+    display: Vec<u8>,
 }
 
 #[wasm_bindgen]
 impl Emulator {
-    /// Crée l'émulateur à partir du contenu du fichier ROM Level II.
+    /// Crée l'émulateur à partir d'une ROM : 12 Ko (Model I) ou 14 Ko (Model III).
     #[wasm_bindgen(constructor)]
     pub fn new(rom: &[u8]) -> Result<Emulator, JsError> {
         let machine = Trs80::new(rom).map_err(|e| JsError::new(&e.to_string()))?;
-        Ok(Emulator {
-            machine: Box::new(machine),
-            framebuffer: vec![0; SCREEN_WIDTH * SCREEN_HEIGHT * 4],
-        })
+        Ok(Self::from_machine(machine))
+    }
+
+    /// Crée un modèle donné : 1, 3 ou 4 (le Model 4 utilise la ROM du Model III).
+    pub fn with_model(rom: &[u8], model: u8) -> Result<Emulator, JsError> {
+        let model = match model {
+            3 => Model::III,
+            4 => Model::IV,
+            _ => Model::I,
+        };
+        let machine = Trs80::with_model(rom, model).map_err(|e| JsError::new(&e.to_string()))?;
+        Ok(Self::from_machine(machine))
+    }
+
+    fn from_machine(machine: Trs80) -> Emulator {
+        Emulator { machine: Box::new(machine), framebuffer: vec![0; MAX_WIDTH * MAX_HEIGHT * 4], display: Vec::new() }
+    }
+
+    /// Modèle émulé : 1, 3 ou 4.
+    pub fn model(&self) -> u8 {
+        match self.machine.model() {
+            Model::I => 1,
+            Model::III => 3,
+            Model::IV => 4,
+        }
     }
 
     /// Exécute `count` images de 1/60 s (plus d'une en mode turbo).
@@ -182,22 +205,39 @@ impl Emulator {
         self.framebuffer.as_ptr()
     }
 
-    /// Adresse de la mémoire vidéo (1024 octets : 16 lignes de 64) dans la mémoire Wasm.
-    pub fn video_ptr(&self) -> *const u8 {
-        self.machine.video().as_ptr()
+    /// Copie les caractères affichés (`text_cols × text_rows` octets) et retourne leur
+    /// adresse dans la mémoire Wasm.
+    pub fn video_ptr(&mut self) -> *const u8 {
+        self.display = self.machine.display();
+        self.display.as_ptr()
+    }
+
+    /// Nombre de caractères par ligne et de lignes affichés (64 × 16, ou 80 × 24).
+    pub fn text_cols(&self) -> u32 {
+        self.machine.text_mode().cols as u32
+    }
+
+    pub fn text_rows(&self) -> u32 {
+        self.machine.text_mode().rows as u32
+    }
+
+    /// Taille de l'image produite par `render` (pixels).
+    pub fn screen_width(&self) -> u32 {
+        self.machine.screen_size().0 as u32
+    }
+
+    pub fn screen_height(&self) -> u32 {
+        self.machine.screen_size().1 as u32
+    }
+
+    /// Fréquence actuelle du processeur (pour l'affichage de la vitesse).
+    pub fn current_hz(&self) -> u32 {
+        self.machine.clock_hz()
     }
 
     /// Mode 32 caractères par ligne actif.
     pub fn wide(&self) -> bool {
         self.machine.wide()
-    }
-
-    pub fn width() -> u32 {
-        SCREEN_WIDTH as u32
-    }
-
-    pub fn height() -> u32 {
-        SCREEN_HEIGHT as u32
     }
 
     /// Fréquence du Z80 (pour l'affichage d'informations).

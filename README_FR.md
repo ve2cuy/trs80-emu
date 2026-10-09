@@ -44,6 +44,23 @@ sont condensées pour la grille étroite de 64 × 16; les semi-graphiques ne cha
 Les polices web viennent de Google Fonts, téléchargées seulement si on les choisit.
 Lien direct : `?font=vt323`.
 
+## Modèles
+
+La liste « Modèle » (section Machine) choisit l'ordinateur; lien direct `?model=3` :
+
+- **Model I** : ROM Level II (12 Ko), interface d'expansion (horloge à 40 Hz, disquettes).
+- **Model III** : ROM de 14 Ko (Model III rév. C, téléchargée chez kiwisincebirth/TRS-80-ROMS),
+  minuscules, contrôleur de disquettes WD1793 sur les ports F0h-F4h avec NMI, horloge à 30 Hz.
+  Essayé avec TRSDOS 1.3.
+- **Model 4** : la ROM du Model III plus 128 Ko de RAM en banques, les quatre plans de mémoire
+  et l'écran de 80 × 24 (port 84h), 4 MHz et horloge à 60 Hz. TRSDOS 6 / LS-DOS démarre en mode
+  Model 4 (essayé avec TRSDOS 6.2.1).
+
+Pas encore émulés : le Model II; le RS-232, la carte son et la carte graphique du Model 4; les
+caractères spéciaux du Model III (C0h-FFh s'affichent comme des blocs graphiques). Les
+disquettes système des Model III et 4 ne sont pas publiées ici (droit d'auteur) : mettre les
+vôtres dans `www/disks/local/`, avec `"model": 3` ou `4` dans `index.json`.
+
 ## Interface
 
 - **Menu latéral** : Machine (ROM, interface d'expansion, son, bruit des lecteurs), Programs,
