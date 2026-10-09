@@ -264,6 +264,13 @@
           <div id="panel-modem" class="nav-panel" hidden>
             <p id="modem-status" class="modem-status"></p>
             <button id="modem-hangup" type="button" class="secondary" data-i18n="modem.hangup" disabled>Hang up</button>
+            <p class="sub-heading" data-i18n="modem.list">BBS list</p>
+            <input id="bbs-filter" type="search" spellcheck="false" autocomplete="off" placeholder="Search" data-i18n-placeholder="modem.search">
+            <select id="bbs-select" aria-label="BBS" size="6"></select>
+            <div class="row">
+              <button id="bbs-dial" type="button" data-i18n="modem.dial" disabled>Dial</button>
+            </div>
+            <p id="bbs-info" class="hint"></p>
             <label class="switch" title="Remove the ANSI sequences (colors, cursor) and replace the graphics characters, which the TRS-80 cannot display" data-i18n-title="modem.filter.tip">
               <input id="modem-filter" type="checkbox" checked><span class="knob"></span><span data-i18n="modem.filter">Filter ANSI sequences</span></label>
             <details class="more">

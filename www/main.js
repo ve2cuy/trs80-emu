@@ -47,6 +47,7 @@ const prefs = {
   keepSession: true,    // retrouver les disques (avec leurs écritures) au rechargement
   modemRelay: null,     // adresse du relais telnet (null : celle par défaut)
   modemFilter: true,    // modem : retirer les séquences ANSI
+  bbsPick: 'bbs.electrodrome.net:23', // BBS choisi dans la liste du modem
   driveSound: false,    // imiter le bruit des lecteurs de disquettes
   repo: 'https://ve2cuy.com/trs80', // dépôt externe (dossiers rom, disk, cmd, bas)
   repoKind: 'rom',
@@ -1677,6 +1678,58 @@ function useRelay(address) {
 document.getElementById('modem-relay-save').addEventListener('click', () => useRelay(modemRelay.value.trim()));
 modemRelay.addEventListener('keydown', (e) => { if (e.key === 'Enter') useRelay(modemRelay.value.trim()); });
 document.getElementById('modem-relay-default').addEventListener('click', () => useRelay(DEFAULT_RELAY));
+
+// Liste des BBS (bbs.json, tirée de telnetbbsguide.com; le relais permet les mêmes) : le
+// bouton Composer tape ATDT hôte[:port] sur le TRS-80, qui doit être dans LCOMM ou COMM.
+const bbsFilter = document.getElementById('bbs-filter');
+const bbsSelect = document.getElementById('bbs-select');
+const bbsDial = document.getElementById('bbs-dial');
+const bbsInfo = document.getElementById('bbs-info');
+let bbsList;          // undefined : en chargement; null : non disponible
+
+async function loadBbs() {
+  try {
+    const res = await fetch(`bbs.json${V}`);
+    if (!res.ok) throw new Error(res.status);
+    bbsList = (await res.json()).bbs.map(([name, host, port]) => ({ name, host, port, key: `${host}:${port}` }));
+  } catch {
+    bbsList = null;
+  }
+  fillBbs();
+}
+
+function bbsTarget(b) {
+  return b.port === 23 ? b.host : b.key;
+}
+
+function fillBbs() {
+  const words = bbsFilter.value.trim().toLowerCase().split(/\s+/).filter(Boolean);
+  const shown = (bbsList || []).filter((b) => words.every((w) => `${b.name} ${b.key}`.toLowerCase().includes(w)));
+  bbsSelect.replaceChildren(...shown.map((b) => new Option(b.name, b.key, false, b.key === prefs.bbsPick)));
+  showBbs();
+}
+
+function showBbs() {
+  const b = bbsList?.find((x) => x.key === bbsSelect.value);
+  bbsDial.disabled = !b;
+  bbsInfo.textContent = bbsList === undefined ? '' : !bbsList ? t('modem.listError')
+    : b ? t('modem.pick', { target: bbsTarget(b) }) : t('modem.count', { n: bbsList.length });
+}
+
+function dialBbs() {
+  const b = bbsList?.find((x) => x.key === bbsSelect.value);
+  if (!b) return;
+  typeOnTrs80(`ATDT ${bbsTarget(b)}\n`);
+  focusScreen();
+}
+
+bbsFilter.addEventListener('input', fillBbs);
+bbsSelect.addEventListener('change', () => { prefs.bbsPick = bbsSelect.value; savePrefs(); showBbs(); });
+bbsSelect.addEventListener('dblclick', dialBbs);
+bbsSelect.addEventListener('keydown', (e) => { if (e.key === 'Enter') dialBbs(); });
+bbsDial.addEventListener('click', dialBbs);
+languageListeners.push(showBbs);
+loadBbs();
 
 // ------------------------------------------------------------------ copier-coller
 

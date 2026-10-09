@@ -319,7 +319,7 @@ button:focus-visible, .button:focus-within, select:focus-visible, textarea:focus
 .repo-settings[open] summary { margin-bottom: 8px; }
 code { font: 0.8rem ui-monospace, Consolas, monospace; }
 
-select, textarea, input[type="url"] {
+select, textarea, input[type="url"], input[type="search"] {
   width: 100%;
   padding: 7px 9px;
   border: 1px solid var(--border);
@@ -496,6 +496,9 @@ table.keys th { color: var(--muted); font-weight: 600; }
 .lib-actions .spacer { flex: 1; }
 /* Dépôt : fiche du fichier choisi dans la liste déroulante (hauteur bornée). */
 #repo-select { margin-bottom: 6px; }
+#bbs-filter, #bbs-select { margin-bottom: 6px; }
+#bbs-select { padding: 4px; }
+#bbs-select option { padding: 2px 5px; border-radius: 4px; }
 .repo-detail { min-height: 11.5rem; align-content: start; }
 .repo-detail.empty { border-style: dashed; background: transparent; }
 .repo-detail .lib-name { white-space: normal; }

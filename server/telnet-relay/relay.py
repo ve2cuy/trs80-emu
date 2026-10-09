@@ -5,7 +5,8 @@ Le fureteur ne peut pas ouvrir de connexion TCP : la page ouvre un WebSocket ver
 (ws://127.0.0.1:8023/?host=bbs.electrodrome.net&port=23, publié par Apache en wss://), qui
 ouvre la connexion telnet et fait passer les octets dans les deux sens.
 
-- Seuls les serveurs de ALLOWED sont joignables (pas de relais ouvert à tout Internet).
+- Seuls les serveurs de ALLOWED sont joignables (pas de relais ouvert à tout Internet) :
+  bbs.electrodrome.net, plus ceux de la liste --bbs (bbs.json de la page : [nom, hôte, port]).
 - Seules les pages de ORIGINS peuvent s'en servir (en-tête Origin du fureteur).
 - La négociation telnet (octets IAC) est faite ici : le TRS-80 ne reçoit que le texte. Le
   relais accepte ECHO et SUPPRESS-GO-AHEAD du serveur, refuse le reste.
@@ -14,12 +15,13 @@ ouvre la connexion telnet et fait passer les octets dans les deux sens.
 
 Bibliothèque standard seulement (Python 3.8 ou plus récent) : rien à installer.
 
-    python3 relay.py [--listen 127.0.0.1] [--port 8023]
+    python3 relay.py [--listen 127.0.0.1] [--port 8023] [--bbs bbs.json]
 """
 import argparse
 import asyncio
 import base64
 import hashlib
+import json
 import logging
 import os
 import struct
@@ -242,11 +244,17 @@ async def main():
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument('--listen', default=os.environ.get('RELAY_LISTEN', '127.0.0.1'))
     parser.add_argument('--port', type=int, default=int(os.environ.get('RELAY_PORT', '8023')))
+    parser.add_argument('--bbs', default=os.path.join(os.path.dirname(os.path.abspath(__file__)), 'bbs.json'),
+                        help='liste des BBS permis (absente : bbs.electrodrome.net seulement)')
     args = parser.parse_args()
     logging.basicConfig(level=logging.INFO, format='%(asctime)s %(message)s')
+    try:
+        with open(args.bbs, encoding='utf-8') as f:
+            ALLOWED.update((str(host).lower(), int(port)) for _, host, port in json.load(f)['bbs'])
+    except FileNotFoundError:
+        log.info('%s absent : seul bbs.electrodrome.net est permis', args.bbs)
     server = await asyncio.start_server(handle, args.listen, args.port)
-    log.info('relais à l\'écoute sur %s:%d; permis : %s', args.listen, args.port,
-             ', '.join(f'{h}:{p}' for h, p in sorted(ALLOWED)))
+    log.info('relais à l\'écoute sur %s:%d; %d BBS permis', args.listen, args.port, len(ALLOWED))
     async with server:
         await server.serve_forever()
 

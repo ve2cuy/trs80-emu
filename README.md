@@ -133,7 +133,9 @@ they are put back in the drives and the TRS-80 restarts on drive 0. The Model II
 The RS-232 serial port (UART on ports E8h-EBh, Model I, III and 4) is connected to a virtual
 Hayes modem that reaches BBSes over telnet, through a WebSocket relay
 ([`server/telnet-relay`](server/telnet-relay/README.md)), since a browser cannot open telnet
-connections. For now, only `bbs.electrodrome.net` is allowed.
+connections. The Modem section lists about 850 BBSes (`www/bbs.json`, from
+<https://www.telnetbbsguide.com/bbs/list/brief/>): choose one, then **Dial** types
+`ATDT host[:port]` on the TRS-80, in LCOMM or COMM. The relay allows the same list.
 
 ```
 SET *KI KI

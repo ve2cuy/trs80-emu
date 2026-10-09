@@ -141,7 +141,9 @@ plus tard.
 Le port série RS-232 (UART des ports E8h-EBh, Model I, III et 4) est relié à un modem Hayes
 virtuel qui joint les BBS par telnet, à travers un relais WebSocket
 ([`server/telnet-relay`](server/telnet-relay/README.md)), car un fureteur ne peut pas ouvrir de
-connexion telnet. Pour l'instant, seul `bbs.electrodrome.net` est permis.
+connexion telnet. La section Modem propose environ 850 BBS (`www/bbs.json`, tirés de
+<https://www.telnetbbsguide.com/bbs/list/brief/>) : choisissez-en un, puis **Composer** tape
+`ATDT hôte[:port]` sur le TRS-80, dans LCOMM ou COMM. Le relais permet la même liste.
 
 ```
 SET *KI KI
