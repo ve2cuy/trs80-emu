@@ -173,7 +173,10 @@ svg.icon, svg.chev {
 .collapsed .sb-collapse svg { transform: none; }
 .sidebar .sb-close { display: none; margin-left: auto; }
 
-.nav { flex: 1; overflow-y: auto; overflow-x: hidden; padding: 8px 12px 16px; }
+/* position: relative : les éléments en position absolue du menu (cases à cocher invisibles des
+   interrupteurs) restent dans sa zone défilante; sinon ils allongeaient la page, et le menu,
+   collant seulement dans son conteneur, partait avec le défilement. */
+.nav { position: relative; flex: 1; min-height: 0; overflow-y: auto; overflow-x: hidden; padding: 8px 12px 16px; }
 
 .nav-heading {
   margin: 16px 6px 6px;
@@ -338,7 +341,7 @@ textarea {
 .error { color: var(--error); min-height: 1.5em; }
 
 /* Interrupteur : une case à cocher dessinée comme un bouton à glissière. */
-.switch { display: inline-flex; align-items: center; gap: 10px; cursor: pointer; font-size: 0.9rem; user-select: none; }
+.switch { position: relative; display: inline-flex; align-items: center; gap: 10px; cursor: pointer; font-size: 0.9rem; user-select: none; }
 .switch input { position: absolute; opacity: 0; width: 1px; height: 1px; }
 .switch .knob {
   position: relative;

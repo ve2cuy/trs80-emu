@@ -223,8 +223,10 @@ répondre à `MEM SIZE?` avec ENTRÉE.
 - **« Load program (.CMD, .CAS, .BAS)… »** : n'importe quel programme de votre disque; rien
   n'est envoyé. Une cassette (`.CAS`) est chargée directement en mémoire : un programme
   en langage machine est lancé, un programme BASIC est exécuté.
-- **Collage de texte** : Ctrl+V sur l'écran, ou « Type text… », tape le texte au clavier
-  du TRS-80 (par exemple un programme BASIC).
+- **Copier-coller** : Ctrl+V sur l'écran, le bouton Coller de la barre d'outils, ou « Type
+  text… », tape le texte au clavier du TRS-80 (par exemple un programme BASIC ou des
+  commandes du DOS). Ctrl+C sur l'écran (rien de sélectionné dans la page), ou le bouton
+  Copier, copie le texte de l'écran.
 - Lien direct vers un programme : `?program=ve2cuy-invaders`.
 
 Les appels de fichiers de TRSDOS sont remplacés par des routines minimales : les

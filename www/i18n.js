@@ -1249,6 +1249,10 @@ Object.assign(STRINGS.zh, {
 
 // ---------------------------------------------------------------- modèles
 Object.assign(STRINGS.en, {
+  'clip.paste': 'Paste text (Ctrl+V): it is typed on the TRS-80',
+  'clip.copy': 'Copy the screen text (Ctrl+C)',
+  'clip.copied': 'Screen text copied.',
+  'clip.denied': 'The browser refuses access to the clipboard: use Ctrl+V and Ctrl+C on the screen.',
   'disk.data': 'data, drive 1',
   'hd.title': 'Hard disks',
   'hd.mount': 'Hard disk…',
@@ -1271,6 +1275,10 @@ Object.assign(STRINGS.en, {
 Object.assign(STRINGS.en, { 'model.label': 'Model', 'model.1': 'TRS-80 Model I', 'model.2': 'TRS-80 Model II',
   'rom.ownM2': 'Model II: load your own 2 KB boot ROM (ROM menu), then a TRSDOS-II disk (.imd, .dmk).', 'model.3': 'TRS-80 Model III', 'model.4': 'TRS-80 Model 4' });
 Object.assign(STRINGS.fr, {
+  'clip.paste': 'Coller du texte (Ctrl+V) : il est tapé sur le TRS-80',
+  'clip.copy': 'Copier le texte de l’écran (Ctrl+C)',
+  'clip.copied': 'Texte de l’écran copié.',
+  'clip.denied': 'Le fureteur refuse l’accès au presse-papiers : utilisez Ctrl+V et Ctrl+C sur l’écran.',
   'disk.data': 'données, lecteur 1',
   'hd.title': 'Disques durs',
   'hd.mount': 'Disque dur…',
@@ -1293,6 +1301,10 @@ Object.assign(STRINGS.fr, {
 Object.assign(STRINGS.fr, { 'model.label': 'Modèle', 'model.1': 'TRS-80 Model I', 'model.2': 'TRS-80 Model II',
   'rom.ownM2': 'Model II : chargez votre ROM d’amorçage de 2 Ko (menu ROM), puis une disquette TRSDOS-II (.imd, .dmk).', 'model.3': 'TRS-80 Model III', 'model.4': 'TRS-80 Model 4' });
 Object.assign(STRINGS.es, {
+  'clip.paste': 'Pegar texto (Ctrl+V): se teclea en el TRS-80',
+  'clip.copy': 'Copiar el texto de la pantalla (Ctrl+C)',
+  'clip.copied': 'Texto de la pantalla copiado.',
+  'clip.denied': 'El navegador rechaza el acceso al portapapeles: use Ctrl+V y Ctrl+C en la pantalla.',
   'disk.data': 'datos, unidad 1',
   'hd.title': 'Discos duros',
   'hd.mount': 'Disco duro…',
@@ -1315,6 +1327,10 @@ Object.assign(STRINGS.es, {
 Object.assign(STRINGS.es, { 'model.label': 'Modelo', 'model.1': 'TRS-80 Model I', 'model.2': 'TRS-80 Model II',
   'rom.ownM2': 'Model II: cargue su propia ROM de arranque de 2 KB (menú ROM) y luego un disco TRSDOS-II (.imd, .dmk).', 'model.3': 'TRS-80 Model III', 'model.4': 'TRS-80 Model 4' });
 Object.assign(STRINGS.zh, {
+  'clip.paste': '粘贴文本（Ctrl+V）：在 TRS-80 上键入',
+  'clip.copy': '复制屏幕文本（Ctrl+C）',
+  'clip.copied': '已复制屏幕文本。',
+  'clip.denied': '浏览器拒绝访问剪贴板：请在屏幕上使用 Ctrl+V 和 Ctrl+C。',
   'disk.data': '数据盘，1 号驱动器',
   'hd.title': '硬盘',
   'hd.mount': '硬盘…',

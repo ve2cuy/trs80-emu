@@ -213,8 +213,10 @@ answer `MEM SIZE?` with ENTER.
 - **"Load program (.CMD, .CAS, .BAS)…"**: any program from your disk; nothing is uploaded.
   A cassette (`.CAS`) is loaded directly into memory: a machine-language tape is
   started, a BASIC tape is run.
-- **Pasting text**: Ctrl+V on the screen, or "Type text…", types the text on the
-  TRS-80 keyboard (for example a BASIC program).
+- **Copy and paste**: Ctrl+V on the screen, the Paste button of the toolbar, or "Type
+  text…", types the text on the TRS-80 keyboard (for example a BASIC program or DOS
+  commands). Ctrl+C on the screen (nothing selected in the page), or the Copy button,
+  copies the screen text.
 - Direct link to a program: `?program=ve2cuy-invaders`.
 
 TRSDOS file calls are replaced by minimal routines: programs made for floppy disk

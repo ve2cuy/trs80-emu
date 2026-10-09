@@ -471,6 +471,7 @@ document.getElementById('tar-file').addEventListener('change', async (event) => 
 
 function setRunning(running) {
   overlay.hidden = running;
+  pasteButton.disabled = copyButton.disabled = !running;
   resetButton.disabled = !running;
   programList.disabled = !running;
   cmdFile.disabled = !running;
@@ -1527,6 +1528,48 @@ function typeOnTrs80(text) {
   showScreen();
 }
 
+// ------------------------------------------------------------------ copier-coller
+
+// Coller (CTRL+V hors d'un champ de saisie, ou bouton) : le texte est tapé sur le TRS-80.
+// Copier (CTRL+C sans sélection dans la page, ou bouton) : le texte de l'écran.
+const pasteButton = document.getElementById('paste-button');
+const copyButton = document.getElementById('copy-button');
+
+document.addEventListener('paste', (e) => {
+  if (!emulator || typingInForm(e.target)) return;
+  const text = e.clipboardData?.getData('text/plain');
+  if (!text) return;
+  e.preventDefault();
+  typeOnTrs80(text);
+  focusScreen();
+});
+
+document.addEventListener('copy', (e) => {
+  if (!emulator || typingInForm(e.target) || !getSelection().isCollapsed) return;
+  e.preventDefault();
+  e.clipboardData.setData('text/plain', emulator.screen_text());
+  showStatus(t('clip.copied'));
+});
+
+pasteButton.addEventListener('click', async () => {
+  try {
+    typeOnTrs80(await navigator.clipboard.readText());
+  } catch {
+    showStatus(t('clip.denied'), true);
+  }
+  focusScreen();
+});
+
+copyButton.addEventListener('click', async () => {
+  try {
+    await navigator.clipboard.writeText(emulator.screen_text());
+    showStatus(t('clip.copied'));
+  } catch {
+    showStatus(t('clip.denied'), true);
+  }
+  focusScreen();
+});
+
 typeButton.addEventListener('click', () => {
   typePanel.hidden = !typePanel.hidden;
   if (!typePanel.hidden) typeText.focus();
@@ -1549,13 +1592,6 @@ document.getElementById('type-keep').addEventListener('click', async () => {
 document.getElementById('type-stop').addEventListener('click', () => {
   emulator?.cancel_typing();
   showStatus(t('type.stopped'));
-});
-
-// Ctrl+V sur l'écran : le texte du presse-papiers est tapé sur le TRS-80.
-window.addEventListener('paste', (e) => {
-  if (!emulator || typingInForm(e.target) || e.target instanceof HTMLTextAreaElement) return;
-  e.preventDefault();
-  typeOnTrs80(e.clipboardData.getData('text'));
 });
 
 expansion.addEventListener('change', () => {
@@ -1601,7 +1637,8 @@ function releaseKey(key) {
 window.addEventListener('keydown', (e) => {
   if (!emulator || e.altKey || e.metaKey) return;
   // Model II : CTRL + lettre donne un code de contrôle (CTRL-C, etc.).
-  const ctrlKey = e.ctrlKey && emulator.model() === 2 && e.key.length === 1 && !typingInForm(e.target);
+  const ctrlKey = e.ctrlKey && emulator.model() === 2 && e.key.length === 1 && !typingInForm(e.target)
+    && e.key.toLowerCase() !== 'v';
   if (e.ctrlKey && !ctrlKey) return;
   if (e.target === touchInput) {
     // Clavier virtuel : le texte (et ← ou ENTRÉE) arrive par l'événement input; seules les

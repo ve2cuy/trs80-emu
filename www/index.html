@@ -54,6 +54,8 @@
       <symbol id="i-code" viewBox="0 0 24 24"><path d="M8 7l-5 5 5 5M16 7l5 5-5 5M14 4l-4 16"/></symbol>
       <symbol id="i-globe" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/></symbol>
       <symbol id="i-cloud" viewBox="0 0 24 24"><path d="M7 18h10.5a4.5 4.5 0 0 0 .6-8.96A6 6 0 0 0 6.3 10.1 4 4 0 0 0 7 18z"/></symbol>
+      <symbol id="i-paste" viewBox="0 0 24 24"><rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4V3h6v1M9 11h6M9 15h4"/></symbol>
+      <symbol id="i-copy" viewBox="0 0 24 24"><rect x="8" y="8" width="12" height="13" rx="2"/><path d="M16 8V5a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h2"/></symbol>
       <symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></symbol>
     </defs>
   </svg>
@@ -317,6 +319,14 @@
           <label class="switch compact" title="Run ten times faster" data-i18n-title="turbo.tip"><input id="turbo" type="checkbox"><span class="knob"></span><span data-i18n="turbo">Turbo</span></label>
           <button id="reset" type="button" class="secondary with-icon" disabled>
             <svg class="icon"><use href="#i-reset"/></svg><span data-i18n="reset">Reset</span></button>
+          <button id="paste-button" type="button" class="icon-button" title="Paste text (Ctrl+V)" data-i18n-title="clip.paste"
+                  aria-label="Paste text" data-i18n-aria="clip.paste" disabled>
+            <svg class="icon"><use href="#i-paste"/></svg>
+          </button>
+          <button id="copy-button" type="button" class="icon-button" title="Copy the screen text" data-i18n-title="clip.copy"
+                  aria-label="Copy the screen text" data-i18n-aria="clip.copy" disabled>
+            <svg class="icon"><use href="#i-copy"/></svg>
+          </button>
           <span class="toolbar-sep" aria-hidden="true"></span>
           <button id="ide-toggle" type="button" class="icon-button" title="Z80 assembler" data-i18n-title="ide.toggle"
                   aria-label="Z80 assembler" data-i18n-aria="ide.toggle" aria-pressed="false">

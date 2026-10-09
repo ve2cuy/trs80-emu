@@ -264,6 +264,17 @@ impl Emulator {
     }
 
     /// Nombre de caractères par ligne et de lignes affichés (64 × 16, ou 80 × 24).
+    /// Texte de l'écran (lignes sans espaces de fin), pour le copier dans le presse-papiers.
+    /// Les blocs graphiques deviennent des espaces.
+    pub fn screen_text(&self) -> String {
+        let mode = self.machine.text_mode();
+        let lines: Vec<String> = (0..mode.rows)
+            .map(|r| (0..mode.cols).map(|c| self.machine.char_at(r, c)).collect::<String>().trim_end().to_string())
+            .collect();
+        let used = lines.iter().rposition(|l| !l.is_empty()).map_or(0, |i| i + 1);
+        lines[..used].join("\n")
+    }
+
     pub fn text_cols(&self) -> u32 {
         self.machine.text_mode().cols as u32
     }
