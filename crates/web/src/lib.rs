@@ -92,9 +92,20 @@ impl Emulator {
         self.machine.disk(drive as usize).is_some_and(|d| d.modified())
     }
 
-    /// Image (modifiée) à enregistrer; absente pour un lecteur vide ou une image DMK.
+    /// Image (modifiée) à enregistrer : le fichier d'origine (JV1, JV3) ou, après un
+    /// formatage ou pour une image DMK, une image JV3.
     pub fn disk_image(&self, drive: u32) -> Option<Vec<u8>> {
-        self.machine.disk(drive as usize)?.image().map(<[u8]>::to_vec)
+        Some(self.machine.disk(drive as usize)?.image())
+    }
+
+    /// Format de l'image enregistrée par `disk_image` (« JV1 » ou « JV3 »).
+    pub fn disk_image_format(&self, drive: u32) -> Option<String> {
+        Some(self.machine.disk(drive as usize)?.image_format().name().to_string())
+    }
+
+    /// Disquette vierge dans le lecteur (à formater par le DOS, ex. FORMAT :1).
+    pub fn insert_blank_disk(&mut self, drive: u32) {
+        self.machine.insert_blank_disk(drive as usize);
     }
 
     /// Active le son à la fréquence `rate` (celle de l'AudioContext); 0 le désactive.

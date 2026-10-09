@@ -85,7 +85,8 @@ start, but nothing is saved.
 
 ### Disks
 
-- **"Boot a disk"**: LDOS 5.3.1, freely redistributable (see [www/disks/README.md](www/disks/README.md)).
+- **"Boot a disk"**: LDOS 5.3.1, freely redistributable, in single density and as a complete
+  double-density system (see [www/disks/README.md](www/disks/README.md)).
   At boot, enter a date from its era, e.g. `10/08/91`. Direct link: `?disk=ldos-531`.
 - **Local disks** (development): disks you may not publish (e.g. TRSDOS) go in
   `www/disks/local/`; this folder is ignored by Git and its disks appear in "Boot a
@@ -94,13 +95,14 @@ start, but nothing is saved.
   run `python www/disks/make_index.py`. It updates both `index.json` files (new images
   get an entry, entries of missing images are removed, existing titles and
   descriptions are kept). Only put images you may redistribute in `www/disks/`.
-- **Drives 0 to 3**: "Insert…" any JV1, JV3 or DMK image, "Eject", and "Save" to download
-  a disk modified by the TRS-80 (JV1 and JV3). Drive 0 is the boot drive: inserting a disk
+- **Drives 0 to 3**: "Insert…" any JV1, JV3 or DMK image, "Blank" for an unformatted disk
+  (format it from the DOS, e.g. `FORMAT :1`), "Eject", and "Save" to download the disk
+  (a reformatted disk or a DMK image is saved as JV3). Drive 0 is the boot drive: inserting a disk
   there restarts the TRS-80 on it.
 - WD1771 controller of the Model I expansion interface, plus the **Percom and Radio
   Shack double-density doublers** (WD1791). Tested: LDOS 5.3.1, TRSDOS 2.1, 2.3 and
-  2.7DD, NEWDOS 3.0, NEWDOS/80, DOSPLUS 3.5, DBLDOS 4.2. Not yet: formatting. As on the
-  real machine, a disk whose track 0 is double density cannot boot.
+  2.7DD, NEWDOS 3.0, NEWDOS/80, DOSPLUS 3.5, DBLDOS 4.2. Formatting works. As on the real
+  machine, a disk whose track 0 is double density cannot boot.
 
 ### Sound
 

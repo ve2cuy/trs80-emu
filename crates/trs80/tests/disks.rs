@@ -111,6 +111,60 @@ fn insert_then_reset_boots_the_disk() {
     assert!(wait_for(&mut m, "DATE", 20), "RESET avec disquette : LDOS attendu. Écran :\n{}", screen(&m));
 }
 
+/// Changer de disquette pendant qu'un DOS tourne, puis RESET : le nouveau DOS doit démarrer.
+/// LDOS, à l'invite de la date, a laissé la tête loin de la piste 0 : la ROM (0696h) démarre
+/// en BASIC si l'état du contrôleur vaut 00h; le RESET doit donc lancer un Restore, comme
+/// le WD1771 réinitialisé (bogue corrigé : tout changement de disquette démarrait en BASIC).
+///
+/// L'échec dépendait de l'instant du RESET : pendant l'impulsion d'index, l'état n'est pas
+/// nul. Une rotation dure exactement 12 images : on essaie les 12 instants d'un tour.
+#[test]
+fn switch_disk_after_dos_then_reset() {
+    let Some(rom) = load_rom() else { return };
+    for offset in 0..12 {
+        // Comme « Boot a disk » : insertion puis RESET, deux fois de suite.
+        let mut m = Trs80::new(&rom).unwrap();
+        m.insert_disk(0, ldos()).unwrap();
+        m.reset();
+        // LDOS a fini de démarrer et attend la date (tête loin de la piste 0).
+        (0..600 + offset).for_each(|_| m.run_frame());
+        assert!(m.screen_contains("DATE"), "LDOS attendu. Écran :\n{}", screen(&m));
+
+        // Une deuxième fois LDOS (seule disquette publiée), comme « Boot a disk » dans la page.
+        m.insert_disk(0, ldos()).unwrap();
+        m.reset();
+        // Le RESET n'efface pas l'écran : on laisse démarrer, puis on vérifie que la ROM
+        // n'a pas affiché l'invite du BASIC (MEM SIZE?) et que LDOS demande la date.
+        (0..600).for_each(|_| m.run_frame());
+        let s = screen(&m);
+        assert!(
+            !s.contains("SIZE?") && s.contains("DATE"),
+            "RESET à l'image {offset} du tour : LDOS attendu. Écran :\n{s}"
+        );
+    }
+}
+
+/// Suite de disquettes (TRS80_DISK_SEQUENCE = chemins séparés par « ; ») : chacune est
+/// insérée dans le lecteur 0 puis RESET, comme « Boot a disk » dans la page.
+#[test]
+fn disk_sequence_from_environment() {
+    let (Some(rom), Ok(list)) = (load_rom(), std::env::var("TRS80_DISK_SEQUENCE")) else { return };
+    let mut m = Trs80::new(&rom).unwrap();
+    for path in list.split(';').filter(|p| !p.is_empty()) {
+        m.insert_disk(0, std::fs::read(path).unwrap()).unwrap();
+        m.reset();
+        (0..600).for_each(|_| m.run_frame());
+        let first: Vec<String> = screen(&m).lines().filter(|l| !l.trim().is_empty()).take(3).map(String::from).collect();
+        eprintln!("{} -> {:?}", path.rsplit(['/', '\\']).next().unwrap(), first);
+        if std::env::var("TRS80_FDC_TRACE").is_ok() {
+            for e in m.fdc_trace().iter().rev().take(6).collect::<Vec<_>>().into_iter().rev() {
+                eprintln!("    cmd {:02X} piste {} secteur {} tête {} état {:02X}", e.command, e.track, e.sector, e.head, e.status);
+            }
+            eprintln!("    PC={:04X} iff1={} im={}", m.cpu().pc, m.cpu().iff1, m.cpu().im);
+        }
+    }
+}
+
 #[test]
 fn extra_disk_insert_then_reset() {
     let (Some(rom), Ok(path)) = (load_rom(), std::env::var("TRS80_EXTRA_DISK")) else { return };
@@ -123,6 +177,26 @@ fn extra_disk_insert_then_reset() {
     for e in m.fdc_trace().iter().take(12) {
         eprintln!("  cmd {:02X} piste {} secteur {} état {:02X}", e.command, e.track, e.sector, e.status);
     }
+}
+
+/// LDOS double densité publié (www/disks/ldos-531-dd.dsk) : piste 0 en simple densité pour
+/// la ROM, puis le reste en double densité par le doubleur Radio Shack.
+#[test]
+fn ldos_double_density_boots() {
+    let Some(rom) = load_rom() else { return };
+    let dd = std::fs::read(format!("{}/../../www/disks/ldos-531-dd.dsk", env!("CARGO_MANIFEST_DIR"))).unwrap();
+    let mut m = Trs80::new(&rom).unwrap();
+    assert_eq!(m.insert_disk(0, dd).unwrap().format(), Format::Jv3);
+    assert!(wait_for(&mut m, "DATE", 20), "LDOS double densité n'a pas démarré. Écran :\n{}", screen(&m));
+    type_line(&mut m, "10/08/91");
+    type_line(&mut m, "12:00:00");
+    // La configuration enregistrée (SYSGEN : pilote du doubleur) se charge avant l'invite.
+    assert!(wait_for(&mut m, "READY", 10), "pas d'invite LDOS. Écran :\n{}", screen(&m));
+    type_line(&mut m, "DIR");
+    (0..300).for_each(|_| m.run_frame());
+    let s = screen(&m);
+    assert!(s.contains("40D1") && s.contains("DOS/HLP"), "DIR du disque double densité. Écran :\n{s}");
+    assert!(m.double_density(), "le doubleur doit être en double densité");
 }
 
 #[test]

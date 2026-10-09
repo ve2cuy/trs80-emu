@@ -84,7 +84,8 @@ programmes conçus pour disquette démarrent, mais rien n'est enregistré.
 
 ### Disquettes
 
-- **« Boot a disk »** : LDOS 5.3.1, redistribuable (voir [www/disks/README.md](www/disks/README.md)).
+- **« Boot a disk »** : LDOS 5.3.1, redistribuable, en simple densité et en système complet
+  double densité (voir [www/disks/README.md](www/disks/README.md)).
   Au démarrage, entrer une date de son époque, ex. `10/08/91`. Lien direct : `?disk=ldos-531`.
 - **Disquettes locales** (développement) : les disquettes qu'on ne peut pas publier
   (ex. TRSDOS) vont dans `www/disks/local/`; ce dossier est exclu de Git et ses
@@ -94,12 +95,13 @@ programmes conçus pour disquette démarrent, mais rien n'est enregistré.
   `index.json` (une entrée pour chaque nouvelle image, retrait des images absentes, titres
   et descriptions existants conservés). Ne placer dans `www/disks/` que des images dont la
   redistribution est autorisée.
-- **Lecteurs 0 à 3** : « Insert… » pour une image JV1, JV3 ou DMK, « Eject », et « Save » pour
-  récupérer une disquette modifiée par le TRS-80 (JV1 et JV3). Le lecteur 0 sert au
+- **Lecteurs 0 à 3** : « Insert… » pour une image JV1, JV3 ou DMK, « Blank » pour une disquette
+  vierge (à formater depuis le DOS, ex. `FORMAT :1`), « Eject », et « Save » pour récupérer la
+  disquette (une disquette reformatée ou une image DMK est enregistrée en JV3). Le lecteur 0 sert au
   démarrage : y insérer une disquette redémarre le TRS-80 dessus.
 - Contrôleur WD1771 de l'interface d'expansion du Model I, et **doubleurs de densité
   Percom et Radio Shack** (WD1791). Essayés : LDOS 5.3.1, TRSDOS 2.1, 2.3 et 2.7DD,
-  NEWDOS 3.0, NEWDOS/80, DOSPLUS 3.5, DBLDOS 4.2. Pas encore : le formatage. Comme sur la
+  NEWDOS 3.0, NEWDOS/80, DOSPLUS 3.5, DBLDOS 4.2. Le formatage fonctionne. Comme sur la
   vraie machine, une disquette dont la piste 0 est en double densité ne peut pas démarrer.
 
 ### Son

@@ -335,6 +335,11 @@ function makeDriveRow(drive) {
   eject.type = 'button';
   eject.className = 'secondary';
   eject.textContent = 'Eject';
+  const blank = document.createElement('button');
+  blank.type = 'button';
+  blank.className = 'secondary';
+  blank.textContent = 'Blank';
+  blank.title = 'Insert an unformatted disk, to format from the DOS (e.g. FORMAT :1)';
   const save = document.createElement('button');
   save.type = 'button';
   save.className = 'secondary';
@@ -343,7 +348,7 @@ function makeDriveRow(drive) {
   const error = document.createElement('span');
   error.className = 'drive-error';
   error.setAttribute('role', 'alert');
-  row.append(name, insertLabel, eject, save, error);
+  row.append(name, insertLabel, blank, eject, save, error);
   document.getElementById('drives').append(row);
 
   let current = null; // { name, bytes } : image d'origine
@@ -383,6 +388,15 @@ function makeDriveRow(drive) {
     }
     canvas.focus();
   });
+  blank.addEventListener('click', () => {
+    if (!emulator) return;
+    emulator.insert_blank_disk(drive);
+    current = { name: `blank-${drive}.dsk`, bytes: null };
+    error.textContent = '';
+    showStatus(`Drive ${drive}: blank disk. Format it from the DOS (e.g. FORMAT :${drive}).`);
+    refresh();
+    canvas.focus();
+  });
   eject.addEventListener('click', () => {
     emulator?.eject_disk(drive);
     current = null;
@@ -396,9 +410,12 @@ function makeDriveRow(drive) {
       showStatus('Saving is only supported for JV1 and JV3 images.', true);
       return;
     }
+    // Une disquette reformatée ou une image DMK est enregistrée en JV3 : extension .dsk.
+    const format = emulator.disk_image_format(drive);
+    const fileName = format === 'JV3' ? current.name.replace(/\.(dmk|jv1)$/i, '.dsk') : current.name;
     const link = document.createElement('a');
     link.href = URL.createObjectURL(new Blob([image], { type: 'application/octet-stream' }));
-    link.download = current.name;
+    link.download = fileName;
     link.click();
     URL.revokeObjectURL(link.href);
   });
@@ -410,10 +427,12 @@ function makeDriveRow(drive) {
     setEnabled(on) {
       insertLabel.classList.toggle('disabled', !on);
       input.disabled = !on;
+      blank.disabled = !on;
       refresh();
     },
     reinsert() {
-      if (current) insert(current.name, current.bytes);
+      if (current?.bytes) insert(current.name, current.bytes);
+      else if (current) emulator.insert_blank_disk(drive);
       refresh();
     },
   };

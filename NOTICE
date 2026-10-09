@@ -14,8 +14,9 @@ README.md next to them). They are not covered by the Apache License.
     Wayne Westmoreland & Terry Gilman, released into the public domain by
     Wayne Westmoreland in 1995 (see www/programs/WESTMORELAND-README.TXT).
 
-- www/disks/ldos-531.dsk
-    LDOS 5.3.1 for the Model I, Copyright 1991 MISOSYS, Inc.
+- www/disks/ldos-531.dsk, www/disks/ldos-531-dd.dsk
+    LDOS 5.3.1 for the Model I, Copyright 1991 MISOSYS, Inc. The double-density disk
+    is a copy of LDOS made with LDOS itself (FORMAT, BACKUP, SYSGEN, SOLE).
     Distribution notice, as published at https://tim-mann.org/misosys.html :
 
     "Roy Soltoff holds copyright or distribution rights to the software

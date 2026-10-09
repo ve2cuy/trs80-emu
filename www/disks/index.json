@@ -7,5 +7,14 @@
     "authors": "Logical Systems / MISOSYS",
     "description": "The Model I version of LDOS. At boot, enter a date from its era, e.g. 10/08/91, then the time. Try DIR, FREE, LIB.",
     "license": "Copyright 1991 MISOSYS, Inc. Free redistribution with notice: see www/disks/README.md"
+  },
+  {
+    "id": "ldos-531-dd",
+    "file": "ldos-531-dd.dsk",
+    "title": "LDOS 5.3.1 double density (complete system)",
+    "year": 1991,
+    "authors": "Logical Systems / MISOSYS",
+    "description": "LDOS on a 180 KB double-density disk (Radio Shack doubler, track 0 single density to boot), with the files of both LDOS disks: help (HELP DIR), BASIC, utilities. Made in this emulator with LDOS itself (FDUBL, FORMAT, BACKUP, SYSGEN, SOLE). At boot, enter a date from its era, e.g. 10/08/91.",
+    "license": "Copyright 1991 MISOSYS, Inc. Free redistribution with notice: see www/disks/README.md"
   }
 ]

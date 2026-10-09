@@ -6,6 +6,7 @@ Comme pour les programmes, seules des disquettes dont la redistribution est
 | Fichier | Contenu | Format |
 | --- | --- | --- |
 | `ldos-531.dsk` | LDOS 5.3.1 pour le Model I, disquette système | JV1, 35 pistes, simple densité |
+| `ldos-531-dd.dsk` | LDOS 5.3.1 complet (fichiers des deux disquettes LDOS), double densité | JV3, 40 cylindres, piste 0 en simple densité |
 
 ## Ajouter une disquette
 
@@ -34,6 +35,14 @@ permission :
 > is available with the permission of Andrew Graham.  LDOS/LS-DOS are
 > available with the permission of William Schroeder.
 
+`ldos-531-dd.dsk` a été fabriquée dans cet émulateur, avec LDOS lui-même, selon la marche
+à suivre du manuel (commande SOLE) : `FDUBL (TANDY)`, `FORMAT :1 (SYSTEM)` en double
+densité, `BACKUP :0 :1 (SYS,INV)`, `SYSTEM (SYSGEN,DRIVE=1)`, `SOLE :1`, puis les fichiers
+de la deuxième disquette (`ld1x-531.dsk` de la même archive) avec `BACKUP :2 :1 (INV)`.
+C'est une copie de LDOS, distribuée sous le même avis. Pour la refaire :
+
+    cargo run --release -p trs80 --example make_ldos_dd -- <rom> www/disks/ldos-531.dsk www/disks/ldos-531-dd.dsk ld1x-531.dsk
+
 Au démarrage, LDOS 5.3.1 demande la date : il n'accepte que des années de son
 époque (ex. `10/08/91`).
 
@@ -41,5 +50,6 @@ Au démarrage, LDOS 5.3.1 demande la date : il n'accepte que des années de son
 
 Contrôleur WD1771 du Model I et doubleurs Percom et Radio Shack (WD1791), images JV1,
 JV3 et DMK. Fonctionnent : LDOS 5.3.1, TRSDOS 2.1, 2.3 et 2.7DD, NEWDOS 3.0, NEWDOS/80,
-DOSPLUS 3.5, DBLDOS 4.2. Pas encore : le formatage (commande « écrire la piste »). Une
-disquette dont la piste 0 est en double densité ne démarre pas, comme sur un vrai Model I.
+DOSPLUS 3.5, DBLDOS 4.2. Le formatage (« écrire la piste ») fonctionne : bouton « Blank »
+pour insérer une disquette vierge, puis FORMAT dans le DOS. Une disquette dont la piste 0
+est en double densité ne démarre pas, comme sur un vrai Model I.

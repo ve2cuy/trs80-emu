@@ -75,6 +75,20 @@ pub struct Disk {
     pub(crate) sectors: Vec<Sector>,
     pub(crate) write_protected: bool,
     pub(crate) modified: bool,
+    /// Pistes reformatées (ou image DMK) : `data` ne suit plus la disposition du fichier
+    /// d'origine; l'image à enregistrer est alors produite au format JV3.
+    pub(crate) rebuilt: bool,
+}
+
+/// Un secteur créé par le formatage d'une piste.
+pub(crate) struct NewSector {
+    pub track: u8,
+    pub side: u8,
+    pub sector: u8,
+    pub size_code: u8,
+    pub dam: u8,
+    pub dd: bool,
+    pub data: Vec<u8>,
 }
 
 const JV3_ENTRIES: usize = 2901;
@@ -121,7 +135,7 @@ impl Disk {
                 }
             })
             .collect();
-        Disk { format: Format::Jv1, data: image, sectors, write_protected: false, modified: false }
+        Disk { format: Format::Jv1, data: image, sectors, write_protected: false, modified: false, rebuilt: false }
     }
 
     /// JV3 : vérifie que les descripteurs sont plausibles et que les tailles concordent.
@@ -182,7 +196,7 @@ impl Disk {
                 break;
             }
         }
-        Some(Disk { format: Format::Jv3, data: Vec::new(), sectors, write_protected, modified: false })
+        Some(Disk { format: Format::Jv3, data: Vec::new(), sectors, write_protected, modified: false, rebuilt: false })
     }
 
     /// DMK : en-tête de 16 octets, puis les pistes (table IDAM de 128 octets + données brutes).
@@ -261,7 +275,26 @@ impl Disk {
         if sectors.is_empty() {
             return Some(Err(DiskError::Corrupt));
         }
-        Some(Ok(Disk { format: Format::Dmk, data, sectors, write_protected: image[0] == 0xFF, modified: false }))
+        Some(Ok(Disk {
+            format: Format::Dmk,
+            data,
+            sectors,
+            write_protected: image[0] == 0xFF,
+            modified: false,
+            rebuilt: true,
+        }))
+    }
+
+    /// Disquette vierge (non formatée), à formater par le DOS. Enregistrée en JV3.
+    pub fn blank() -> Disk {
+        Disk {
+            format: Format::Jv3,
+            data: Vec::new(),
+            sectors: Vec::new(),
+            write_protected: false,
+            modified: false,
+            rebuilt: true,
+        }
     }
 
     pub fn format(&self) -> Format {
@@ -281,9 +314,68 @@ impl Disk {
         self.modified
     }
 
-    /// Image à enregistrer (JV1 et JV3 seulement; les DMK modifiés ne sont pas réécrits).
-    pub fn image(&self) -> Option<&[u8]> {
-        matches!(self.format, Format::Jv1 | Format::Jv3).then_some(self.data.as_slice())
+    /// Image à enregistrer : le fichier d'origine (JV1, JV3) avec les secteurs écrits, ou,
+    /// après un formatage ou pour une image DMK, une image JV3 produite à partir des secteurs.
+    pub fn image(&self) -> Vec<u8> {
+        if self.rebuilt { self.to_jv3() } else { self.data.clone() }
+    }
+
+    /// Format de l'image retournée par [`Disk::image`].
+    pub fn image_format(&self) -> Format {
+        if self.rebuilt { Format::Jv3 } else { self.format }
+    }
+
+    /// Image JV3 : 2901 descripteurs (piste, secteur, indicateurs), protection, données.
+    fn to_jv3(&self) -> Vec<u8> {
+        let mut order: Vec<usize> = (0..self.sectors.len()).collect();
+        order.sort_by_key(|&i| {
+            let s = &self.sectors[i];
+            (s.track, s.side, s.dd, s.sector)
+        });
+        order.truncate(JV3_ENTRIES);
+        let mut out = alloc::vec![0xFFu8; JV3_HEADER];
+        out[JV3_HEADER - 1] = if self.write_protected { 0x00 } else { 0xFF };
+        for (e, &i) in order.iter().enumerate() {
+            let s = &self.sectors[i];
+            let dam = match (s.dd, s.dam) {
+                (true, 0xF8) => 1,
+                (true, _) => 0,
+                (false, 0xFB) => 0,
+                (false, 0xFA) => 1,
+                (false, 0xF9) => 2,
+                (false, _) => 3,
+            };
+            let flags = (if s.dd { 0x80 } else { 0 }) | (dam << 5) | ((s.side & 1) << 4) | ((s.size_code & 3) ^ 1);
+            out[e * 3..e * 3 + 3].copy_from_slice(&[s.track, s.sector, flags]);
+        }
+        for &i in &order {
+            out.extend_from_slice(self.sector_data(i));
+        }
+        out
+    }
+
+    /// Remplace les secteurs de la piste `track` (face `side`) par ceux d'un formatage.
+    pub(crate) fn format_track(&mut self, track: u8, side: u8, new: Vec<NewSector>) {
+        self.sectors.retain(|s| !(s.track == track && s.side == side));
+        for n in new {
+            let offset = self.data.len();
+            let len = size_of_code(n.size_code);
+            self.data.extend_from_slice(&n.data[..len.min(n.data.len())]);
+            self.data.resize(offset + len, 0xE5);
+            self.sectors.push(Sector {
+                track: n.track,
+                side: n.side & 1,
+                sector: n.sector,
+                size_code: n.size_code & 3,
+                dam: n.dam,
+                dd: n.dd,
+                offset,
+                len,
+                jv3_entry: None,
+            });
+        }
+        self.rebuilt = true;
+        self.modified = true;
     }
 
     /// Indice du secteur `sector` sur la piste `track`, dans la densité demandée.

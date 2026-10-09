@@ -80,6 +80,10 @@ l'utilisateur chargera son propre fichier ROM, conservé ensuite dans IndexedDB.
    densité des secteurs trouvés et du codage du type de secteur. Déplacements de tête
    minutés (6 à 20 ms par piste) : l'interruption de fin arrive après la commande.
    Démarrent en plus : TRSDOS 2.7DD, DBLDOS 4.2. Journal du contrôleur : `fdc_trace()`.
+7g. ✅ Formatage (« écrire la piste ») : secteurs tirés du flux de la piste; disquette vierge;
+   export JV3 des disquettes reformatées et des DMK. RESET : le contrôleur exécute un
+   Restore (la ROM, en 0696h, démarre en BASIC si l'état vaut 00h). LDOS 5.3.1 double
+   densité fabriqué avec LDOS (`examples/make_ldos_dd.rs`) et publié.
 7e. ✅ Licence Apache 2.0 (`LICENSE`, `NOTICE` pour les fichiers de tiers).
 6. ✅ Chargement de programmes `.CMD` (écriture directe en mémoire, après avoir amené
    le BASIC à « READY »), routines minimales à la place des appels de fichiers TRSDOS,
@@ -96,7 +100,7 @@ l'utilisateur chargera son propre fichier ROM, conservé ensuite dans IndexedDB.
    le texte depuis un atlas de 64 glyphes, sur un canvas de 1536 × 1152. Redessin seulement
    si la mémoire vidéo change. Clavier : chaque touche reste enfoncée au moins 3 images.
 7. ⬜ Confort : Reset, Turbo, collage de texte, sauvegarde et restauration de l'état.
-8. ⬜ Facultatif : modification minuscules, formatage, Model III.
+8. ⬜ Facultatif : modification minuscules, lecture de piste, Model III.
 9. ✅ Déploiement GitHub Pages par une GitHub Action (`.github/workflows/pages.yml`) :
    <https://ve2cuy.github.io/trs80-emu/>
 

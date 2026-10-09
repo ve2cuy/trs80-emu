@@ -24,13 +24,18 @@
 //! Les déplacements de la tête durent le temps réel (6 à 20 ms par piste) : certains DOS
 //! lancent la commande puis attendent l'interruption de fin, qui doit donc venir après.
 //!
+//! Formatage (« écrire la piste ») : le contrôleur reçoit le flux d'octets de la piste
+//! (intervalles, marques d'adresse FEh, identifiants, marques de données F8h-FBh, données)
+//! et en tire les secteurs de la piste. Les octets F7h (« écrire le CRC ») et F5h/F6h (en
+//! double densité) sont des codes de commande du contrôleur, ignorés dans les données.
+//!
 //! Simplifications : les transferts sont instantanés (les données sont prêtes dès que le
-//! DOS interroge DRQ), le formatage (« écrire la piste ») n'est pas émulé. L'impulsion
+//! DOS interroge DRQ), la lecture d'une piste entière n'est pas émulée. L'impulsion
 //! d'index est simulée à 300 tours par minute, car les DOS s'en servent pour savoir si
 //! une disquette tourne.
 
 use crate::CLOCK_HZ;
-use crate::disk::Disk;
+use crate::disk::{Disk, NewSector};
 use alloc::vec::Vec;
 
 pub const DRIVES: usize = 4;
@@ -70,6 +75,10 @@ const INDEX_PULSE: u64 = 7_000;
 /// et temps de chargement de la tête, en T-states.
 const STEP_TIME: [u64; 4] = [6, 6, 10, 20];
 const SETTLE: u64 = 2_000;
+/// Octets d'une piste (une rotation) : simple densité 3125, double densité 6250. Le
+/// formatage se termine quand ce nombre d'octets a été écrit.
+const TRACK_BYTES_SD: usize = 3_125;
+const TRACK_BYTES_DD: usize = 6_250;
 const MS: u64 = CLOCK_HZ as u64 / 1000;
 
 #[derive(Clone, Copy, PartialEq, Eq)]
@@ -78,6 +87,7 @@ enum Transfer {
     Read { pos: usize, multiple: bool },
     Write { pos: usize, dam: u8 },
     Address { pos: usize },
+    Track,
 }
 
 pub(crate) struct Fdc {
@@ -145,12 +155,19 @@ impl Fdc {
         }
     }
 
-    /// RESET : le doubleur revient au WD1771 (simple densité), comme à la mise sous tension.
+    /// RESET : le doubleur revient au WD1771 (simple densité), comme à la mise sous tension,
+    /// et le contrôleur exécute de lui-même une commande Restore (comme un vrai WD1771 à la
+    /// réinitialisation) : la tête revient à la piste 0 et l'état indique « occupé ».
+    ///
+    /// C'est indispensable : la ROM (0696h) démarre en BASIC si l'état vaut 00h ou FFh. Après
+    /// un DOS, la tête n'est plus sur la piste 0; sans ce Restore, l'état valait 00h et le
+    /// RESET suivant démarrait en BASIC au lieu de la disquette.
     pub(crate) fn reset(&mut self) {
         self.wd1791 = false;
         self.transfer = Transfer::None;
         self.pending = None;
-        self.status = 0;
+        self.intrq = false;
+        self.type_one(0x03);
         self.intrq = false;
     }
 
@@ -266,7 +283,9 @@ impl Fdc {
                 self.transfer = Transfer::None;
                 self.status &= !(BUSY | DRQ);
             }
-            // Lire ou écrire une piste : non émulé.
+            // Écrire une piste (formatage).
+            0xF => self.write_track(),
+            // Lire une piste : non émulé.
             _ => {
                 self.type1 = false;
                 self.finish(NOT_FOUND);
@@ -415,8 +434,60 @@ impl Fdc {
         self.transfer = Transfer::Write { pos: 0, dam };
     }
 
+    fn write_track(&mut self) {
+        self.type1 = false;
+        let Some(disk) = self.disk() else {
+            return self.finish(NOT_READY);
+        };
+        if disk.write_protected() {
+            return self.finish(WRITE_PROTECT);
+        }
+        self.buffer.clear();
+        self.status = BUSY | DRQ;
+        self.transfer = Transfer::Track;
+    }
+
+    /// Tire les secteurs du flux d'une piste formatée : « FEh piste face secteur taille »,
+    /// puis, un peu plus loin, une marque de données F8h-FBh suivie des données.
+    fn parse_track(stream: &[u8], dd: bool) -> Vec<NewSector> {
+        let mut sectors = Vec::new();
+        let mut i = 0;
+        while i + 5 < stream.len() {
+            if stream[i] != 0xFE {
+                i += 1;
+                continue;
+            }
+            let (track, side, sector, size_code) = (stream[i + 1], stream[i + 2], stream[i + 3], stream[i + 4]);
+            let len = 128usize << (size_code & 3);
+            let search = i + 5..(i + 5 + 64).min(stream.len());
+            let Some(mark) = search.clone().find(|&j| matches!(stream[j], 0xF8..=0xFB)) else {
+                i += 1;
+                continue;
+            };
+            let data = stream.get(mark + 1..mark + 1 + len).map(<[u8]>::to_vec).unwrap_or_default();
+            if data.len() == len {
+                sectors.push(NewSector { track, side, sector, size_code, dam: stream[mark], dd, data });
+            }
+            i = mark + 1 + len;
+        }
+        sectors
+    }
+
     fn write_data(&mut self, val: u8) {
         self.data = val;
+        if self.transfer == Transfer::Track {
+            self.buffer.push(val);
+            let limit = if self.wd1791 { TRACK_BYTES_DD } else { TRACK_BYTES_SD };
+            if self.buffer.len() >= limit {
+                let sectors = Self::parse_track(&self.buffer, self.wd1791);
+                let head = self.head[self.selected];
+                if let Some(disk) = self.drives[self.selected].as_mut() {
+                    disk.format_track(head, 0, sectors);
+                }
+                self.finish(0);
+            }
+            return;
+        }
         if let Transfer::Write { pos, dam } = self.transfer {
             self.buffer[pos] = val;
             if pos + 1 < self.buffer.len() {
@@ -536,5 +607,58 @@ mod tests {
         assert_eq!(f.status & BUSY, 0);
         assert!(f.intrq, "interruption à la fin du déplacement");
         assert_eq!(f.track, 10);
+    }
+}
+
+#[cfg(test)]
+mod format_tests {
+    use super::*;
+
+    /// Flux d'une piste en simple densité : deux secteurs de 256 octets (ID FEh, CRC F7h,
+    /// intervalle, marque de données FBh, données E5h, CRC F7h).
+    fn sd_track(track: u8) -> Vec<u8> {
+        let mut t = alloc::vec![0xFFu8; 40];
+        for sector in 0..2u8 {
+            t.extend_from_slice(&[0xFE, track, 0, sector, 1, 0xF7]);
+            t.extend_from_slice(&[0xFF; 11]);
+            t.extend_from_slice(&[0x00; 6]);
+            t.push(0xFB);
+            t.extend_from_slice(&[0xE5; 256]);
+            t.push(0xF7);
+            t.extend_from_slice(&[0xFF; 20]);
+        }
+        t
+    }
+
+    #[test]
+    fn parse_track_finds_sectors() {
+        let s = Fdc::parse_track(&sd_track(5), false);
+        assert_eq!(s.len(), 2);
+        assert_eq!((s[1].track, s[1].sector, s[1].size_code, s[1].dam), (5, 1, 1, 0xFB));
+        assert!(s.iter().all(|x| x.data.len() == 256 && x.data[0] == 0xE5 && !x.dd));
+    }
+
+    #[test]
+    fn write_track_formats_a_blank_disk() {
+        let mut f = Fdc::new();
+        f.drives[0] = Some(Disk::blank());
+        f.select(1);
+        f.write(0, 0xF4); // écrire la piste (tête sur la piste 0)
+        assert_eq!(f.status & (BUSY | DRQ), BUSY | DRQ);
+        let mut stream = sd_track(0);
+        stream.resize(TRACK_BYTES_SD, 0xFF);
+        for b in stream {
+            f.write(3, b);
+        }
+        assert_eq!(f.status & BUSY, 0, "formatage terminé après une piste");
+        // Le secteur 1 de la piste 0 existe maintenant et se lit.
+        f.write(1, 0);
+        f.write(2, 1);
+        f.write(0, 0x88);
+        assert_eq!(f.read(3, 0), 0xE5);
+        let disk = f.drives[0].as_ref().unwrap();
+        assert!(disk.modified());
+        assert_eq!(disk.image_format(), crate::disk::Format::Jv3);
+        assert_eq!(disk.image().len(), 2901 * 3 + 1 + 2 * 256);
     }
 }

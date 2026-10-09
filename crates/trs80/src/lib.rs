@@ -259,6 +259,11 @@ impl Trs80 {
         Ok(slot.as_ref().unwrap())
     }
 
+    /// Insère une disquette vierge (à formater par le DOS) dans le lecteur `drive`.
+    pub fn insert_blank_disk(&mut self, drive: usize) {
+        self.board.fdc.drives[drive % DRIVES] = Some(Disk::blank());
+    }
+
     /// Retire la disquette du lecteur `drive`.
     pub fn eject_disk(&mut self, drive: usize) -> Option<Disk> {
         self.board.fdc.drives[drive % DRIVES].take()
