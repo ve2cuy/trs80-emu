@@ -547,26 +547,118 @@ function typingInForm(target) {
     || target instanceof HTMLTextAreaElement;
 }
 
+/** Enfonce une touche; retourne ce qu'il faut passer à releaseKey, ou null si inconnue. */
+function pressKey(name) {
+  if (!emulator.key_down(name)) return null;
+  pendingReleases = pendingReleases.filter((r) => r.name !== name);
+  return { name, at: frameCount };
+}
+
+function releaseKey(key) {
+  if (frameCount - key.at >= MIN_HOLD_FRAMES) {
+    emulator.key_up(key.name);
+  } else {
+    pendingReleases.push(key);
+  }
+}
+
 window.addEventListener('keydown', (e) => {
-  if (!emulator || e.ctrlKey || e.altKey || e.metaKey || typingInForm(e.target)) return;
+  if (!emulator || e.ctrlKey || e.altKey || e.metaKey) return;
+  if (e.target === touchInput) {
+    // Clavier virtuel : le texte (et ← ou ENTRÉE) arrive par l'événement input; seules les
+    // touches qui ne produisent pas de texte (flèches, Échap d'un clavier branché) passent ici.
+    if (e.isComposing || e.key.length === 1 || ['Unidentified', 'Process', 'Backspace', 'Enter'].includes(e.key)) return;
+  } else if (typingInForm(e.target)) {
+    return;
+  }
   if (e.repeat) { e.preventDefault(); return; }
-  if (emulator.key_down(e.key)) {
-    pendingReleases = pendingReleases.filter((r) => r.name !== e.key);
-    pressed.set(e.code, { name: e.key, at: frameCount });
+  const key = pressKey(e.key);
+  if (key) {
+    pressed.set(e.code, key);
     e.preventDefault();
   }
 });
 
 window.addEventListener('keyup', (e) => {
   if (!emulator) return;
-  const key = pressed.get(e.code) ?? { name: e.key, at: -Infinity };
+  const key = pressed.get(e.code);
   pressed.delete(e.code);
-  if (frameCount - key.at >= MIN_HOLD_FRAMES) {
-    emulator.key_up(key.name);
-  } else {
-    pendingReleases.push(key);
+  if (key) {
+    releaseKey(key);
+  } else if (e.target !== touchInput) {
+    emulator.key_up(e.key);
   }
 });
+
+// ------------------------------------------------------------------ écran tactile
+
+// Une tablette n'affiche son clavier virtuel que pour un champ de texte : toucher l'écran
+// donne le focus à un champ invisible. Ce qu'on y tape est comparé au contenu précédent
+// (les claviers Android n'envoient pas de touches, seulement du texte, parfois corrigé
+// en cours de mot) et retapé sur le TRS-80 : ajouts, et ← pour les caractères effacés.
+const touchInput = document.getElementById('touch-input');
+const touchKeyboard = document.getElementById('touch-keyboard');
+// Le champ n'est jamais vide : la touche ← du clavier virtuel a toujours quoi effacer.
+const TOUCH_FILL = '  ';
+let touchPrevious = TOUCH_FILL;
+let touchComposing = false;
+
+function resetTouchInput() {
+  touchInput.value = touchPrevious = TOUCH_FILL;
+  touchInput.setSelectionRange(TOUCH_FILL.length, TOUCH_FILL.length);
+}
+
+function syncTouchInput() {
+  const value = touchInput.value;
+  let common = 0;
+  while (common < value.length && common < touchPrevious.length
+         && value[common] === touchPrevious[common]) common++;
+  const text = '\b'.repeat(touchPrevious.length - common) + value.slice(common).replace(/\r/g, '');
+  touchPrevious = value;
+  if (text && emulator) emulator.type_text(text);
+  // Pendant la composition d'un mot, modifier le champ dérouterait le clavier virtuel.
+  if (!touchComposing) resetTouchInput();
+}
+
+touchInput.addEventListener('input', syncTouchInput);
+touchInput.addEventListener('compositionstart', () => { touchComposing = true; });
+touchInput.addEventListener('compositionend', () => {
+  touchComposing = false;
+  setTimeout(syncTouchInput); // certains fureteurs envoient le dernier input après
+});
+touchInput.addEventListener('focus', () => { resetTouchInput(); touchKeyboard.classList.add('active'); });
+touchInput.addEventListener('blur', () => touchKeyboard.classList.remove('active'));
+
+// Au click, après le mousedown qui donne le focus au canvas.
+let canvasPointer = 'mouse';
+canvas.addEventListener('pointerdown', (e) => { canvasPointer = e.pointerType; });
+canvas.addEventListener('click', () => {
+  if (canvasPointer !== 'mouse') touchInput.focus({ preventScroll: true });
+});
+
+// Les touches à l'écran ne doivent pas prendre le focus : le clavier virtuel resterait fermé.
+const touchKeys = document.getElementById('touch-keys');
+touchKeys.addEventListener('pointerdown', (e) => e.preventDefault());
+touchKeyboard.addEventListener('click', () => {
+  if (document.activeElement === touchInput) touchInput.blur();
+  else touchInput.focus({ preventScroll: true });
+});
+for (const button of touchKeys.querySelectorAll('[data-key]')) {
+  let key = null;
+  const release = () => {
+    if (key) releaseKey(key);
+    key = null;
+    button.classList.remove('active');
+  };
+  button.addEventListener('pointerdown', (e) => {
+    if (!emulator || key) return;
+    button.setPointerCapture(e.pointerId);
+    key = pressKey(button.dataset.key);
+    button.classList.add('active');
+  });
+  button.addEventListener('pointerup', release);
+  button.addEventListener('pointercancel', release);
+}
 
 /** Applique les relâchements différés dont la durée minimale est atteinte. */
 function releaseDueKeys() {

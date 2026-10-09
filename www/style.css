@@ -58,6 +58,30 @@ canvas {
 
 canvas:focus-visible { box-shadow: 0 0 0 3px var(--accent); }
 
+/* Champ invisible qui fait apparaître le clavier virtuel d'une tablette. 16px : sinon
+   iOS agrandit la page quand il reçoit le focus. */
+#touch-input {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  border: 0;
+  opacity: 0;
+  resize: none;
+  font-size: 16px;
+  pointer-events: none;
+}
+
+/* Touches spéciales, seulement sur un écran tactile (une tablette n'a pas Échap ni Origine). */
+.touch-keys { display: none; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+@media (any-pointer: coarse) {
+  .touch-keys { display: flex; }
+}
+.touch-keys button { min-width: 3em; padding: 10px 12px; touch-action: manipulation; user-select: none; }
+.touch-keys button.active { background: var(--accent); color: #0b1220; }
+
 .overlay {
   position: absolute;
   inset: 0;

@@ -21,6 +21,20 @@
           The ROM stays in your browser and is never uploaded.</p>
         <p id="error" class="error" role="alert"></p>
       </div>
+      <!-- Tablettes : le clavier virtuel n'apparaît que pour un champ de texte. -->
+      <textarea id="touch-input" aria-hidden="true" tabindex="-1" autocomplete="off"
+                autocorrect="off" autocapitalize="off" spellcheck="false"></textarea>
+    </div>
+
+    <div id="touch-keys" class="touch-keys" aria-label="TRS-80 keys for touch screens">
+      <button type="button" id="touch-keyboard" class="secondary">⌨ Keyboard</button>
+      <button type="button" class="secondary" data-key="Escape">BREAK</button>
+      <button type="button" class="secondary" data-key="Home">CLEAR</button>
+      <button type="button" class="secondary" data-key="ArrowUp">↑</button>
+      <button type="button" class="secondary" data-key="ArrowDown">↓</button>
+      <button type="button" class="secondary" data-key="ArrowLeft">←</button>
+      <button type="button" class="secondary" data-key="ArrowRight">→</button>
+      <button type="button" class="secondary" data-key="Enter">ENTER</button>
     </div>
 
     <div class="controls">
@@ -114,6 +128,8 @@
       </table>
       <p>Type symbols as you would on a PC: the emulator handles the TRS-80 Shift key,
         whose layout is different.</p>
+      <p>On a tablet or phone, tap the screen (or “⌨ Keyboard”) to show the on-screen
+        keyboard; the buttons under the screen give BREAK, CLEAR, the arrows and ENTER.</p>
     </details>
 
     <p class="footer">

@@ -141,6 +141,9 @@ the first key press or click (a browser rule); untick "Sound" to mute.
 Type symbols as you would on a PC (`"`, `*`, `+`, ...): the emulator handles the
 TRS-80 Shift key, whose layout is different.
 
+On a tablet or phone, tap the screen (or "⌨ Keyboard") to show the on-screen keyboard;
+buttons under the screen give BREAK, CLEAR, the arrows and ENTER.
+
 ## Structure
 
 | Folder | Role |

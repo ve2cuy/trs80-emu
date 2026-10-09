@@ -142,6 +142,9 @@ première touche ou au premier clic (règle des fureteurs); décocher « Sound �
 Les symboles se tapent comme sur un PC (`"`, `*`, `+`, ...) : l'émulateur
 s'occupe de la touche MAJ du TRS-80, dont la disposition est différente.
 
+Sur une tablette ou un téléphone, toucher l'écran (ou « ⌨ Keyboard ») fait apparaître le
+clavier virtuel; des boutons sous l'écran donnent BREAK, CLEAR, les flèches et ENTER.
+
 ## Structure
 
 | Dossier | Rôle |

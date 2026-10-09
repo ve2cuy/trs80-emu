@@ -34,12 +34,14 @@ impl Typer {
     }
 
     /// Ajoute du texte à taper; retourne le nombre de caractères acceptés. Les fins de ligne
-    /// deviennent ENTRÉE; les caractères sans touche sur le TRS-80 sont ignorés.
+    /// deviennent ENTRÉE, `\x08` la touche ←; les caractères sans touche sur le TRS-80 sont
+    /// ignorés.
     pub(crate) fn push(&mut self, text: &str) -> usize {
         let mut accepted = 0;
         for c in text.chars() {
             let byte = match c {
                 '\n' => b'\n',
+                BACKSPACE => BACKSPACE as u8,
                 '\t' => b' ',
                 c if c.is_ascii() && key_for(c as u8).is_some() => c as u8,
                 _ => continue,
@@ -99,9 +101,15 @@ impl Typer {
     }
 }
 
+/// Caractère « retour arrière » : la touche ← du TRS-80 (clavier virtuel d'une tablette).
+const BACKSPACE: char = '\x08';
+
 fn key_for(b: u8) -> Option<Key> {
     if b == b'\n' {
         return Key::from_name("Enter");
+    }
+    if b == BACKSPACE as u8 {
+        return Key::from_name("Backspace");
     }
     let buf = [b];
     Key::from_name(core::str::from_utf8(&buf).ok()?)

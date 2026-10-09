@@ -66,6 +66,16 @@ fn pasted_program_runs() {
 }
 
 #[test]
+fn typed_backspace_erases() {
+    let Some(rom) = load_rom() else { return };
+    let mut m = machine_with_program(&rom);
+    m.type_text("PRINT 12\x083\n");
+    finish_typing(&mut m, 30);
+    let s = screen(&m);
+    assert!(s.lines().any(|l| l.trim() == "13"), "Écran :\n{s}");
+}
+
+#[test]
 fn typing_skips_characters_without_a_key() {
     let Some(rom) = load_rom() else { return };
     let mut m = Trs80::new(&rom).unwrap();
