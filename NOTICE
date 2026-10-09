@@ -14,8 +14,10 @@ README.md next to them). They are not covered by the Apache License.
     Wayne Westmoreland & Terry Gilman, released into the public domain by
     Wayne Westmoreland in 1995 (see www/programs/WESTMORELAND-README.TXT).
 
-- www/disks/ldos-531.dsk, www/disks/ldos-531-dd.dsk
-    LDOS 5.3.1 for the Model I, Copyright 1991 MISOSYS, Inc. The double-density disk
+- www/disks/ldos-531.dsk, www/disks/ldos-531-dd.dsk, www/disks/ldos-531-m3.dsk,
+  www/disks/rshard.dsk
+    LDOS 5.3.1 for the Model I and Model III, Copyright 1991 MISOSYS, Inc.;
+    RSHARD hard disk drivers, Copyright 1987 MISOSYS, Inc. The double-density disk
     is a copy of LDOS made with LDOS itself (FORMAT, BACKUP, SYSGEN, SOLE).
     Distribution notice, as published at https://tim-mann.org/misosys.html :
 
@@ -31,5 +33,9 @@ README.md next to them). They are not covered by the Apache License.
 - www/disks/trsdos20a-m2.imd
     TRSDOS-II 2.0a for the Model II, Copyright 1981 Tandy Corporation.
     Provided for experimentation with the Model II emulation.
+
+- crates/trs80/src/hard.rs
+    Hard disk controller and Reed image format modelled on xtrs (trs_hard.c,
+    reed.h), Copyright (c) 2000-2020 Timothy P. Mann, MIT license.
 
 TRS-80 ROMs are NOT included: they are (c) Tandy / Microsoft.

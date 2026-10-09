@@ -112,6 +112,11 @@ l'utilisateur chargera son propre fichier ROM, conservé ensuite dans IndexedDB.
      mode 2 (priorité : DMA, clavier, PIO); horloge à 60 Hz par NMI (lue en FEh). Le
      contrôleur termine seul un secteur que le DMA ne lit qu'en partie (données perdues).
      Disquettes IMD. Essayé avec TRSDOS-II 2.0a.
+11. ✅ Disque dur Radio Shack (Model I, III et 4, `hard.rs`) : WD1010 sur C0h-CFh, comme
+   xtrs (MIT) : un secteur de 256 octets par commande, 32 secteurs par piste; images Reed
+   (.hdv) dont l'en-tête donne les secteurs par cylindre (d'où les têtes); l'image s'allonge
+   à l'écriture. Pilotes RSHARD5/RSHARD6 de MISOSYS (rshard.dsk, publiée); essayé avec
+   LDOS 5.3.1 (Model I et III) et TRSDOS 6.2.1 (Model 4) : SYSTEM, RSFORM, COPY, DIR.
 
 ## Références
 

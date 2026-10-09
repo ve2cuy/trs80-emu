@@ -143,6 +143,42 @@ impl Emulator {
         self.machine.insert_blank_disk(drive as usize);
     }
 
+    /// Branche une image de disque dur (Reed / HDV) sur l'unité `unit` (0 à 3) du contrôleur
+    /// Radio Shack (Model I, III et 4). Retourne sa description (taille, têtes).
+    pub fn insert_hard_disk(&mut self, unit: u32, image: Vec<u8>) -> Result<String, JsError> {
+        let disk = self
+            .machine
+            .insert_hard_disk(unit as usize, image)
+            .map_err(|e| JsError::new(&e.to_string()))?;
+        Ok(format!(
+            "{:.1} MB, {} cylinders, {} heads{}",
+            disk.megabytes(),
+            disk.cylinders(),
+            disk.heads(),
+            if disk.write_protected() { ", write-protected" } else { "" }
+        ))
+    }
+
+    /// Image vierge de disque dur : `cylinders` × `heads` (les valeurs proposées par le
+    /// pilote RSHARD : 306 × 4, 10 Mo). À formater par RSFORM.
+    pub fn blank_hard_disk(cylinders: u32, heads: u32) -> Vec<u8> {
+        trs80::HardDisk::blank(cylinders as usize, heads as usize)
+    }
+
+    pub fn eject_hard_disk(&mut self, unit: u32) {
+        self.machine.eject_hard_disk(unit as usize);
+    }
+
+    /// Le DOS a-t-il écrit sur le disque dur ?
+    pub fn hard_disk_modified(&self, unit: u32) -> bool {
+        self.machine.hard_disk(unit as usize).is_some_and(|d| d.modified())
+    }
+
+    /// Image du disque dur, avec les écritures du DOS.
+    pub fn hard_disk_image(&self, unit: u32) -> Option<Vec<u8>> {
+        Some(self.machine.hard_disk(unit as usize)?.image().to_vec())
+    }
+
     /// Active le son à la fréquence `rate` (celle de l'AudioContext); 0 le désactive.
     pub fn set_audio_rate(&mut self, rate: u32) {
         self.machine.set_audio_rate(rate);

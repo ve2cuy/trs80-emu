@@ -405,6 +405,8 @@ table.keys th { color: var(--muted); font-weight: 600; }
 /* ------------------------------------------------------------------ lecteurs */
 
 .drives { display: flex; flex-direction: column; gap: 8px; }
+.sub-heading { margin: 14px 0 6px; color: var(--muted); font-size: 0.8rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; }
+#hard-drives .drive-no { min-width: 2.4em; }
 .drive {
   display: flex;
   flex-direction: column;

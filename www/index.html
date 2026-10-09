@@ -178,6 +178,11 @@
             <button type="button" class="secondary with-icon" data-repo="disk">
               <svg class="icon"><use href="#i-cloud"/></svg><span data-i18n="disk.repo">Disks from repository</span></button>
             <div id="drives" class="drives"></div>
+            <div id="hard-section">
+              <p class="sub-heading" data-i18n="hd.title">Hard disks</p>
+              <div id="hard-drives" class="drives"></div>
+              <p class="hint" data-i18n-html="hd.hint"></p>
+            </div>
             <p class="hint" data-i18n="disk.hint">Drive 0 is the boot drive: inserting a disk there restarts the TRS-80 on it.
               JV1, JV3 and DMK images, single or double density. As on a real Model I, track 0
               must be single density to boot.</p>
@@ -193,7 +198,7 @@
           </button>
           <div id="panel-library" class="nav-panel" hidden>
             <label class="button secondary"><span data-i18n="lib.add">Add files…</span>
-              <input id="library-file" type="file" multiple accept=".dsk,.dmk,.jv1,.jv3,.imd,.cmd,.cas,.bas,.txt" hidden>
+              <input id="library-file" type="file" multiple accept=".dsk,.dmk,.jv1,.jv3,.imd,.hdv,.cmd,.cas,.bas,.txt" hidden>
             </label>
             <label class="switch"><input id="keep-files" type="checkbox" checked><span class="knob"></span><span data-i18n="lib.keepOpen">Keep the files I open</span></label>
             <ul id="library-list" class="library"></ul>

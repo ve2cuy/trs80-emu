@@ -97,6 +97,30 @@ du panneau « Type text », ou automatiquement pour les fichiers ouverts (« Kee
 open »). Depuis la bibliothèque : démarrer ou insérer une disquette, lancer un programme,
 télécharger ou supprimer.
 
+### Disque dur (Model I, III et 4)
+
+La section Disquettes offre deux disques durs (HD1 et HD2) : l'interface Radio Shack, un
+contrôleur Western Digital WD1010 sur les ports C0h-CFh, celle des pilotes **RSHARD** de
+MISOSYS et des cartes FreHD. Les images sont au format Reed (`.hdv`) de xtrs, trs80gp et
+FreHD; « Nouveau » crée un disque vide de 10 Mo (306 cylindres, 4 têtes), « Télécharger »
+l'enregistre avec ses fichiers. Le disque reste branché quand le TRS-80 redémarre ou passe
+d'un Model I, III ou 4 à l'autre.
+
+Le DOS a besoin du pilote RSHARD : la disquette « Pilotes RSHARD » (liste Disquettes, mise
+dans le lecteur 1) contient RSHARD5/RSFORM5 pour LDOS 5.3 et RSHARD6/RSFORM6 pour LS-DOS /
+TRSDOS 6.
+
+```
+SYSTEM (DRIVE=2,DISABLE,DRIVER="RSHARD5")    valeurs proposées; 4 têtes
+RSFORM5 :2 (NAME="RIGID1",MPW="PASSWORD")     formater (Y), aucune piste bloquée (N)
+DIR :2
+```
+
+Essayé avec LDOS 5.3.1 sur le Model I (disquette double densité) et le Model III, et TRSDOS
+6.2.1 sur le Model 4. Enregistrez la configuration avec `SYSTEM (SYSGEN)` (LDOS) ou `SYSGEN`
+(TRSDOS 6) pour que le pilote se charge au démarrage. Le disque dur du Model II viendra
+plus tard.
+
 ### Dépôt externe
 
 Les fichiers viennent de l'appareil (Load…, Insert…, My library) ou d'un dépôt sur le Web,

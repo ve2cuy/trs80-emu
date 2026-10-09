@@ -95,6 +95,27 @@ the "Keep" button of a drive (with the changes made by the DOS) or of the "Type 
 panel, or automatically for the files you open ("Keep the files I open"). From the
 library: Boot or insert a disk, Run a program, download or delete.
 
+### Hard disk (Model I, III and 4)
+
+The Disks section has two hard disks (HD1 and HD2): the Radio Shack interface, a Western
+Digital WD1010 controller on ports C0h-CFh, as supported by the MISOSYS **RSHARD** drivers
+and by FreHD cards. Images use the Reed format (`.hdv`) of xtrs, trs80gp and FreHD; "New"
+creates an empty 10 MB disk (306 cylinders, 4 heads), "Download" saves it with its files.
+The disk stays connected when the TRS-80 restarts or changes between Model I, III and 4.
+
+The DOS needs the RSHARD driver: the disk "RSHARD hard disk drivers" (Disks list, inserted
+in drive 1) has RSHARD5/RSFORM5 for LDOS 5.3 and RSHARD6/RSFORM6 for LS-DOS / TRSDOS 6.
+
+```
+SYSTEM (DRIVE=2,DISABLE,DRIVER="RSHARD5")    accept the proposed values; 4 heads
+RSFORM5 :2 (NAME="RIGID1",MPW="PASSWORD")     format (Y), no locked-out track (N)
+DIR :2
+```
+
+Tested with LDOS 5.3.1 on the Model I (double-density disk) and Model III, and TRSDOS 6.2.1
+on the Model 4. Save the configuration with `SYSTEM (SYSGEN)` (LDOS) or `SYSGEN` (TRSDOS 6)
+so that the driver loads at boot. The Model II hard disk will come later.
+
 ### External repository
 
 Files can come from your device (Load…, Insert…, My library) or from a repository on the

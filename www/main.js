@@ -407,6 +407,8 @@ function applyModel() {
   modelList.value = String(prefs.model);
   // L'interface d'expansion (horloge à 40 Hz) n'existe que sur le Model I.
   expansion.closest('label').hidden = prefs.model !== 1;
+  // Disque dur Radio Shack : Model I, III et 4 (celui du Model II viendra plus tard).
+  hardSection.hidden = prefs.model === 2;
   const name = t(`model.${prefs.model}`);
   document.title = name;
   for (const el of document.querySelectorAll('.machine-name')) el.textContent = name;
@@ -477,10 +479,13 @@ function setRunning(running) {
   programsHint.hidden = running;
   diskList.disabled = !running;
   for (const row of driveRows) row.setEnabled(running);
+  for (const row of hardRows) row.setEnabled(running);
   renderLibrary();
 }
 
 function start(bytes) {
+  // Images des disques durs (avec les écritures du DOS), à rebrancher sur la nouvelle machine.
+  const hardImages = hardRows.map((r) => r.image());
   try {
     emulator?.free();
     emulator = Emulator.with_model(bytes, prefs.model);
@@ -495,6 +500,7 @@ function start(bytes) {
   if (audioCtx && soundBox.checked) emulator.set_audio_rate(audioCtx.sampleRate);
   // Nouvelle ROM : les disquettes déjà insérées le restent (images d'origine).
   for (const row of driveRows) row.reinsert();
+  hardRows.forEach((row, i) => row.reinsert(hardImages[i]));
   setRunning(true);
   hideNowInfo();
   ideReset();
@@ -938,6 +944,140 @@ function makeDriveRow(drive) {
 }
 
 const driveRows = [0, 1, 2, 3].map(makeDriveRow);
+
+// ------------------------------------------------------------------ disques durs
+
+// Contrôleur Radio Shack (WD1010) des Model I, III et 4 : deux unités, les adresses 1 et 2
+// du pilote RSHARD. Images au format Reed (.hdv), comme xtrs, trs80gp et FreHD.
+const hardSection = document.getElementById('hard-section');
+
+/** Liste « Disque dur… » pour brancher une image sur l'unité 1 ou 2. */
+function hardSelect() {
+  const into = element('select');
+  const first = new Option(t('hd.mount'), '');
+  first.dataset.i18n = 'hd.mount';
+  into.append(first, ...[0, 1].map((u) => new Option(t('hd.unit', { n: u + 1 }), u)));
+  return into;
+}
+
+function makeHardRow(unit) {
+  const row = element('div', 'drive');
+  const head = element('div', 'drive-head');
+  const name = element('span', 'drive-name');
+  head.append(element('span', 'drive-no', `HD${unit + 1}`), name);
+  const actions = element('div', 'drive-actions');
+  const insertLabel = element('label', 'button secondary');
+  insertLabel.append(textElement('span', '', 'drive.insert'));
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = '.hdv';
+  input.hidden = true;
+  insertLabel.append(input);
+  const blank = textElement('button', 'secondary', 'hd.new');
+  blank.type = 'button';
+  setTip(blank, 'hd.new.tip');
+  const eject = iconButton('eject', 'drive.eject');
+  const keep = iconButton('folder-plus', 'hd.keep');
+  const save = iconButton('download', 'hd.download');
+  const error = element('span', 'drive-error');
+  error.setAttribute('role', 'alert');
+  actions.append(insertLabel, blank, eject, keep, save);
+  row.append(head, actions, error);
+  document.getElementById('hard-drives').append(row);
+
+  let current = null; // { name, bytes, libraryId } : image d'origine (null pour un disque neuf)
+
+  function refresh() {
+    name.textContent = current ? current.name : t('drive.empty');
+    name.dataset.modified = t('hd.modified');
+    name.title = current ? current.name : '';
+    name.classList.toggle('empty', !current);
+    name.classList.toggle('modified', !!(current && emulator?.hard_disk_modified(unit)));
+    eject.disabled = keep.disabled = save.disabled = !current || !emulator;
+  }
+
+  function insert(fileName, bytes, libraryId = null) {
+    if (!emulator) return false;
+    try {
+      const desc = emulator.insert_hard_disk(unit, bytes);
+      current = { name: fileName, bytes, libraryId };
+      error.textContent = '';
+      showStatus(t('hd.inserted', { n: unit + 1, name: fileName, desc }));
+      refresh();
+      return true;
+    } catch (e) {
+      error.textContent = t('drive.notInserted', { name: fileName, msg: e.message ?? e });
+      showStatus(t('drive.insertFail', { name: fileName, msg: e.message ?? e }), true);
+      return false;
+    }
+  }
+
+  /** Image actuelle, avec les écritures du DOS. */
+  function currentImage() {
+    const image = emulator?.hard_disk_image(unit);
+    return image ? { bytes: image, name: current.name } : null;
+  }
+
+  input.addEventListener('change', async (event) => {
+    const file = event.target.files[0];
+    event.target.value = '';
+    if (!file) return;
+    const bytes = new Uint8Array(await file.arrayBuffer());
+    if (insert(file.name, bytes) && prefs.keepFiles) current.libraryId = await keepFile(file.name, bytes);
+    focusScreen();
+  });
+  blank.addEventListener('click', () => {
+    if (!emulator) return;
+    // 306 cylindres, 4 têtes : les valeurs que propose RSHARD (10 Mo).
+    const bytes = Emulator.blank_hard_disk(306, 4);
+    if (insert(`hard${unit + 1}.hdv`, bytes)) showStatus(t('hd.newStatus', { n: unit + 1 }));
+    focusScreen();
+  });
+  eject.addEventListener('click', () => {
+    emulator?.eject_hard_disk(unit);
+    current = null;
+    error.textContent = '';
+    refresh();
+    focusScreen();
+  });
+  keep.addEventListener('click', async () => {
+    const image = currentImage();
+    if (!image) return;
+    current.libraryId = await keepFile(image.name, image.bytes, { id: current.libraryId });
+    if (current.libraryId != null) showStatus(t('lib.kept', { name: image.name }));
+  });
+  save.addEventListener('click', () => {
+    const image = currentImage();
+    if (image) download(image.bytes, image.name);
+  });
+
+  refresh();
+  return {
+    insert,
+    refresh,
+    setEnabled(on) {
+      insertLabel.classList.toggle('disabled', !on);
+      input.disabled = !on;
+      blank.disabled = !on;
+      refresh();
+    },
+    /** Nouvelle machine (autre ROM, autre modèle) : le disque dur y reste branché, avec
+     *  ses écritures, sauf sur le Model II (pas encore de disque dur). */
+    reinsert(image) {
+      if (current && image && prefs.model !== 2) {
+        try { emulator.insert_hard_disk(unit, image); } catch { current = null; }
+      } else if (prefs.model === 2) {
+        current = null;
+      }
+      refresh();
+    },
+    image: () => (current ? emulator?.hard_disk_image(unit) : null),
+  };
+}
+
+const hardRows = [0, 1].map(makeHardRow);
+languageListeners.push(() => hardRows.forEach((r) => r.refresh()));
+setInterval(() => hardRows.forEach((r) => r.refresh()), 1000);
 languageListeners.push(() => driveRows.forEach((r) => r.refresh()));
 // Le DOS peut écrire sur la disquette : on met à jour l'indication « modified ».
 setInterval(() => driveRows.forEach((r) => r.refresh()), 1000);
@@ -974,7 +1114,7 @@ function fillDiskList() {
 function relabelDiskList() {
   for (const option of diskList.options) {
     const d = disks.find((x) => x.id === option.value);
-    if (d) option.textContent = `${localized(d, 'title')}${d.year ? ` (${d.year})` : ''}${d.local ? ` — ${t('disk.local')}` : ''}`;
+    if (d) option.textContent = `${localized(d, 'title')}${d.year ? ` (${d.year})` : ''}${d.data ? ` — ${t('disk.data')}` : ''}${d.local ? ` — ${t('disk.local')}` : ''}`;
   }
 }
 languageListeners.push(relabelDiskList);
@@ -986,7 +1126,10 @@ async function bootDisk(id) {
     const res = await fetch(`disks/${d.file}${V}`);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const name = d.file.split('/').pop();
-    driveRows[0].insertAndBoot(name, new Uint8Array(await res.arrayBuffer()), null, entryInfo(d, name));
+    const bytes = new Uint8Array(await res.arrayBuffer());
+    // Disquette de données (« data » : ex. les pilotes RSHARD) : lecteur 1, sans redémarrer.
+    if (d.data) driveRows[1].insert(name, bytes);
+    else driveRows[0].insertAndBoot(name, bytes, null, entryInfo(d, name));
   } catch (e) {
     showStatus(t('download.fail', { name: localized(d, 'title'), msg: failure(e) }), true);
   }
@@ -1000,7 +1143,8 @@ diskList.addEventListener('change', () => bootDisk(diskList.value));
 // Fichiers de l'utilisateur, conservés dans IndexedDB (ce fureteur, cet appareil) :
 // { id, name, kind, bytes, size, updated }.
 const KINDS = [
-  { kind: 'disk', pattern: /\.(dsk|dmk|jv1|jv3)$/i, icon: 'disk' },
+  { kind: 'disk', pattern: /\.(dsk|dmk|jv1|jv3|imd)$/i, icon: 'disk' },
+  { kind: 'hard', pattern: /\.hdv$/i, icon: 'disk' },
   { kind: 'program', pattern: /\.(cmd|cas)$/i, icon: 'file' },
   { kind: 'basic', pattern: /\.(bas|txt)$/i, icon: 'basic' },
 ];
@@ -1096,6 +1240,14 @@ function libraryItem(file) {
       if (d && driveRows[d].insert(file.name, file.bytes, file.id)) focusScreen();
     });
     actions.append(boot, into);
+  } else if (file.kind === 'hard') {
+    const into = hardSelect();
+    into.addEventListener('change', () => {
+      const u = Number(into.value);
+      into.value = '';
+      if (hardRows[u]?.insert(file.name, file.bytes, file.id)) focusScreen();
+    });
+    actions.append(into);
   } else {
     const run = textElement('button', 'secondary', 'lib.run');
     run.type = 'button';
@@ -1357,6 +1509,7 @@ monitor.addEventListener('drop', async (e) => {
   const bytes = new Uint8Array(await file.arrayBuffer());
   const id = prefs.keepFiles ? await keepFile(file.name, bytes) : null;
   if (kind.kind === 'disk') driveRows[0].insertAndBoot(file.name, bytes, id);
+  else if (kind.kind === 'hard') hardRows[0].insert(file.name, bytes, id);
   else runFile(bytes, file.name);
   focusScreen();
 });

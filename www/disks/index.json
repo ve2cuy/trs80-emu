@@ -70,5 +70,58 @@
       }
     },
     "model": 2
+  },
+  {
+    "id": "ldos-531-m3",
+    "file": "ldos-531-m3.dsk",
+    "title": "LDOS 5.3.1 (Model III)",
+    "year": 1991,
+    "authors": "Logical Systems / MISOSYS",
+    "description": "The Model III version of LDOS. At boot, enter a date from its era, e.g. 10/08/91, then the time. Works with the hard disk (RSHARD5).",
+    "license": "Copyright 1991 MISOSYS, Inc. Free redistribution with notice: see www/disks/README.md",
+    "i18n": {
+      "fr": {
+        "title": "LDOS 5.3.1 (Model III)",
+        "description": "La version Model III de LDOS. Au démarrage, entrez une date de son époque, ex. 10/08/91, puis l’heure. Fonctionne avec le disque dur (RSHARD5)."
+      },
+      "es": {
+        "title": "LDOS 5.3.1 (Model III)",
+        "description": "La versión para Model III de LDOS. Al arrancar, introduzca una fecha de su época, p. ej. 10/08/91, y luego la hora. Funciona con el disco duro (RSHARD5)."
+      },
+      "zh": {
+        "title": "LDOS 5.3.1（Model III）",
+        "description": "LDOS 的 Model III 版本。启动时输入那个年代的日期（例如 10/08/91），然后输入时间。可配合硬盘使用（RSHARD5）。"
+      }
+    },
+    "model": 3
+  },
+  {
+    "id": "rshard",
+    "file": "rshard.dsk",
+    "title": "RSHARD hard disk drivers",
+    "year": 1987,
+    "authors": "MISOSYS",
+    "description": "Drivers and utilities for the Radio Shack hard disk (data disk, put it in drive 1): RSHARD5, RSFORM5 for LDOS 5.3; RSHARD6, RSFORM6 for LS-DOS / TRSDOS 6; HDCHECK, ARCHIVE, RESTORE. See the Hard disks section. Double density: on the Model I, boot LDOS 5.3.1 double density.",
+    "license": "Copyright 1987-1991 MISOSYS, Inc. Free redistribution with notice: see www/disks/README.md",
+    "i18n": {
+      "fr": {
+        "title": "Pilotes RSHARD (disque dur)",
+        "description": "Pilotes et utilitaires du disque dur Radio Shack (disquette de données, à mettre dans le lecteur 1) : RSHARD5, RSFORM5 pour LDOS 5.3; RSHARD6, RSFORM6 pour LS-DOS / TRSDOS 6; HDCHECK, ARCHIVE, RESTORE. Voir la section Disques durs. Double densité : sur le Model I, démarrez LDOS 5.3.1 double densité."
+      },
+      "es": {
+        "title": "Controladores RSHARD (disco duro)",
+        "description": "Controladores y utilidades del disco duro Radio Shack (disquete de datos, en la unidad 1): RSHARD5, RSFORM5 para LDOS 5.3; RSHARD6, RSFORM6 para LS-DOS / TRSDOS 6; HDCHECK, ARCHIVE, RESTORE. Vea la sección Discos duros. Doble densidad: en el Model I, arranque LDOS 5.3.1 doble densidad."
+      },
+      "zh": {
+        "title": "RSHARD 硬盘驱动程序",
+        "description": "Radio Shack 硬盘的驱动程序和实用工具（数据盘，放入 1 号驱动器）：LDOS 5.3 用 RSHARD5、RSFORM5；LS-DOS / TRSDOS 6 用 RSHARD6、RSFORM6；以及 HDCHECK、ARCHIVE、RESTORE。参见“硬盘”部分。双密度：在 Model I 上请启动 LDOS 5.3.1 双密度版。"
+      }
+    },
+    "model": [
+      1,
+      3,
+      4
+    ],
+    "data": true
   }
 ]

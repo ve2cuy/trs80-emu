@@ -7,6 +7,8 @@ Comme pour les programmes, seules des disquettes dont la redistribution est
 | --- | --- | --- |
 | `ldos-531.dsk` | LDOS 5.3.1 pour le Model I, disquette système | JV1, 35 pistes, simple densité |
 | `ldos-531-dd.dsk` | LDOS 5.3.1 complet (fichiers des deux disquettes LDOS), double densité | JV3, 40 cylindres, piste 0 en simple densité |
+| `ldos-531-m3.dsk` | LDOS 5.3.1 pour le Model III, disquette système | JV3, 40 pistes, double densité |
+| `rshard.dsk` | Pilotes RSHARD du disque dur Radio Shack (LDOS 5.3, LS-DOS 6.3) | JV3, 40 pistes, double densité |
 | `trsdos20a-m2.imd` | TRSDOS-II 2.0a pour le Model II — **pour expérimentation** | IMD, 8 pouces |
 
 ## Ajouter une disquette
@@ -20,11 +22,13 @@ image (titre tiré du nom de fichier, à compléter au besoin), retrait des imag
 Les titres, descriptions et licences déjà écrits sont conservés. La GitHub Action vérifie
 que `index.json` correspond aux fichiers publiés (`make_index.py --check`).
 
-## LDOS 5.3.1
+## LDOS 5.3.1 et RSHARD
 
 Copyright 1991 MISOSYS, Inc. Fichier `ld1-531.dsk` de l'archive `ld1-531.zip`
 publiée par Tim Mann (<https://tim-mann.org/misosys.html>), sans astérisque
-(aucune exception). Avis de distribution, conservé tel quel comme l'exige la
+(aucune exception). De même : `ldos-531-m3.dsk` (`ld3-531.dsk` de `ld3-531.zip`, Model III)
+et `rshard.dsk` (`rshard.zip`, « LDOS/LS-DOS drivers for Radio Shack hard disks »,
+Copyright 1987 MISOSYS, Inc.). Avis de distribution, conservé tel quel comme l'exige la
 permission :
 
 > Roy Soltoff holds copyright or distribution rights to the software

@@ -20,6 +20,7 @@ mod dma;
 mod fdc;
 mod cmd;
 mod font;
+mod hard;
 mod keyboard;
 pub mod ldosfs;
 mod typer;
@@ -28,6 +29,7 @@ mod video;
 pub use cas::{CasError, Tape};
 pub use disk::{Disk, DiskError, Format};
 pub use fdc::{DRIVES, FdcEvent};
+pub use hard::{HARD_UNITS, HardDisk, HardError};
 pub use cmd::CmdError;
 pub use keyboard::Key;
 pub use ldosfs::{DirEntry, FsError};
@@ -134,6 +136,10 @@ pub enum Error {
     Cas(CasError),
     /// Image de disquette invalide.
     Disk(DiskError),
+    /// Image de disque dur invalide.
+    Hard(HardError),
+    /// Pas de disque dur sur ce modèle (Model II : pas encore émulé).
+    NoHardDisk,
     /// Le BASIC n'a jamais atteint « READY » (impossible de charger un programme).
     NotReady,
 }
@@ -148,6 +154,8 @@ impl core::fmt::Display for Error {
             Error::Cmd(e) => write!(f, "{e}"),
             Error::Cas(e) => write!(f, "{e}"),
             Error::Disk(e) => write!(f, "{e}"),
+            Error::Hard(e) => write!(f, "{e}"),
+            Error::NoHardDisk => write!(f, "this model has no hard disk interface (yet)"),
             Error::NotReady => write!(f, "BASIC did not reach READY"),
         }
     }
@@ -203,6 +211,8 @@ struct Board {
     sound: u8,
     /// Contrôleur de disquettes (interface d'expansion).
     fdc: Fdc,
+    /// Disque dur Radio Shack (WD1010, ports C0h-CFh), Model I, III et 4.
+    hard: hard::Controller,
     /// Temps machine (T-states), pour l'impulsion d'index des disquettes.
     now: u64,
     /// Interruption d'horloge en attente : effacée par la lecture de 37E0h.
@@ -484,6 +494,7 @@ impl Bus for Board {
     fn input(&mut self, port: u16) -> u8 {
         match self.model {
             Model::II => self.input2(port as u8),
+            _ if (0xC0..=0xCF).contains(&(port as u8)) => self.hard.read(port as u8),
             m if m.ports() => self.input3(port as u8),
             _ => 0xFF,
         }
@@ -492,6 +503,9 @@ impl Bus for Board {
     fn output(&mut self, port: u16, val: u8) {
         if self.model == Model::II {
             return self.output2(port as u8, val);
+        }
+        if (0xC0..=0xCF).contains(&(port as u8)) {
+            return self.hard.write(port as u8, val);
         }
         if self.model.ports() {
             return self.output3(port as u8, val);
@@ -615,6 +629,7 @@ impl Trs80 {
             rtc_pending: false,
             sound: 0,
             fdc,
+            hard: hard::Controller::new(),
             now: 0,
             int_latch: 0,
             int_mask: 0,
@@ -669,6 +684,7 @@ impl Trs80 {
         self.board.ctc = dma::Ctc::default();
         self.board.kbd_queue.clear();
         self.board.fdc.reset();
+        self.board.hard.reset();
         self.typer.cancel(&mut self.board.keyboard);
         self.board.keyboard.release_all();
     }
@@ -946,6 +962,28 @@ impl Trs80 {
     /// Retire la disquette du lecteur `drive`.
     pub fn eject_disk(&mut self, drive: usize) -> Option<Disk> {
         self.board.fdc.drives[drive % DRIVES].take()
+    }
+
+    /// Branche une image de disque dur (format Reed / HDV) sur l'unité `unit` (0 à 3) du
+    /// contrôleur Radio Shack. Model I, III et 4 seulement.
+    pub fn insert_hard_disk(&mut self, unit: usize, image: alloc::vec::Vec<u8>) -> Result<&HardDisk, Error> {
+        if self.board.model == Model::II {
+            return Err(Error::NoHardDisk);
+        }
+        let disk = HardDisk::open(image).map_err(Error::Hard)?;
+        let slot = &mut self.board.hard.units[unit % HARD_UNITS];
+        *slot = Some(disk);
+        Ok(slot.as_ref().unwrap())
+    }
+
+    /// Débranche le disque dur de l'unité `unit`.
+    pub fn eject_hard_disk(&mut self, unit: usize) -> Option<HardDisk> {
+        self.board.hard.units[unit % HARD_UNITS].take()
+    }
+
+    /// Le disque dur de l'unité `unit`.
+    pub fn hard_disk(&self, unit: usize) -> Option<&HardDisk> {
+        self.board.hard.units[unit % HARD_UNITS].as_ref()
     }
 
     /// Dernières commandes reçues par le contrôleur de disquettes (diagnostic).
