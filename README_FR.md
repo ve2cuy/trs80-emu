@@ -5,7 +5,7 @@
 Émulateur du **TRS-80 Model 1**, écrit en Rust, qui s'exécute dans un fureteur
 web (WebAssembly).
 
-> Version 0.4 : ROM Level II, BASIC, texte et semi-graphiques, programmes `.CMD` et
+> Version 1.0 : ROM Level II, BASIC, texte et semi-graphiques, programmes `.CMD` et
 > cassettes `.CAS`, **disquettes** (LDOS, TRSDOS, NEWDOS...), **son**, collage de texte,
 > horloge à 40 Hz, et **VE2CUY Invaders**, un jeu écrit en assembleur Z80 pour ce projet.
 > Voir [docs/conception.md](docs/conception.md).
@@ -42,7 +42,26 @@ sont condensées pour la grille étroite de 64 × 16; les semi-graphiques ne cha
 Les polices web viennent de Google Fonts, téléchargées seulement si on les choisit.
 Lien direct : `?font=vt323`.
 
-## Lancer l'émulateur localement
+## Lancer l'émulateur localement (version 1.0)
+
+Rien à compiler : téléchargez l'archive prête à l'emploi; il suffit de **Python 3** et
+d'un fureteur.
+
+1. Télécharger `trs80-emu-1.0.0.zip` sur la
+   [page des versions](https://github.com/ve2cuy/trs80-emu/releases/latest) et la
+   décompresser.
+2. Lancer :
+   - **Windows** : double-cliquer sur `start.bat`;
+   - **macOS / Linux** : `./start.sh` dans un terminal;
+   - **tout système** : `python serve.py` dans le dossier, puis ouvrir <http://localhost:8080>.
+3. La page s'ouvre; la ROM Level II 1.3 est téléchargée automatiquement la première fois
+   (ou copiez votre ROM dans `rom/level2.rom` pour travailler hors ligne).
+
+Pour arrêter, fermer la fenêtre du serveur (ou Ctrl+C). Détails, dont vos propres
+disquettes dans `disks/local/` : `README-LOCAL.md`, dans l'archive
+([dist/README-LOCAL.md](dist/README-LOCAL.md)).
+
+## Compiler à partir des sources
 
 Prérequis (une seule fois) :
 
@@ -133,6 +152,7 @@ s'occupe de la touche MAJ du TRS-80, dont la disposition est différente.
 | `www/` | La page web : `index.html`, `main.js`, `style.css` |
 | `www/programs/` | Programmes libres de droits et leur liste (`index.json`) |
 | `asm/` | Sources en assembleur Z80 (VE2CUY Invaders), assemblées avec zmac |
+| `dist/` | Empaquetage des versions (`package.py`), lanceurs et instructions locales |
 | `docs/` | Notes de conception |
 
 ## Tests

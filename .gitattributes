@@ -11,3 +11,5 @@
 *.dsk binary
 *.dmk binary
 *.png binary
+*.bat text eol=crlf
+*.sh text eol=lf

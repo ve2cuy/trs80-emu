@@ -19,3 +19,6 @@ Thumbs.db
 
 # Sorties de zmac
 /asm/zout/
+
+# Archives de distribution
+/dist/out/

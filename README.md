@@ -5,7 +5,7 @@
 An emulator of the **TRS-80 Model I**, written in Rust, that runs in a web
 browser (WebAssembly).
 
-> Version 0.4: Level II ROM, BASIC, text and semigraphics, `.CMD` programs and
+> Version 1.0: Level II ROM, BASIC, text and semigraphics, `.CMD` programs and
 > `.CAS` cassettes, **floppy disks** (LDOS, TRSDOS, NEWDOS...), **sound**, pasting
 > text, 40 Hz clock, and **VE2CUY Invaders**, a game written in Z80 assembly for
 > this project.
@@ -43,7 +43,25 @@ Fonts are condensed to fit the narrow 64 × 16 grid; semigraphics are unchanged.
 Web fonts are downloaded from Google Fonts only when chosen. Direct link:
 `?font=vt323`.
 
-## Running the emulator locally
+## Running the emulator locally (release 1.0)
+
+No compilation needed: download the ready-to-run archive and you only need
+**Python 3** and a web browser.
+
+1. Download `trs80-emu-1.0.0.zip` from the
+   [releases page](https://github.com/ve2cuy/trs80-emu/releases/latest) and unzip it.
+2. Start it:
+   - **Windows**: double-click `start.bat`;
+   - **macOS / Linux**: `./start.sh` in a terminal;
+   - **any system**: `python serve.py` in the folder, then open <http://localhost:8080>.
+3. The page opens; the Level II 1.3 ROM is downloaded automatically the first time
+   (or copy your own ROM to `rom/level2.rom` to work offline).
+
+To stop it, close the server window (or press Ctrl+C). Details, including your own
+disks in `disks/local/`: `README-LOCAL.md`, in the archive
+([dist/README-LOCAL.md](dist/README-LOCAL.md)).
+
+## Building from source
 
 Prerequisites (once):
 
@@ -133,6 +151,7 @@ TRS-80 Shift key, whose layout is different.
 | `www/` | The web page: `index.html`, `main.js`, `style.css` |
 | `www/programs/` | Freely redistributable programs and their list (`index.json`) |
 | `asm/` | Z80 assembly sources (VE2CUY Invaders), built with zmac |
+| `dist/` | Release packaging (`package.py`), launchers and local instructions |
 | `docs/` | Design notes (in French) |
 
 ## Tests

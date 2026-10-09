@@ -57,14 +57,14 @@ dependencies = [
 
 [[package]]
 name = "trs80"
-version = "0.1.0"
+version = "1.0.0"
 dependencies = [
  "z80",
 ]
 
 [[package]]
 name = "trs80-web"
-version = "0.1.0"
+version = "1.0.0"
 dependencies = [
  "trs80",
  "wasm-bindgen",
@@ -123,4 +123,4 @@ dependencies = [
 
 [[package]]
 name = "z80"
-version = "0.1.0"
+version = "1.0.0"

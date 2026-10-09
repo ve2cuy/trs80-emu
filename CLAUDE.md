@@ -40,7 +40,12 @@ cargo test                                                        # tests rapide
 cargo test --release -p z80 --test zex -- --ignored --nocapture   # ZEXDOC / ZEXALL
 wasm-pack build crates/web --target web --out-dir ../../www/pkg --no-pack
 cd www && python serve.py                                         # http://localhost:8080, sans cache
+python dist/package.py        # archive locale dist/out/trs80-emu-<version>.zip (après wasm-pack)
 ```
+
+- Version publiée : `dist/package.py` lit la version dans `crates/trs80/Cargo.toml`;
+  l'archive (sans ROM ni `disks/local/`) est jointe à une release GitHub `v<version>`.
+  `dist/README-LOCAL.md`, `start.bat`, `start.sh` y sont copiés.
 
 - `www/rom/level2.rom` (exclu de Git) est chargé d'office en développement;
   `?frames=N` exécute N images au chargement (utile pour les captures headless,
