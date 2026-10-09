@@ -17,16 +17,17 @@ pub struct Emulator {
 
 #[wasm_bindgen]
 impl Emulator {
-    /// Crée l'émulateur à partir d'une ROM : 12 Ko (Model I) ou 14 Ko (Model III).
+    /// Crée l'émulateur à partir d'une ROM : 12 Ko (Model I), 14 Ko (Model III) ou 2 Ko (Model II).
     #[wasm_bindgen(constructor)]
     pub fn new(rom: &[u8]) -> Result<Emulator, JsError> {
         let machine = Trs80::new(rom).map_err(|e| JsError::new(&e.to_string()))?;
         Ok(Self::from_machine(machine))
     }
 
-    /// Crée un modèle donné : 1, 3 ou 4 (le Model 4 utilise la ROM du Model III).
+    /// Crée un modèle donné : 1, 2, 3 ou 4 (le Model 4 utilise la ROM du Model III).
     pub fn with_model(rom: &[u8], model: u8) -> Result<Emulator, JsError> {
         let model = match model {
+            2 => Model::II,
             3 => Model::III,
             4 => Model::IV,
             _ => Model::I,
@@ -39,10 +40,11 @@ impl Emulator {
         Emulator { machine: Box::new(machine), framebuffer: vec![0; MAX_WIDTH * MAX_HEIGHT * 4], display: Vec::new() }
     }
 
-    /// Modèle émulé : 1, 3 ou 4.
+    /// Modèle émulé : 1, 2, 3 ou 4.
     pub fn model(&self) -> u8 {
         match self.machine.model() {
             Model::I => 1,
+            Model::II => 2,
             Model::III => 3,
             Model::IV => 4,
         }
@@ -168,6 +170,16 @@ impl Emulator {
     /// Touche enfoncée, selon `KeyboardEvent.key`. Retourne `true` si la touche
     /// existe sur le TRS-80 (la page annule alors l'action par défaut du fureteur).
     pub fn key_down(&mut self, name: &str) -> bool {
+        if self.machine.model() == Model::II {
+            // Clavier ASCII : la touche donne directement son code (MAJ déjà appliquée).
+            return match model2_code(name) {
+                Some(code) => {
+                    self.machine.key_code(code);
+                    true
+                }
+                None => name == "Shift",
+            };
+        }
         if name == "Shift" {
             self.machine.set_shift(true);
             return true;
@@ -182,6 +194,9 @@ impl Emulator {
     }
 
     pub fn key_up(&mut self, name: &str) {
+        if self.machine.model() == Model::II {
+            return;
+        }
         if name == "Shift" {
             self.machine.set_shift(false);
         } else if let Some(key) = Key::from_name(name) {
@@ -454,4 +469,32 @@ pub fn asm_builtins_json() -> String {
         .map(|b| format!("[{},{},{}]", json_string(b.name), b.value, b.ldos))
         .collect();
     format!("[{}]", items.join(","))
+}
+
+/// Model II : code envoyé par le clavier pour `KeyboardEvent.key` (ou « Ctrl+x » pour une
+/// touche de contrôle).
+fn model2_code(name: &str) -> Option<u8> {
+    let mut chars = name.chars();
+    if let (Some(c), None) = (chars.next(), chars.next()) {
+        return c.is_ascii().then_some(c as u8);
+    }
+    if let Some(letter) = name.strip_prefix("Ctrl+") {
+        let &[c] = letter.as_bytes() else { return None };
+        return (c.is_ascii_alphabetic() || br"@[\]^_".contains(&c)).then_some(c & 0x1F);
+    }
+    Some(match name {
+        "Enter" => 0x0D,
+        "Escape" => 0x1B,
+        "Backspace" => 0x08,
+        "Tab" => 0x09,
+        // BREAK
+        "End" | "Pause" => 0x03,
+        "ArrowLeft" => 0x1C,
+        "ArrowRight" => 0x1D,
+        "ArrowUp" => 0x1E,
+        "ArrowDown" => 0x1F,
+        "F1" => 0x01,
+        "F2" => 0x02,
+        _ => return None,
+    })
 }

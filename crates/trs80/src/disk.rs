@@ -6,6 +6,9 @@
 //!   accepte simple et double densité, une ou deux faces, plusieurs blocs d'en-tête.
 //! - **DMK** : pistes brutes avec table des marques d'adresse (IDAM); les secteurs
 //!   en simple densité y sont souvent enregistrés octet par octet en double.
+//! - **IMD** (ImageDisk) : en-tête texte, puis chaque piste avec son mode (FM ou MFM), la
+//!   liste de ses secteurs et leurs données, éventuellement compressées (un octet répété).
+//!   Courant pour les disquettes de 8 pouces du Model II.
 //!
 //! Chaque secteur garde sa densité : le contrôleur ne trouve que les secteurs de la
 //! densité choisie (simple avec le WD1771, double avec le WD1791 d'un « doubleur »).
@@ -24,7 +27,7 @@ pub enum DiskError {
 impl core::fmt::Display for DiskError {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         match self {
-            DiskError::UnknownFormat => write!(f, "unknown disk image format (JV1, JV3 or DMK expected)"),
+            DiskError::UnknownFormat => write!(f, "unknown disk image format (JV1, JV3, DMK or IMD expected)"),
             DiskError::Corrupt => write!(f, "corrupt or truncated disk image"),
         }
     }
@@ -35,6 +38,7 @@ pub enum Format {
     Jv1,
     Jv3,
     Dmk,
+    Imd,
 }
 
 impl Format {
@@ -43,6 +47,7 @@ impl Format {
             Format::Jv1 => "JV1",
             Format::Jv3 => "JV3",
             Format::Dmk => "DMK",
+            Format::Imd => "IMD",
         }
     }
 }
@@ -101,6 +106,9 @@ fn size_of_code(code: u8) -> usize {
 impl Disk {
     /// Ouvre une image (format détecté automatiquement).
     pub fn open(image: Vec<u8>) -> Result<Disk, DiskError> {
+        if image.starts_with(b"IMD ") {
+            return Self::open_imd(&image);
+        }
         if let Some(disk) = Self::open_dmk(&image) {
             return disk;
         }
@@ -283,6 +291,89 @@ impl Disk {
             modified: false,
             rebuilt: true,
         }))
+    }
+
+    /// Image IMD : texte terminé par 1Ah, puis les pistes. Enregistrée en JV3 si modifiée.
+    fn open_imd(image: &[u8]) -> Result<Disk, DiskError> {
+        let corrupt = DiskError::Corrupt;
+        let mut i = image.iter().position(|&b| b == 0x1A).ok_or(corrupt)? + 1;
+        let mut data = Vec::new();
+        let mut sectors = Vec::new();
+        // (Certains fichiers se terminent par un octet de remplissage.)
+        while i + 5 <= image.len() {
+            let header = &image[i..i + 5];
+            let (mode, cyl, head, count, size) = (header[0], header[1], header[2], header[3] as usize, header[4]);
+            i += 5;
+            // Modes 0-2 : FM (simple densité); 3-5 : MFM (double densité).
+            let dd = mode >= 3;
+            let numbers = image.get(i..i + count).ok_or(corrupt)?.to_vec();
+            i += count;
+            let cyl_map = if head & 0x80 != 0 {
+                let m = image.get(i..i + count).ok_or(corrupt)?.to_vec();
+                i += count;
+                Some(m)
+            } else {
+                None
+            };
+            let head_map = if head & 0x40 != 0 {
+                let m = image.get(i..i + count).ok_or(corrupt)?.to_vec();
+                i += count;
+                Some(m)
+            } else {
+                None
+            };
+            // Taille : 128 << code, ou une table de tailles (code FFh).
+            let sizes: Vec<usize> = if size == 0xFF {
+                let t = image.get(i..i + 2 * count).ok_or(corrupt)?;
+                i += 2 * count;
+                t.chunks(2).map(|w| u16::from_le_bytes([w[0], w[1]]) as usize).collect()
+            } else {
+                alloc::vec![128usize << (size & 7); count]
+            };
+            for k in 0..count {
+                let kind = *image.get(i).ok_or(corrupt)?;
+                i += 1;
+                let len = sizes[k];
+                let offset = data.len();
+                match kind {
+                    0 => continue, // données absentes
+                    1 | 3 | 5 | 7 => {
+                        data.extend_from_slice(image.get(i..i + len).ok_or(corrupt)?);
+                        i += len;
+                    }
+                    2 | 4 | 6 | 8 => {
+                        let b = *image.get(i).ok_or(corrupt)?;
+                        i += 1;
+                        data.resize(offset + len, b);
+                    }
+                    _ => return Err(corrupt),
+                }
+                sectors.push(Sector {
+                    track: cyl_map.as_ref().map_or(cyl, |m| m[k]),
+                    side: head_map.as_ref().map_or(head & 1, |m| m[k] & 1),
+                    sector: numbers[k],
+                    size_code: 0, // fixé plus bas, d'après la longueur
+                    dam: if matches!(kind, 3 | 4 | 7 | 8) { 0xF8 } else { 0xFB },
+                    dd,
+                    offset,
+                    len,
+                    jv3_entry: None,
+                });
+            }
+        }
+        if sectors.is_empty() {
+            return Err(corrupt);
+        }
+        // Code de taille du champ d'identification (0 = 128 ... 3 = 1024).
+        for s in &mut sectors {
+            s.size_code = match s.len {
+                128 => 0,
+                256 => 1,
+                512 => 2,
+                _ => 3,
+            };
+        }
+        Ok(Disk { format: Format::Imd, data, sectors, write_protected: false, modified: false, rebuilt: true })
     }
 
     /// Disquette vierge (non formatée), à formater par le DOS. Enregistrée en JV3.

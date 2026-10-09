@@ -7,6 +7,8 @@
 //! - Codes 80h-FFh : blocs semi-graphiques 2 × 3 (bits 0-5). Model 4 en vidéo inversée :
 //!   le caractère 00h-7Fh correspondant, en inverse. (Sur les Model III et 4, C0h-FFh sont
 //!   des caractères spéciaux; ils s'affichent ici comme des blocs.)
+//! - Model II : 80 × 24, bit 7 = vidéo inversée; 00h-03h sont des triangles (moitiés de
+//!   cellule coupées en diagonale) qui dessinent notamment le logo de TRSDOS-II.
 //! - Mode 32 caractères : seules les colonnes paires s'affichent, en double largeur.
 
 use crate::font::{FONT, LOWER};
@@ -28,6 +30,8 @@ pub struct Mode {
     /// Position du caractère de 5 × 7 dans sa cellule.
     glyph_x: usize,
     glyph_y: usize,
+    /// Codes 00h-03h : triangles du Model II.
+    triangles: bool,
 }
 
 impl Mode {
@@ -45,8 +49,10 @@ impl Mode {
     }
 }
 
-pub const MODE64: Mode = Mode { cols: 64, rows: 16, cell_w: 6, cell_h: 12, glyph_x: 0, glyph_y: 2 };
-pub const MODE80: Mode = Mode { cols: 80, rows: 24, cell_w: 8, cell_h: 10, glyph_x: 1, glyph_y: 1 };
+pub const MODE64: Mode = Mode { cols: 64, rows: 16, cell_w: 6, cell_h: 12, glyph_x: 0, glyph_y: 2, triangles: false };
+pub const MODE80: Mode = Mode { cols: 80, rows: 24, cell_w: 8, cell_h: 10, glyph_x: 1, glyph_y: 1, triangles: false };
+/// Model II : 80 × 24 avec les triangles 00h-03h.
+pub const MODE80_II: Mode = Mode { triangles: true, ..MODE80 };
 
 /// Phosphore blanc légèrement bleuté sur fond noir.
 const FG: [u8; 4] = [0xE6, 0xEE, 0xFF, 0xFF];
@@ -87,6 +93,20 @@ fn cell_pixel(code: u8, x: usize, y: usize, m: &Mode, text: bool, lowercase: boo
         return code & (1 << bit) != 0;
     }
     let inverted = code & 0x80 != 0;
+    if m.triangles && code & 0x7C == 0 {
+        // Moitié allumée : 00h en bas à droite, 01h en bas à gauche, 02h en haut à
+        // gauche, 03h en haut à droite (proportions de la cellule).
+        // Centre du pixel, ramené à la même échelle sur les deux axes.
+        let (u, v) = ((2 * x + 1) * m.cell_h, (2 * y + 1) * m.cell_w);
+        let full = 2 * m.cell_w * m.cell_h;
+        let lit = match code & 3 {
+            0 => u + v >= full,
+            1 => v >= u,
+            2 => u + v < full,
+            _ => u > v,
+        };
+        return lit != inverted;
+    }
     let lit = text
         && x >= m.glyph_x
         && y >= m.glyph_y

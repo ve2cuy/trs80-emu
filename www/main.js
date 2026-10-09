@@ -264,14 +264,14 @@ async function dbRequest(store, mode, operation) {
 
 // Valeur conservée : { id, bytes } (id = entrée de roms.json, ou 'custom' pour un fichier
 // de l'utilisateur). Les versions précédentes conservaient seulement les octets.
-/** Famille de ROM du modèle choisi : 1 (Model I) ou 3 (Model III, aussi pour le Model 4). */
+/** Famille de ROM du modèle choisi : 1 (Model I), 2 (Model II) ou 3 (Model III, aussi pour le Model 4). */
 function romFamily() {
-  return prefs.model === 1 ? 1 : 3;
+  return prefs.model === 4 ? 3 : prefs.model;
 }
 
 /** Clé de la ROM conservée (la ROM du Model I garde sa clé d'origine). */
 function romKey() {
-  return romFamily() === 1 ? 'level2' : 'model3';
+  return { 1: 'level2', 2: 'model2', 3: 'model3' }[romFamily()];
 }
 
 async function saveRom(id, bytes) {
@@ -293,7 +293,7 @@ async function loadSavedRom() {
 // En développement : une ROM placée dans www/rom/level2.rom (exclue de Git) est chargée d'office.
 async function loadDevRom() {
   try {
-    const res = await fetch(romFamily() === 1 ? 'rom/level2.rom' : 'rom/model3.rom');
+    const res = await fetch(`rom/${romKey()}.rom`);
     return res.ok ? { id: 'custom', bytes: new Uint8Array(await res.arrayBuffer()) } : null;
   } catch {
     return null;
@@ -301,7 +301,8 @@ async function loadDevRom() {
 }
 
 // ROM proposées (roms.json) : téléchargées chez un tiers quand on les choisit, ou au premier
-// démarrage pour la ROM par défaut.
+// démarrage pour la ROM par défaut. Aucune ROM du Model II n'est proposée : l'utilisateur
+// charge la sienne.
 const DEFAULT_ROMS = { 1: 'level2-1.3', 3: 'model3-revc' };
 const defaultRom = () => DEFAULT_ROMS[romFamily()];
 const romList = document.getElementById('rom-list');
@@ -428,6 +429,13 @@ async function changeModel(model) {
   const saved = (await loadDevRom()) ?? (await loadSavedRom());
   if (saved) {
     if (start(saved.bytes)) selectRomInList(saved.id);
+  } else if (!defaultRom()) {
+    // Model II : pas de ROM à télécharger; l'émulateur s'arrête jusqu'au choix d'un fichier.
+    emulator?.free();
+    emulator = null;
+    selectRomInList('');
+    setRunning(false);
+    showStatus(t('rom.ownM2'));
   } else {
     selectRomInList(defaultRom());
     await chooseListedRom(defaultRom());
@@ -786,7 +794,7 @@ function makeDriveRow(drive) {
   insertLabel.append(textElement('span', '', 'drive.insert'));
   const input = document.createElement('input');
   input.type = 'file';
-  input.accept = '.dsk,.dmk,.jv1,.jv3';
+  input.accept = '.dsk,.dmk,.jv1,.jv3,.imd';
   input.hidden = true;
   insertLabel.append(input);
   const blank = textElement('button', 'secondary', 'drive.blank');
@@ -1373,7 +1381,10 @@ function releaseKey(key) {
 }
 
 window.addEventListener('keydown', (e) => {
-  if (!emulator || e.ctrlKey || e.altKey || e.metaKey) return;
+  if (!emulator || e.altKey || e.metaKey) return;
+  // Model II : CTRL + lettre donne un code de contrôle (CTRL-C, etc.).
+  const ctrlKey = e.ctrlKey && emulator.model() === 2 && e.key.length === 1 && !typingInForm(e.target);
+  if (e.ctrlKey && !ctrlKey) return;
   if (e.target === touchInput) {
     // Clavier virtuel : le texte (et ← ou ENTRÉE) arrive par l'événement input; seules les
     // touches qui ne produisent pas de texte (flèches, Échap d'un clavier branché) passent ici.
@@ -1381,8 +1392,9 @@ window.addEventListener('keydown', (e) => {
   } else if (typingInForm(e.target)) {
     return;
   }
-  if (e.repeat) { e.preventDefault(); return; }
-  const key = pressKey(e.key);
+  // Model II : clavier ASCII avec répétition; les autres répètent d'eux-mêmes.
+  if (e.repeat && emulator.model() !== 2) { e.preventDefault(); return; }
+  const key = pressKey(ctrlKey ? `Ctrl+${e.key.toUpperCase()}` : e.key);
   if (key) {
     pressed.set(e.code, key);
     e.preventDefault();
@@ -1835,7 +1847,7 @@ try { savedFont = localStorage.getItem('trs80-font'); } catch { /* stockage indi
 await selectFont(params.get('font') ?? savedFont ?? 'trs80');
 // Lien direct vers une ROM de la liste : ?rom=level2-1.3 (a priorité sur la ROM conservée).
 const modelParam = Number(params.get('model'));
-if ([1, 3, 4].includes(modelParam)) prefs.model = modelParam;
+if ([1, 2, 3, 4].includes(modelParam)) prefs.model = modelParam;
 applyModel();
 const romParam = params.get('rom');
 if (romParam && roms.some((r) => r.id === romParam && r.source === 'url')) {
@@ -1845,6 +1857,8 @@ if (romParam && roms.some((r) => r.id === romParam && r.source === 'url')) {
   const saved = (await loadDevRom()) ?? (await loadSavedRom());
   if (saved) {
     if (start(saved.bytes)) selectRomInList(saved.id);
+  } else if (!defaultRom()) {
+    showStatus(t('rom.ownM2'));
   } else {
     // Première visite : démarrage avec la ROM officielle de la liste (Level II 1.3 ou Model III).
     selectRomInList(defaultRom());

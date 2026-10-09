@@ -103,6 +103,15 @@ l'utilisateur chargera son propre fichier ROM, conservé ensuite dans IndexedDB.
 8. ⬜ Facultatif : modification minuscules, lecture de piste, Model III.
 9. ✅ Déploiement GitHub Pages par une GitHub Action (`.github/workflows/pages.yml`) :
    <https://ve2cuy.github.io/trs80-emu/>
+10. ✅ Autres modèles (`Model` dans `crates/trs80/src/lib.rs`, liste « Modèle » de la page) :
+   - Model III : ROM de 14 Ko, ports E0h-FFh, NMI du contrôleur, horloge à 30 Hz.
+   - Model 4 : port 84h (plans de mémoire, banques de 128 Ko, 80 × 24), 4 MHz, 60 Hz.
+   - Model II : ROM d'amorçage de 2 Ko visible jusqu'à une écriture en F9h, vidéo en F800h
+     (port FFh bit 7), FD1791 (E4h-E7h, choix en EFh) servi par le DMA Z80 (F8h, `dma.rs`),
+     fin de commande par le PIO (E0h-E3h), clavier par le canal 3 du CTC (F0h-F3h), tous en
+     mode 2 (priorité : DMA, clavier, PIO); horloge à 60 Hz par NMI (lue en FEh). Le
+     contrôleur termine seul un secteur que le DMA ne lit qu'en partie (données perdues).
+     Disquettes IMD. Essayé avec TRSDOS-II 2.0a.
 
 ## Références
 

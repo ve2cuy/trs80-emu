@@ -55,11 +55,16 @@ The "Model" list (Machine section) chooses the computer; direct link `?model=3`:
 - **Model 4**: the Model III ROM plus 128 KB of RAM in banks, the four memory maps and the
   80 × 24 screen (port 84h), 4 MHz and 60 Hz clock. TRSDOS 6 / LS-DOS boots in Model 4 mode
   (tested with TRSDOS 6.2.1).
+- **Model II** (`?model=2`): a different machine. 2 KB boot ROM (not offered for download: load
+  your own with "Load ROM file…"), 64 KB of RAM, 80 × 24 screen with inverse video, ASCII keyboard
+  (Ctrl + letter gives control codes, End = BREAK), 4 MHz, 60 Hz clock on NMI, FD1791 controller
+  for 8-inch disks served by a Z80 DMA, mode 2 interrupts (DMA, CTC, PIO). Disk images in IMD
+  (ImageDisk) or DMK format. Tested with TRSDOS-II 2.0a (it only accepts years 1980 to 1999).
 
-Not emulated yet: Model II; Model 4 RS-232, sound board and graphics board; the Model III
+Not emulated yet: Model II hard disk, serial ports and 40-column mode; Model 4 RS-232, sound board and graphics board; the Model III
 special characters (C0h-FFh are shown as graphics blocks). Model III and 4 system disks are
-not published here (copyright): put yours in `www/disks/local/` with `"model": 3` or `4` in
-`index.json`.
+not published here (copyright): put yours in `www/disks/local/` with `"model": 2`, `3` or `4`
+in `index.json`.
 
 ## Interface
 
@@ -186,9 +191,9 @@ start, but nothing is saved.
   run `python www/disks/make_index.py`. It updates both `index.json` files (new images
   get an entry, entries of missing images are removed, existing titles and
   descriptions are kept). Only put images you may redistribute in `www/disks/`.
-- **Drives 0 to 3**: "Insert…" any JV1, JV3 or DMK image, "Blank" for an unformatted disk
+- **Drives 0 to 3**: "Insert…" any JV1, JV3, DMK or IMD image, "Blank" for an unformatted disk
   (format it from the DOS, e.g. `FORMAT :1`), "Eject", and "Save" to download the disk
-  (a reformatted disk or a DMK image is saved as JV3). Drive 0 is the boot drive: inserting a disk
+  (a reformatted disk or a DMK or IMD image is saved as JV3). Drive 0 is the boot drive: inserting a disk
   there restarts the TRS-80 on it.
 - WD1771 controller of the Model I expansion interface, plus the **Percom and Radio
   Shack double-density doublers** (WD1791). Tested: LDOS 5.3.1, TRSDOS 2.1, 2.3 and

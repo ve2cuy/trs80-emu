@@ -63,6 +63,7 @@ const BUSY: u8 = 0x01;
 const INDEX: u8 = 0x02; // commandes de type I
 const DRQ: u8 = 0x02; // commandes de type II et III
 const TRACK0: u8 = 0x04;
+const LOST_DATA: u8 = 0x04; // type II et III
 const NOT_FOUND: u8 = 0x10; // « record not found » (type II) ou erreur de positionnement (type I)
 const HEAD_LOADED: u8 = 0x20;
 const WRITE_PROTECT: u8 = 0x40;
@@ -122,6 +123,12 @@ pub(crate) struct Fdc {
     pub(crate) doubler: bool,
     /// Face choisie (Model III et 4 : bit 4 du port F4h).
     pub(crate) side: u8,
+    /// Données perdues : si l'ordinateur cesse de lire, le contrôleur finit seul le secteur
+    /// (Model II : le DMA peut ne prendre que le début d'un secteur). Sur les autres
+    /// modèles, le contrôleur attend indéfiniment, ce qui tolère les lectures lentes.
+    pub(crate) lost_data: bool,
+    /// Heure du dernier octet transféré (ou du début de la commande).
+    last_byte: u64,
     /// Compteurs cumulatifs (qui reviennent à zéro après u32::MAX) pour le bruit des
     /// lecteurs : pas de la tête, et accès (commandes, sélections qui démarrent le moteur).
     pub(crate) steps: u32,
@@ -151,6 +158,8 @@ impl Fdc {
             pending: None,
             doubler: true,
             side: 0,
+            lost_data: false,
+            last_byte: 0,
             steps: 0,
             accesses: 0,
         }
@@ -165,6 +174,12 @@ impl Fdc {
         {
             self.pending = None;
             self.finish(status);
+        }
+        // Un secteur double densité défile en 8 ms environ : au-delà de ce délai sans
+        // lecture, le reste du secteur est perdu.
+        if self.lost_data && matches!(self.transfer, Transfer::Read { .. }) && now > self.last_byte + 10 * MS {
+            let rt = self.status & 0x60;
+            self.finish(rt | LOST_DATA);
         }
     }
 
@@ -182,6 +197,11 @@ impl Fdc {
         self.intrq = false;
         self.type_one(0x03);
         self.intrq = false;
+    }
+
+    /// Un octet de données est-il attendu ou disponible (DRQ) ? Sert de « prêt » au DMA.
+    pub(crate) fn drq(&self) -> bool {
+        !matches!(self.transfer, Transfer::None)
     }
 
     /// Densité choisie par la machine (Model III : bit 7 du port F4h).
@@ -285,6 +305,7 @@ impl Fdc {
     }
 
     fn execute(&mut self, cmd: u8) {
+        self.last_byte = self.now;
         self.intrq = false;
         self.pending = None;
         match cmd >> 4 {
@@ -408,6 +429,7 @@ impl Fdc {
     }
 
     fn read_data(&mut self) -> u8 {
+        self.last_byte = self.now;
         match self.transfer {
             Transfer::Read { pos, multiple } => {
                 self.data = self.buffer[pos];

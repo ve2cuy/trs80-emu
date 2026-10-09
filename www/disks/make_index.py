@@ -8,7 +8,7 @@ Usage (depuis n'importe où) :
     python www/disks/make_index.py           # met à jour les deux index
     python www/disks/make_index.py --check   # vérifie seulement (code 1 si pas à jour)
 
-- Chaque image (.dsk, .dmk, .jv1, .jv3) sans entrée en reçoit une : identifiant unique
+- Chaque image (.dsk, .dmk, .jv1, .jv3, .imd) sans entrée en reçoit une : identifiant unique
   (aussi utilisé par le lien ?disk=...) et titre tirés du nom de fichier.
 - Les entrées existantes sont conservées telles quelles (titre, description, licence...) :
   on peut les compléter à la main, le script ne les écrase pas.
@@ -24,7 +24,7 @@ FOLDERS = [
     (DISKS, 'published'),
     (DISKS / 'local', 'local'),
 ]
-EXTENSIONS = {'.dsk', '.dmk', '.jv1', '.jv3'}
+EXTENSIONS = {'.dsk', '.dmk', '.jv1', '.jv3', '.imd'}
 
 
 def slug(name: str) -> str:

@@ -55,11 +55,17 @@ La liste « Modèle » (section Machine) choisit l'ordinateur; lien direct `?mod
 - **Model 4** : la ROM du Model III plus 128 Ko de RAM en banques, les quatre plans de mémoire
   et l'écran de 80 × 24 (port 84h), 4 MHz et horloge à 60 Hz. TRSDOS 6 / LS-DOS démarre en mode
   Model 4 (essayé avec TRSDOS 6.2.1).
+- **Model II** (`?model=2`) : une autre machine. ROM d'amorçage de 2 Ko (non proposée au
+  téléchargement : chargez la vôtre avec « Charger une ROM… »), 64 Ko de RAM, écran de 80 × 24
+  avec vidéo inversée, clavier ASCII (Ctrl + lettre donne les codes de contrôle, Fin = BREAK),
+  4 MHz, horloge à 60 Hz par NMI, contrôleur FD1791 pour disquettes de 8 pouces servi par un DMA
+  Z80, interruptions en mode 2 (DMA, CTC, PIO). Images de disquette IMD (ImageDisk) ou DMK.
+  Essayé avec TRSDOS-II 2.0a (qui n'accepte que les années 1980 à 1999).
 
-Pas encore émulés : le Model II; le RS-232, la carte son et la carte graphique du Model 4; les
+Pas encore émulés : le disque dur, les ports série et le mode 40 colonnes du Model II; le RS-232, la carte son et la carte graphique du Model 4; les
 caractères spéciaux du Model III (C0h-FFh s'affichent comme des blocs graphiques). Les
 disquettes système des Model III et 4 ne sont pas publiées ici (droit d'auteur) : mettre les
-vôtres dans `www/disks/local/`, avec `"model": 3` ou `4` dans `index.json`.
+vôtres dans `www/disks/local/`, avec `"model": 2`, `3` ou `4` dans `index.json`.
 
 ## Interface
 
@@ -190,9 +196,9 @@ programmes conçus pour disquette démarrent, mais rien n'est enregistré.
   `index.json` (une entrée pour chaque nouvelle image, retrait des images absentes, titres
   et descriptions existants conservés). Ne placer dans `www/disks/` que des images dont la
   redistribution est autorisée.
-- **Lecteurs 0 à 3** : « Insert… » pour une image JV1, JV3 ou DMK, « Blank » pour une disquette
+- **Lecteurs 0 à 3** : « Insert… » pour une image JV1, JV3, DMK ou IMD, « Blank » pour une disquette
   vierge (à formater depuis le DOS, ex. `FORMAT :1`), « Eject », et « Save » pour récupérer la
-  disquette (une disquette reformatée ou une image DMK est enregistrée en JV3). Le lecteur 0 sert au
+  disquette (une disquette reformatée ou une image DMK ou IMD est enregistrée en JV3). Le lecteur 0 sert au
   démarrage : y insérer une disquette redémarre le TRS-80 dessus.
 - Contrôleur WD1771 de l'interface d'expansion du Model I, et **doubleurs de densité
   Percom et Radio Shack** (WD1791). Essayés : LDOS 5.3.1, TRSDOS 2.1, 2.3 et 2.7DD,

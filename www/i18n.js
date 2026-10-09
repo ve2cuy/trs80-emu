@@ -1248,10 +1248,14 @@ Object.assign(STRINGS.zh, {
 });
 
 // ---------------------------------------------------------------- modèles
-Object.assign(STRINGS.en, { 'model.label': 'Model', 'model.1': 'TRS-80 Model I', 'model.3': 'TRS-80 Model III', 'model.4': 'TRS-80 Model 4' });
-Object.assign(STRINGS.fr, { 'model.label': 'Modèle', 'model.1': 'TRS-80 Model I', 'model.3': 'TRS-80 Model III', 'model.4': 'TRS-80 Model 4' });
-Object.assign(STRINGS.es, { 'model.label': 'Modelo', 'model.1': 'TRS-80 Model I', 'model.3': 'TRS-80 Model III', 'model.4': 'TRS-80 Model 4' });
-Object.assign(STRINGS.zh, { 'model.label': '型号', 'model.1': 'TRS-80 Model I', 'model.3': 'TRS-80 Model III', 'model.4': 'TRS-80 Model 4' });
+Object.assign(STRINGS.en, { 'model.label': 'Model', 'model.1': 'TRS-80 Model I', 'model.2': 'TRS-80 Model II',
+  'rom.ownM2': 'Model II: load your own 2 KB boot ROM (ROM menu), then a TRSDOS-II disk (.imd, .dmk).', 'model.3': 'TRS-80 Model III', 'model.4': 'TRS-80 Model 4' });
+Object.assign(STRINGS.fr, { 'model.label': 'Modèle', 'model.1': 'TRS-80 Model I', 'model.2': 'TRS-80 Model II',
+  'rom.ownM2': 'Model II : chargez votre ROM d’amorçage de 2 Ko (menu ROM), puis une disquette TRSDOS-II (.imd, .dmk).', 'model.3': 'TRS-80 Model III', 'model.4': 'TRS-80 Model 4' });
+Object.assign(STRINGS.es, { 'model.label': 'Modelo', 'model.1': 'TRS-80 Model I', 'model.2': 'TRS-80 Model II',
+  'rom.ownM2': 'Model II: cargue su propia ROM de arranque de 2 KB (menú ROM) y luego un disco TRSDOS-II (.imd, .dmk).', 'model.3': 'TRS-80 Model III', 'model.4': 'TRS-80 Model 4' });
+Object.assign(STRINGS.zh, { 'model.label': '型号', 'model.1': 'TRS-80 Model I', 'model.2': 'TRS-80 Model II',
+  'rom.ownM2': 'Model II：请载入您自己的 2 KB 引导 ROM（ROM 菜单），再插入 TRSDOS-II 磁盘（.imd、.dmk）。', 'model.3': 'TRS-80 Model III', 'model.4': 'TRS-80 Model 4' });
 
 let lang = 'en';
 

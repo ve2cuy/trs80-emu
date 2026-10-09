@@ -16,6 +16,7 @@ extern crate alloc;
 mod audio;
 mod cas;
 mod disk;
+mod dma;
 mod fdc;
 mod cmd;
 mod font;
@@ -47,6 +48,8 @@ pub const CYCLES_PER_FRAME: u32 = CLOCK_HZ / 60;
 pub const ROM_SIZE: usize = 0x3000;
 /// Taille de la ROM du Model III (14 Ko).
 pub const ROM3_SIZE: usize = 0x3800;
+/// Taille de la ROM d'amorçage du Model II (2 Ko).
+pub const ROM2_SIZE: usize = 0x800;
 
 /// Modèle de TRS-80 émulé.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -59,14 +62,20 @@ pub enum Model {
     /// Model 4 : le Model III (même ROM) plus 128 Ko de RAM en banques, quatre plans de
     /// mémoire et l'écran de 80 × 24 (port 84h), 4 MHz et horloge à 60 Hz (port ECh, bit 6).
     IV,
+    /// Model II : une autre machine. ROM d'amorçage de 2 Ko (le DOS se charge de la
+    /// disquette de 8 pouces), 64 Ko de RAM, écran de 80 × 24 en F800h, horloge à 60 Hz par
+    /// NMI, contrôleur FD1791 (ports E4h-E7h, choix en EFh) servi par un DMA Z80, clavier
+    /// ASCII, interruptions en mode 2 (DMA, CTC, PIO), 4 MHz. Images de disquette IMD.
+    II,
 }
 
 impl Model {
-    /// Modèle d'après la taille de la ROM : 12 Ko (Model I) ou 14 Ko (Model III).
+    /// Modèle d'après la taille de la ROM : 12 Ko (Model I), 14 Ko (Model III) ou 2 Ko (Model II).
     pub fn from_rom_size(len: usize) -> Option<Model> {
         match len {
             ROM_SIZE => Some(Model::I),
             ROM3_SIZE => Some(Model::III),
+            ROM2_SIZE => Some(Model::II),
             _ => None,
         }
     }
@@ -76,6 +85,7 @@ impl Model {
         match self {
             Model::I => CLOCK_HZ,
             Model::III | Model::IV => 2_027_520,
+            Model::II => 4_000_000,
         }
     }
 
@@ -85,6 +95,7 @@ impl Model {
         match self {
             Model::I => (CLOCK_HZ / 40) as u64,
             Model::III | Model::IV => (2_027_520 / 30) as u64,
+            Model::II => (4_000_000 / 60) as u64,
         }
     }
 
@@ -92,12 +103,13 @@ impl Model {
         match self {
             Model::I => ROM_SIZE,
             Model::III | Model::IV => ROM3_SIZE,
+            Model::II => ROM2_SIZE,
         }
     }
 
-    /// Périphériques sur des ports (Model III et 4), plutôt qu'en mémoire (Model I).
+    /// Périphériques du Model III (aussi sur le Model 4), sur des ports.
     fn ports(self) -> bool {
-        self != Model::I
+        matches!(self, Model::III | Model::IV)
     }
 }
 
@@ -131,7 +143,7 @@ impl core::fmt::Display for Error {
         match self {
             Error::BadRomSize(n) => write!(
                 f,
-                "a ROM must be {ROM_SIZE} bytes (Model I) or {ROM3_SIZE} bytes (Model III); this file is {n} bytes"
+                "a ROM must be {ROM_SIZE} bytes (Model I), {ROM3_SIZE} bytes (Model III/4) or {ROM2_SIZE} bytes (Model II); this file is {n} bytes"
             ),
             Error::Cmd(e) => write!(f, "{e}"),
             Error::Cas(e) => write!(f, "{e}"),
@@ -156,8 +168,31 @@ struct Board {
     /// Model 4 : contrôleur vidéo 68045 (registre choisi, adresse de début d'affichage).
     crtc_index: u8,
     crtc_start: u16,
+    /// Model II : position du curseur (registres R14-R15 du 6845, relus par TRSDOS-II).
+    crtc_cursor: u16,
     /// Model 4 : processeur à 4 MHz (port ECh, bit 6).
     fast: bool,
+    /// Model II : ROM d'amorçage visible en 0000h-0FFFh (jusqu'à une écriture en F9h).
+    rom_enabled: bool,
+    /// Model II : port FFh (bit 7 : mémoire vidéo en F800h, bit 6 : écran éteint, bit 5 :
+    /// horloge autorisée, bit 4 : 40 colonnes).
+    ff_reg: u8,
+    /// Model II : clavier (touche en attente de lecture en FCh, puis les suivantes).
+    kbd_latch: Option<u8>,
+    kbd_queue: alloc::collections::VecDeque<u8>,
+    /// Model II : T-states depuis la dernière touche livrée (rythme du clavier).
+    kbd_gap: u32,
+    /// Model II : interruption du clavier (canal 3 du CTC) en attente.
+    kbd_int: bool,
+    ctc: dma::Ctc,
+    /// Model II : interruption d'horloge en attente (effacée par la lecture de FEh).
+    rtc2: bool,
+    /// Model II : DMA Z80 (port F8h) et PIO du contrôleur de disquettes (E0h-E3h).
+    dma: dma::Dma,
+    pio_a: dma::Pio,
+    pio_b: dma::Pio,
+    /// Model II : port B du PIO (sortie : relu tel qu'écrit).
+    pio_b_data: u8,
     ram: [u8; 0x10000 - RAM_START as usize],
     keyboard: Keyboard,
     /// Mode 32 caractères par ligne (bit 3 du port FF).
@@ -181,6 +216,87 @@ struct Board {
 }
 
 impl Board {
+    /// Model II : mémoire.
+    fn read2(&mut self, addr: u16) -> u8 {
+        match addr {
+            0x0000..=0x0FFF if self.rom_enabled => self.rom[(addr & 0x7FF) as usize],
+            0xF800..=0xFFFF if self.ff_reg & 0x80 != 0 => self.video[(addr - 0xF800) as usize],
+            _ => self.ram4[addr as usize],
+        }
+    }
+
+    fn write2(&mut self, addr: u16, val: u8) {
+        match addr {
+            0xF800..=0xFFFF if self.ff_reg & 0x80 != 0 => self.video[(addr - 0xF800) as usize] = val,
+            // Sous la ROM d'amorçage, l'écriture va à la RAM (le secteur d'amorce y est lu).
+            _ => self.ram4[addr as usize] = val,
+        }
+    }
+
+    fn input2(&mut self, port: u8) -> u8 {
+        match port {
+            // Fin de commande du contrôleur (bit 0); imprimante prête (bit 4 : pas de défaut).
+            0xE0 => 0x10 | self.fdc.intrq as u8,
+            0xE4..=0xE7 if self.fdc.present() => self.fdc.read(port as u16, self.now),
+            0xE4 => 0x80, // pas de disquette : « pas prêt »
+            0xE1 => self.pio_b_data,
+            0xF8 => self.dma.status(),
+            0xFC => {
+                let key = self.kbd_latch.take().unwrap_or(0);
+                self.kbd_gap = 0;
+                key
+            }
+            // Seuls les registres du curseur se relisent.
+            0xFD => match self.crtc_index {
+                14 => (self.crtc_cursor >> 8) as u8,
+                15 => self.crtc_cursor as u8,
+                _ => 0,
+            },
+            0xFE => {
+                self.rtc2 = false;
+                0xFF
+            }
+            0xFF => (self.ff_reg & 0x70) | if self.kbd_latch.is_some() { 0x80 } else { 0 },
+            _ => 0xFF,
+        }
+    }
+
+    fn output2(&mut self, port: u8, val: u8) {
+        match port {
+            0xE4..=0xE7 => {
+                // Une commande abaisse INTRQ; ici elle peut se terminer aussitôt. Le PIO
+                // doit voir ce passage à 0 pour interrompre sur la nouvelle fin de commande.
+                if port == 0xE4 {
+                    self.pio_a.update(0);
+                }
+                self.fdc.write(port as u16, val)
+            }
+            // Lecteur (bits 0-3, actifs à 0), face (bit 6 : 1 = face 0), double densité (bit 7).
+            0xEF => {
+                self.fdc.select(!val & 0x0F);
+                self.fdc.side = if val & 0x40 != 0 { 0 } else { 1 };
+                self.fdc.set_density(val & 0x80 != 0);
+            }
+            0xE1 => self.pio_b_data = val,
+            0xE2 => self.pio_a.control(val),
+            0xE3 => self.pio_b.control(val),
+            0xF0..=0xF3 => self.ctc.write(port as usize & 3, val),
+            0xF8 => self.dma.write(val),
+            // Bit 0 : ROM d'amorçage visible.
+            0xF9 => self.rom_enabled = val & 1 != 0,
+            0xFC => self.crtc_index = val & 0x1F,
+            0xFD => match self.crtc_index {
+                12 => self.crtc_start = (self.crtc_start & 0x00FF) | ((val as u16 & 0x3F) << 8),
+                13 => self.crtc_start = (self.crtc_start & 0xFF00) | val as u16,
+                14 => self.crtc_cursor = (self.crtc_cursor & 0x00FF) | ((val as u16 & 0x3F) << 8),
+                15 => self.crtc_cursor = (self.crtc_cursor & 0xFF00) | val as u16,
+                _ => {}
+            },
+            0xFF => self.ff_reg = val,
+            _ => {}
+        }
+    }
+
     /// Fréquence actuelle du processeur.
     fn clock_hz(&self) -> u32 {
         if self.fast { 4_055_040 } else { self.model.clock_hz() }
@@ -296,11 +412,35 @@ impl Board {
     }
 }
 
+impl dma::DmaBus for Board {
+    fn mem_read(&mut self, addr: u16) -> u8 {
+        self.read2(addr)
+    }
+
+    fn mem_write(&mut self, addr: u16, val: u8) {
+        self.write2(addr, val)
+    }
+
+    fn io_read(&mut self, port: u16) -> u8 {
+        self.input2(port as u8)
+    }
+
+    fn io_write(&mut self, port: u16, val: u8) {
+        self.output2(port as u8, val)
+    }
+
+    /// Le registre de données du contrôleur (E7h) n'est prêt que pendant un transfert.
+    fn io_ready(&mut self, port: u16) -> bool {
+        port as u8 != 0xE7 || self.fdc.drq()
+    }
+}
+
 impl Bus for Board {
     fn read(&mut self, addr: u16) -> u8 {
         match self.model {
             Model::III => return self.read3(addr),
             Model::IV => return self.read4(addr),
+            Model::II => return self.read2(addr),
             Model::I => {}
         }
         match addr {
@@ -326,8 +466,10 @@ impl Bus for Board {
     }
 
     fn write(&mut self, addr: u16, val: u8) {
-        if self.model == Model::IV {
-            return self.write4(addr, val);
+        match self.model {
+            Model::IV => return self.write4(addr, val),
+            Model::II => return self.write2(addr, val),
+            _ => {}
         }
         match addr {
             0x3C00..=0x3FFF => self.video[(addr - VIDEO_START) as usize] = val,
@@ -340,10 +482,17 @@ impl Bus for Board {
     }
 
     fn input(&mut self, port: u16) -> u8 {
-        if self.model.ports() { self.input3(port as u8) } else { 0xFF }
+        match self.model {
+            Model::II => self.input2(port as u8),
+            m if m.ports() => self.input3(port as u8),
+            _ => 0xFF,
+        }
     }
 
     fn output(&mut self, port: u16, val: u8) {
+        if self.model == Model::II {
+            return self.output2(port as u8, val);
+        }
         if self.model.ports() {
             return self.output3(port as u8, val);
         }
@@ -432,14 +581,32 @@ impl Trs80 {
         }
         let mut fdc = Fdc::new();
         fdc.doubler = model == Model::I;
+        fdc.lost_data = model == Model::II;
         let mut board = Board {
             model,
             rom: [0xFF; ROM3_SIZE],
             video: [0x20; 2048],
-            ram4: if model == Model::IV { alloc::vec![0; 0x20000] } else { alloc::vec::Vec::new() },
+            ram4: match model {
+                Model::IV => alloc::vec![0; 0x20000],
+                Model::II => alloc::vec![0; 0x10000],
+                _ => alloc::vec::Vec::new(),
+            },
+            rom_enabled: true,
+            ff_reg: 0,
+            kbd_latch: None,
+            kbd_queue: alloc::collections::VecDeque::new(),
+            kbd_gap: 0,
+            kbd_int: false,
+            ctc: dma::Ctc::default(),
+            rtc2: false,
+            dma: dma::Dma::default(),
+            pio_a: dma::Pio::default(),
+            pio_b: dma::Pio::default(),
+            pio_b_data: 0,
             opreg: 0,
             crtc_index: 0,
             crtc_start: 0,
+            crtc_cursor: 0,
             fast: false,
             ram: [0; 0x10000 - RAM_START as usize],
             keyboard: Keyboard::new(),
@@ -494,6 +661,13 @@ impl Trs80 {
         self.board.opreg = 0;
         self.board.crtc_start = 0;
         self.board.fast = false;
+        self.board.rom_enabled = true;
+        self.board.ff_reg = 0;
+        self.board.rtc2 = false;
+        self.board.kbd_latch = None;
+        self.board.kbd_int = false;
+        self.board.ctc = dma::Ctc::default();
+        self.board.kbd_queue.clear();
         self.board.fdc.reset();
         self.typer.cancel(&mut self.board.keyboard);
         self.board.keyboard.release_all();
@@ -543,7 +717,52 @@ impl Trs80 {
                 match model {
                     Model::I => self.board.rtc_pending |= self.board.expansion,
                     Model::III | Model::IV => self.board.int_latch |= 0x04,
+                    Model::II => self.board.rtc2 |= self.board.ff_reg & 0x20 != 0,
                 }
+            }
+            if model == Model::II {
+                // DMA : transfert dès que le périphérique est prêt; PIO : fin de commande.
+                let mut dma = core::mem::take(&mut self.board.dma);
+                dma.run(&mut self.board);
+                self.board.dma = dma;
+                let intrq = self.board.fdc.intrq as u8;
+                self.board.pio_a.update(intrq);
+                // Clavier : une touche à la fois, à environ 2 ms d'intervalle; chaque touche
+                // déclenche le canal 3 du CTC.
+                self.board.kbd_gap = self.board.kbd_gap.saturating_add(done);
+                if self.board.kbd_latch.is_none() && self.board.kbd_gap > 8_000 {
+                    self.board.kbd_latch = self.board.kbd_queue.pop_front();
+                    self.board.kbd_int = self.board.kbd_latch.is_some() && self.board.ctc.enabled(3);
+                }
+                // Interruptions en mode 2, par ordre de priorité : DMA, clavier, PIO. La
+                // demande reste en attente tant que le processeur ne l'a pas acceptée
+                // (interruptions masquées, ou instruction qui suit un EI).
+                let request = if self.board.dma.int_pending {
+                    Some((0, self.board.dma.int_vector()))
+                } else if self.board.kbd_int {
+                    Some((1, self.board.ctc.vector(3)))
+                } else if self.board.pio_a.int_pending {
+                    Some((2, self.board.pio_a.vector()))
+                } else {
+                    None
+                };
+                if let Some((source, vector)) = request {
+                    let t = self.cpu.interrupt(&mut self.board, vector);
+                    if t > 0 {
+                        match source {
+                            0 => self.board.dma.int_pending = false,
+                            1 => self.board.kbd_int = false,
+                            _ => self.board.pio_a.int_pending = false,
+                        }
+                        done += t;
+                    }
+                }
+                // Horloge (si autorisée) : NMI, sur le front montant.
+                let nmi = self.board.rtc2;
+                if nmi && !self.board.nmi_line {
+                    done += self.cpu.nmi(&mut self.board);
+                }
+                self.board.nmi_line = nmi;
             }
             if model.ports() {
                 // Fin de commande du contrôleur : NMI (front montant), si le port E4h l'autorise.
@@ -562,6 +781,7 @@ impl Trs80 {
                         || (self.board.fdc.intrq && self.board.fdc.present() && self.board.expansion)
                 }
                 Model::III | Model::IV => self.board.int_latch & self.board.int_mask != 0,
+                Model::II => false,
             };
             if pending && self.cpu.iff1 {
                 let t = self.cpu.interrupt(&mut self.board, 0xFF);
@@ -691,12 +911,21 @@ impl Trs80 {
     /// Tape `text` au clavier, touche par touche, au fil des images (les fins de ligne
     /// deviennent ENTRÉE). Retourne le nombre de caractères acceptés.
     pub fn type_text(&mut self, text: &str) -> usize {
+        if self.board.model == Model::II {
+            // Clavier ASCII : les caractères vont directement dans la file du clavier.
+            let mut n = 0;
+            for c in text.chars().filter(|c| c.is_ascii()) {
+                self.key_code(if c == '\n' { 0x0D } else { c as u8 });
+                n += 1;
+            }
+            return n;
+        }
         self.typer.push(text)
     }
 
     /// Une frappe automatique est-elle en cours ?
     pub fn typing(&self) -> bool {
-        self.typer.busy()
+        self.typer.busy() || !self.board.kbd_queue.is_empty()
     }
 
     /// Annule la frappe automatique en cours.
@@ -787,7 +1016,11 @@ impl Trs80 {
 
     /// Mode d'affichage : 64 × 16, ou 80 × 24 (Model 4, bit 2 du port 84h).
     pub fn text_mode(&self) -> video::Mode {
-        if self.board.model == Model::IV && self.board.opreg & 0x04 != 0 { video::MODE80 } else { video::MODE64 }
+        match self.board.model {
+            Model::II => video::MODE80_II,
+            Model::IV if self.board.opreg & 0x04 != 0 => video::MODE80,
+            _ => video::MODE64,
+        }
     }
 
     /// Taille de l'image produite par [`Trs80::render`] (pixels).
@@ -800,16 +1033,27 @@ impl Trs80 {
     pub fn display(&self) -> alloc::vec::Vec<u8> {
         let m = self.text_mode();
         // Model 4 : l'affichage commence à l'adresse du contrôleur vidéo (page de 64 × 16).
-        let start = if self.board.model == Model::IV { self.board.crtc_start as usize & 0x7FF } else { 0 };
+        let start = if matches!(self.board.model, Model::IV | Model::II) { self.board.crtc_start as usize & 0x7FF } else { 0 };
         (0..m.cols * m.rows).map(|i| self.board.video[(start + i) & 0x7FF]).collect()
     }
 
     fn lowercase(&self) -> bool {
-        self.board.model.ports()
+        self.board.model != Model::I
     }
 
     fn inverse(&self) -> bool {
-        self.board.model == Model::IV && self.board.opreg & 0x08 != 0
+        match self.board.model {
+            Model::II => true,
+            Model::IV => self.board.opreg & 0x08 != 0,
+            _ => false,
+        }
+    }
+
+    /// Model II : envoie un code de touche (ASCII) au clavier; il arrive au programme par une interruption (canal 3 du CTC).
+    pub fn key_code(&mut self, code: u8) {
+        if self.board.kbd_queue.len() < 256 {
+            self.board.kbd_queue.push_back(code);
+        }
     }
 
     /// Mode 32 caractères par ligne actif.
@@ -821,6 +1065,9 @@ impl Trs80 {
     pub fn char_at(&self, row: usize, col: usize) -> char {
         let m = self.text_mode();
         let code = self.display().get(row * m.cols + col).copied().unwrap_or(0x20);
+        if self.board.model == Model::II && code & 0x7C == 0 {
+            return ['◢', '◣', '◤', '◥'][code as usize & 3];
+        }
         video::display_char(code, self.lowercase(), self.inverse())
     }
 
