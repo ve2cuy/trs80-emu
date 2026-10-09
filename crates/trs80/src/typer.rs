@@ -1,6 +1,8 @@
 //! Frappe automatique : tape un texte (ex. : un programme BASIC collé) touche par touche,
 //! au rythme où la ROM lit le clavier. Chaque caractère est enfoncé quelques images puis
-//! relâché; après ENTRÉE, une pause plus longue laisse le BASIC traiter la ligne.
+//! relâché; après ENTRÉE, une pause plus longue laisse le BASIC traiter la ligne, et la
+//! frappe attend que les disques se taisent : une commande du DOS qui charge un programme
+//! (SET, LCOMM...) ne lit pas le clavier pendant ce temps, et les touches seraient perdues.
 
 use crate::keyboard::{Key, Keyboard};
 
@@ -11,6 +13,10 @@ const HOLD: u8 = 3;
 const GAP: u8 = 2;
 /// Images de pause après ENTRÉE (le BASIC analyse et range la ligne).
 const ENTER_GAP: u8 = 10;
+/// Après ENTRÉE : images sans aucune activité des disques avant de reprendre la frappe, et
+/// attente maximale (un programme qui accède sans cesse au disque ne bloque pas la frappe).
+const DISK_QUIET: u8 = 20;
+const DISK_WAIT_MAX: u16 = 600;
 /// Capacité de la file : un long programme BASIC.
 const CAPACITY: usize = 16 * 1024;
 
@@ -19,6 +25,9 @@ enum State {
     Idle,
     Down { key: Key, frames: u8, enter: bool },
     Gap { frames: u8 },
+    /// Après ENTRÉE : images écoulées, images calmes depuis la dernière activité des
+    /// disques, et activité vue depuis ENTRÉE.
+    Settle { waited: u16, quiet: u8, seen: bool },
 }
 
 pub(crate) struct Typer {
@@ -87,8 +96,8 @@ impl Typer {
         })
     }
 
-    /// Avance d'une image.
-    pub(crate) fn tick(&mut self, keyboard: &mut Keyboard) {
+    /// Avance d'une image. `disk_busy` : les disques ont été actifs pendant l'image précédente.
+    pub(crate) fn tick(&mut self, keyboard: &mut Keyboard, disk_busy: bool) {
         self.state = match self.state {
             State::Idle => match self.pop() {
                 Some(b) => {
@@ -103,10 +112,18 @@ impl Typer {
             }
             State::Down { key, enter, .. } => {
                 keyboard.release(key);
-                State::Gap { frames: if enter { ENTER_GAP } else { self.gap } }
+                if enter { State::Settle { waited: 0, quiet: 0, seen: false } } else { State::Gap { frames: self.gap } }
             }
             State::Gap { frames } if frames > 1 => State::Gap { frames: frames - 1 },
             State::Gap { .. } => State::Idle,
+            State::Settle { waited, quiet, seen } => {
+                let waited = waited + 1;
+                let seen = seen || disk_busy;
+                let quiet = if disk_busy { 0 } else { quiet.saturating_add(1) };
+                // Sans disque : la pause habituelle. Avec : jusqu'au silence des disques.
+                let done = waited >= ENTER_GAP as u16 && (!seen || quiet >= DISK_QUIET);
+                if done || waited >= DISK_WAIT_MAX { State::Idle } else { State::Settle { waited, quiet, seen } }
+            }
         };
     }
 }

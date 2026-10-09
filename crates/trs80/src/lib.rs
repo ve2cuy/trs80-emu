@@ -539,6 +539,8 @@ pub struct Trs80 {
     /// Prochaine interruption de l'horloge à 40 Hz (en T-states).
     next_rtc: u64,
     typer: Typer,
+    /// Somme des compteurs d'activité des disques à l'image précédente (voir `run_frame`).
+    disk_activity: u32,
     audio: Audio,
     debug: Debug,
 }
@@ -663,6 +665,7 @@ impl Trs80 {
             overshoot: 0,
             next_rtc: model.rtc_period(),
             typer,
+            disk_activity: 0,
             audio,
             debug: Debug::default(),
         })
@@ -936,7 +939,11 @@ impl Trs80 {
 
     /// Exécute une image : 1/60 de seconde de temps machine.
     pub fn run_frame(&mut self) {
-        self.typer.tick(&mut self.board.keyboard);
+        // Activité des disques pendant l'image précédente (la frappe attend leur silence).
+        let activity = self.board.fdc.accesses.wrapping_add(self.board.fdc.steps).wrapping_add(self.board.hard.accesses);
+        let disk_busy = activity != self.disk_activity;
+        self.disk_activity = activity;
+        self.typer.tick(&mut self.board.keyboard, disk_busy);
         let hz = self.board.clock_hz();
         self.audio.set_clock(hz);
         self.run_cycles(hz / 60);

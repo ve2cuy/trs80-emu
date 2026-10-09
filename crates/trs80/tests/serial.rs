@@ -58,12 +58,9 @@ fn lcomm_talks(m: &mut Trs80, set: &str) {
     answer(m, "DATE", "10/08/91");
     answer(m, "TIME", "12:00:00");
     assert!(wait_for(m, "READY", 10), "Écran :\n{}", screen(m));
-    // LCOMM exige le pilote de clavier de LDOS.
-    type_line(m, "SET *KI KI");
-    type_line(m, set);
-    // L'installation du pilote se termine après l'invite : une frappe trop tôt serait perdue.
-    (0..240).for_each(|_| m.run_frame());
-    type_line(m, "LCOMM *CL");
+    // Les trois commandes collées d'un coup (LCOMM exige le pilote de clavier de LDOS) :
+    // après chaque ENTRÉE, la frappe attend que le DOS ait fini de charger depuis le disque.
+    type_line(m, &format!("SET *KI KI\n{set}\nLCOMM *CL"));
     assert!(wait_for(m, "CLEAR-8", 10), "LCOMM ne démarre pas. Écran :\n{}", screen(m));
     m.serial_take();
     type_line(m, "ATDT BBS");
