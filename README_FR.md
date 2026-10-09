@@ -81,6 +81,10 @@ programmes conçus pour disquette démarrent, mais rien n'est enregistré.
 
 - **« Boot a disk »** : LDOS 5.3.1, redistribuable (voir [www/disks/README.md](www/disks/README.md)).
   Au démarrage, entrer une date de son époque, ex. `10/08/91`. Lien direct : `?disk=ldos-531`.
+- **Disquettes locales** (développement) : les disquettes qu'on ne peut pas publier
+  (ex. TRSDOS) vont dans `www/disks/local/` avec un `index.json` comme celui de
+  `www/disks/`; ce dossier est exclu de Git et ses disquettes apparaissent dans
+  « Boot a disk », marquées « local ».
 - **Lecteurs 0 à 3** : « Insert… » pour une image JV1, JV3 ou DMK, « Eject », et « Save » pour
   récupérer une disquette modifiée par le TRS-80 (JV1 et JV3). Le lecteur 0 sert au
   démarrage : appuyer sur Reset.

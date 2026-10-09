@@ -186,6 +186,10 @@ impl Disk {
     }
 
     /// DMK : en-tête de 16 octets, puis les pistes (table IDAM de 128 octets + données brutes).
+    ///
+    /// Tolérant comme un vrai lecteur : une image un peu plus courte que ne l'annonce son
+    /// en-tête garde ses pistes complètes, et un secteur illisible (champ ou données qui
+    /// débordent de la piste) est simplement absent, sans rejeter toute la disquette.
     fn open_dmk(image: &[u8]) -> Option<Result<Disk, DiskError>> {
         if image.len() < 16 {
             return None;
@@ -194,8 +198,16 @@ impl Disk {
         let track_len = u16::from_le_bytes([image[2], image[3]]) as usize;
         let options = image[4];
         let sides = if options & 0x10 != 0 { 1 } else { 2 };
-        let expected = 16 + tracks * sides * track_len;
-        if tracks == 0 || tracks > 96 || track_len < 128 || track_len > 0x4000 || image.len() < expected {
+        if tracks == 0 || tracks > 96 || track_len < 128 || track_len > 0x4000 || image.len() < 16 + track_len {
+            return None;
+        }
+        // Pistes réellement présentes dans le fichier (au plus celles de l'en-tête).
+        let slots = ((image.len() - 16) / track_len).min(tracks * sides);
+        // Un fichier beaucoup plus long n'est pas une image DMK; un fichier plus court l'est
+        // s'il contient un nombre entier de pistes, ou au moins les trois quarts annoncés.
+        let expected = tracks * sides;
+        let whole_tracks = (image.len() - 16) % track_len == 0;
+        if image.len() > 16 + (expected + 1) * track_len || (!whole_tracks && slots * 4 < expected * 3) {
             return None;
         }
         // Les octets 12-15 sont nuls dans une image DMK (réservés au « vrai lecteur »).
@@ -205,7 +217,7 @@ impl Disk {
         let ignore_density = options & 0xC0 != 0;
         let mut data = Vec::new();
         let mut sectors = Vec::new();
-        for t in 0..tracks * sides {
+        for t in 0..slots {
             let start = 16 + t * track_len;
             let raw = &image[start..start + track_len];
             for k in 0..64 {
@@ -221,20 +233,18 @@ impl Disk {
                     continue;
                 }
                 let (Some(track), Some(side), Some(sector), Some(size_code)) = (get(1), get(2), get(3), get(4)) else {
-                    return Some(Err(DiskError::Corrupt));
+                    continue; // champ d'identification tronqué
                 };
                 // Marque de données dans les octets qui suivent le champ d'identification.
                 let Some(mark) = (7..7 + 60).find(|&i| matches!(get(i), Some(0xF8..=0xFB))) else {
                     continue;
                 };
                 let len = size_of_code(size_code);
-                let offset = data.len();
-                for i in 0..len {
-                    match get(mark + 1 + i) {
-                        Some(b) => data.push(b),
-                        None => return Some(Err(DiskError::Corrupt)),
-                    }
+                if get(mark + len).is_none() {
+                    continue; // données qui débordent de la piste
                 }
+                let offset = data.len();
+                data.extend((0..len).map(|i| get(mark + 1 + i).unwrap_or(0)));
                 sectors.push(Sector {
                     track,
                     side: side & 1,

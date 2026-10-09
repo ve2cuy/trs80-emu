@@ -339,7 +339,11 @@ function makeDriveRow(drive) {
   save.type = 'button';
   save.className = 'secondary';
   save.textContent = 'Save';
-  row.append(name, insertLabel, eject, save);
+  // Erreur d'insertion, affichée sur la ligne du lecteur pour ne pas passer inaperçue.
+  const error = document.createElement('span');
+  error.className = 'drive-error';
+  error.setAttribute('role', 'alert');
+  row.append(name, insertLabel, eject, save, error);
   document.getElementById('drives').append(row);
 
   let current = null; // { name, bytes } : image d'origine
@@ -356,10 +360,13 @@ function makeDriveRow(drive) {
     try {
       const desc = emulator.insert_disk(drive, bytes);
       current = { name: fileName, bytes };
+      error.textContent = '';
       showStatus(`Drive ${drive}: ${fileName} (${desc}).`);
       refresh();
       return true;
     } catch (e) {
+      const message = `${fileName} not inserted: ${e.message ?? e}`;
+      error.textContent = current ? `${message} (${current.name} is still in the drive)` : message;
       showStatus(`Cannot insert ${fileName}: ${e.message ?? e}`, true);
       return false;
     }
@@ -374,6 +381,7 @@ function makeDriveRow(drive) {
   eject.addEventListener('click', () => {
     emulator?.eject_disk(drive);
     current = null;
+    error.textContent = '';
     refresh();
     canvas.focus();
   });
@@ -410,14 +418,26 @@ const driveRows = [0, 1, 2, 3].map(makeDriveRow);
 // Le DOS peut écrire sur la disquette : on met à jour l'indication « modified ».
 setInterval(() => driveRows.forEach((r) => r.refresh()), 1000);
 
-async function loadDiskIndex() {
+async function fetchJson(url) {
   try {
-    const res = await fetch(`disks/index.json${V}`);
-    disks = res.ok ? await res.json() : [];
+    const res = await fetch(url);
+    return res.ok ? await res.json() : [];
   } catch {
-    disks = [];
+    return [];
   }
-  for (const d of disks) diskList.append(new Option(`${d.title} (${d.year})`, d.id));
+}
+
+// Disquettes publiées (disks/index.json), puis, en développement, une liste locale
+// (disks/local/index.json, exclue de Git) pour des disquettes qu'on ne peut pas publier.
+async function loadDiskIndex() {
+  const published = await fetchJson(`disks/index.json${V}`);
+  const local = (await fetchJson(`disks/local/index.json${V}`))
+    .map((d) => ({ ...d, file: `local/${d.file}`, local: true }));
+  disks = [...published, ...local];
+  for (const d of disks) {
+    const label = `${d.title}${d.year ? ` (${d.year})` : ''}${d.local ? ' — local' : ''}`;
+    diskList.append(new Option(label, d.id));
+  }
 }
 
 async function bootDisk(id) {
@@ -425,7 +445,8 @@ async function bootDisk(id) {
   diskInfo.replaceChildren();
   diskInfo.hidden = !d;
   if (!d) return;
-  for (const [tag, text] of [['strong', `${d.title} — ${d.authors}`], ['span', d.description], ['span', d.license]]) {
+  for (const [tag, text] of [['strong', `${d.title} — ${d.authors ?? ''}`], ['span', d.description], ['span', d.license]]) {
+    if (!text) continue;
     const el = document.createElement(tag);
     el.textContent = text;
     diskInfo.append(el);

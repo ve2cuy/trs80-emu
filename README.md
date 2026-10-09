@@ -82,6 +82,9 @@ start, but nothing is saved.
 
 - **"Boot a disk"**: LDOS 5.3.1, freely redistributable (see [www/disks/README.md](www/disks/README.md)).
   At boot, enter a date from its era, e.g. `10/08/91`. Direct link: `?disk=ldos-531`.
+- **Local disks** (development): disks you may not publish (e.g. TRSDOS) go in
+  `www/disks/local/` with an `index.json` like `www/disks/index.json`; this folder is
+  ignored by Git and its disks appear in "Boot a disk" marked "local".
 - **Drives 0 to 3**: "Insert…" any JV1, JV3 or DMK image, "Eject", and "Save" to download
   a disk modified by the TRS-80 (JV1 and JV3). Drive 0 is the boot drive: press Reset.
 - WD1771 controller of the Model I expansion interface, plus the **Percom and Radio

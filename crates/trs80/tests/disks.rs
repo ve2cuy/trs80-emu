@@ -100,6 +100,31 @@ fn ldos_keyboard_debug() {
     }
 }
 
+/// Scénario de la page : la machine tourne en BASIC, on insère la disquette, puis RESET.
+#[test]
+fn insert_then_reset_boots_the_disk() {
+    let Some(rom) = load_rom() else { return };
+    let mut m = Trs80::new(&rom).unwrap();
+    assert!(wait_for(&mut m, "SIZE?", 2));
+    m.insert_disk(0, ldos()).unwrap();
+    m.reset();
+    assert!(wait_for(&mut m, "DATE", 20), "RESET avec disquette : LDOS attendu. Écran :\n{}", screen(&m));
+}
+
+#[test]
+fn extra_disk_insert_then_reset() {
+    let (Some(rom), Ok(path)) = (load_rom(), std::env::var("TRS80_EXTRA_DISK")) else { return };
+    let mut m = Trs80::new(&rom).unwrap();
+    wait_for(&mut m, "SIZE?", 2);
+    m.insert_disk(0, std::fs::read(&path).unwrap()).unwrap();
+    m.reset();
+    (0..600).for_each(|_| m.run_frame());
+    eprintln!("Après RESET :\n{}", screen(&m));
+    for e in m.fdc_trace().iter().take(12) {
+        eprintln!("  cmd {:02X} piste {} secteur {} état {:02X}", e.command, e.track, e.sector, e.status);
+    }
+}
+
 #[test]
 fn no_disk_still_boots_basic() {
     let Some(rom) = load_rom() else { return };

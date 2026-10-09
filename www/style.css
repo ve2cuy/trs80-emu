@@ -130,6 +130,8 @@ select {
 .drive { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
 .drive-name { min-width: 18em; font-family: ui-monospace, Consolas, monospace; font-size: 0.9rem; }
 .drive-name.modified::after { content: " (modified)"; color: var(--accent); }
+.drive-error { color: var(--error); font-size: 0.9rem; flex-basis: 100%; }
+.drive-error:empty { display: none; }
 
 .footer { margin-top: 24px; color: var(--muted); font-size: 0.85rem; }
 .footer a { color: var(--accent); }
