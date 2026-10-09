@@ -116,6 +116,20 @@ Seul `file` est obligatoire (un simple nom de fichier est aussi accepté). Le se
 permettre les requêtes d'une autre origine (en-tête CORS `Access-Control-Allow-Origin: *`),
 puisque la page est servie depuis une autre adresse.
 
+Les fichiers sont classés par modèle : `model` indique le modèle (1, 2, 3, 4, ou une liste
+comme `[3, 4]`) et la section Repository ne liste que les fichiers du modèle choisi (« Tous
+les modèles » les montre tous). Le dépôt par défaut a un sous-dossier par modèle, nommé dans
+`file` :
+
+```
+rom/index.json    rom/model1/level2.rom    rom/model3/model3.rom    ...
+disk/index.json   disk/model1/ldos-531.dsk disk/model2/trsdos20a-m2.imd ...
+```
+
+```json
+[{ "file": "model3/trsdos13-m3.dsk", "model": 3, "title": "TRSDOS 1.3 (Model III)" }]
+```
+
 ### Scripts bloqués (Brave, NoScript…)
 
 La page a besoin de JavaScript et de WebAssembly. Si les scripts sont bloqués, l'écran

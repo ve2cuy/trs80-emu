@@ -114,6 +114,19 @@ Only `file` is required (a plain file name is also accepted). The server must al
 cross-origin requests (CORS header `Access-Control-Allow-Origin: *`), since the page is
 served from another address.
 
+Files are sorted by model: `model` gives the model (1, 2, 3, 4, or a list such as `[3, 4]`)
+and the Repository section lists only the files of the chosen model ("All models" shows them
+all). The default repository keeps one subfolder per model, named in `file`:
+
+```
+rom/index.json    rom/model1/level2.rom    rom/model3/model3.rom    ...
+disk/index.json   disk/model1/ldos-531.dsk disk/model2/trsdos20a-m2.imd ...
+```
+
+```json
+[{ "file": "model3/trsdos13-m3.dsk", "model": 3, "title": "TRSDOS 1.3 (Model III)" }]
+```
+
 ### Scripts blocked (Brave, NoScript…)
 
 The page needs JavaScript and WebAssembly. When scripts are blocked, the screen explains

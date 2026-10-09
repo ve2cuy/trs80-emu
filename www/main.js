@@ -46,6 +46,7 @@ const prefs = {
   driveSound: false,    // imiter le bruit des lecteurs de disquettes
   repo: 'https://ve2cuy.com/trs80', // dépôt externe (dossiers rom, disk, cmd, bas)
   repoKind: 'rom',
+  repoAll: false, // dépôt : afficher les fichiers de tous les modèles
   lang: null,           // langue de l'interface (null : celle du fureteur)
   model: 1,             // modèle émulé : 1, 3 ou 4
   ...readPrefs(),
@@ -430,6 +431,7 @@ async function changeModel(model) {
   hideNowInfo();
   for (const row of driveRows) row.clear();
   showStatus('');
+  if (prefs.open.includes('repo')) loadRepo(prefs.repoKind); // fichiers du nouveau modèle
   const saved = (await loadDevRom()) ?? (await loadSavedRom());
   if (saved) {
     if (start(saved.bytes)) selectRomInList(saved.id);
@@ -1125,7 +1127,10 @@ document.getElementById('library-file').addEventListener('change', async (event)
 
 // Un dépôt sur le Web (par défaut ve2cuy.com/trs80) : dossiers rom/, disk/, cmd/ et bas/,
 // chacun avec un index.json qui liste ses fichiers, comme disks/index.json : des objets
-// { file, title, year, authors, description, license } ou simplement des noms de fichiers.
+// { file, title, year, authors, description, license, model } ou simplement des noms de
+// fichiers. `model` (1, 2, 3, 4 ou une liste) : seuls les fichiers du modèle choisi sont
+// listés, sauf si « Tous les modèles » est coché; sans `model`, le fichier vaut pour tous.
+// `file` peut inclure un sous-dossier (ex. model3/trsdos13.dsk).
 // Le serveur doit permettre les requêtes d'une autre origine (CORS).
 const DEFAULT_REPO = 'https://ve2cuy.com/trs80';
 const REPO_ICONS = { rom: 'cpu', disk: 'disk', cmd: 'file', bas: 'basic' };
@@ -1156,8 +1161,15 @@ async function loadRepo(kind) {
       repoCache.set(indexUrl, entries);
     }
     if (prefs.repoKind !== kind) return; // une autre catégorie a été choisie entre-temps
-    repoStatus.textContent = entries.length ? `${prefs.repo}/${kind}/` : t('repo.empty');
-    repoList.replaceChildren(...entries.map((e) => repoItem(kind, e)));
+    const model = t(`model.${prefs.model}`);
+    const shown = prefs.repoAll ? entries : entries.filter((e) => repoModels(e).includes(prefs.model));
+    let summary;
+    if (!entries.length) summary = t('repo.empty');
+    else if (!shown.length) summary = t('repo.noneForModel', { model, n: entries.length });
+    else if (prefs.repoAll) summary = t('repo.countAll', { n: entries.length });
+    else summary = t('repo.count', { n: shown.length, total: entries.length, model });
+    repoStatus.textContent = shown.length ? `${prefs.repo}/${kind}/ — ${summary}` : summary;
+    repoList.replaceChildren(...shown.map((e) => repoItem(kind, e)));
   } catch (e) {
     if (prefs.repoKind !== kind) return;
     const reason = e instanceof TypeError ? t('repo.unreachable') : e.message;
@@ -1166,6 +1178,18 @@ async function loadRepo(kind) {
 }
 // Nouvelle langue : la liste ouverte est redessinée (depuis le cache, sans requête).
 languageListeners.push(() => { if (prefs.open.includes('repo')) loadRepo(prefs.repoKind); });
+
+/** Modèles d'une entrée du dépôt (tous si elle n'en précise pas). */
+function repoModels(entry) {
+  return entry.model == null ? [1, 2, 3, 4] : [entry.model].flat().map(Number);
+}
+
+const repoAllBox = document.getElementById('repo-all');
+repoAllBox.checked = prefs.repoAll;
+repoAllBox.addEventListener('change', () => {
+  prefs.repoAll = repoAllBox.checked;
+  loadRepo(prefs.repoKind);
+});
 
 async function fetchRepoFile(kind, entry) {
   const url = repoUrl(`${kind}/${entry.file.split('/').map(encodeURIComponent).join('/')}`);
@@ -1182,7 +1206,9 @@ function repoItem(kind, entry) {
   const title = element('span', 'lib-name', localized(entry, 'title') ?? name);
   title.title = [localized(entry, 'title'), localized(entry, 'description'), localized(entry, 'license')]
     .filter(Boolean).join('\n\n') || name;
-  meta.append(title, element('span', 'lib-sub', [name, entry.year, entry.authors].filter(Boolean).join(' · ')));
+  // Avec « Tous les modèles », chaque fichier indique ses modèles (ex. « M3/M4 »).
+  const models = prefs.repoAll && entry.model != null ? repoModels(entry).map((m) => `M${m}`).join('/') : null;
+  meta.append(title, element('span', 'lib-sub', [models, name, entry.year, entry.authors].filter(Boolean).join(' · ')));
   const actions = element('div', 'lib-actions');
 
   /** Télécharge le fichier puis applique `use`; les erreurs vont dans la ligne d'état. */
