@@ -6,7 +6,21 @@
     "year": 1991,
     "authors": "Logical Systems / MISOSYS",
     "description": "The Model I version of LDOS. At boot, enter a date from its era, e.g. 10/08/91, then the time. Try DIR, FREE, LIB.",
-    "license": "Copyright 1991 MISOSYS, Inc. Free redistribution with notice: see www/disks/README.md"
+    "license": "Copyright 1991 MISOSYS, Inc. Free redistribution with notice: see www/disks/README.md",
+    "i18n": {
+      "fr": {
+        "title": "LDOS 5.3.1 (disquette système)",
+        "description": "La version Model I de LDOS. Au démarrage, entrez une date de son époque, ex. 10/08/91, puis l’heure. Essayez DIR, FREE, LIB."
+      },
+      "es": {
+        "title": "LDOS 5.3.1 (disquete de sistema)",
+        "description": "La versión para Model I de LDOS. Al arrancar, introduzca una fecha de su época, p. ej. 10/08/91, y luego la hora. Pruebe DIR, FREE, LIB."
+      },
+      "zh": {
+        "title": "LDOS 5.3.1（系统盘）",
+        "description": "LDOS 的 Model I 版本。启动时输入那个年代的日期（例如 10/08/91），然后输入时间。可以试试 DIR、FREE、LIB。"
+      }
+    }
   },
   {
     "id": "ldos-531-dd",
@@ -15,6 +29,20 @@
     "year": 1991,
     "authors": "Logical Systems / MISOSYS",
     "description": "LDOS on a 180 KB double-density disk (Radio Shack doubler, track 0 single density to boot), with the files of both LDOS disks: help (HELP DIR), BASIC, utilities. Made in this emulator with LDOS itself (FDUBL, FORMAT, BACKUP, SYSGEN, SOLE). At boot, enter a date from its era, e.g. 10/08/91.",
-    "license": "Copyright 1991 MISOSYS, Inc. Free redistribution with notice: see www/disks/README.md"
+    "license": "Copyright 1991 MISOSYS, Inc. Free redistribution with notice: see www/disks/README.md",
+    "i18n": {
+      "fr": {
+        "title": "LDOS 5.3.1 double densité (système complet)",
+        "description": "LDOS sur une disquette double densité de 180 Ko (doubleur Radio Shack, piste 0 en simple densité pour démarrer), avec les fichiers des deux disquettes LDOS : aide (HELP DIR), BASIC, utilitaires. Faite dans cet émulateur avec LDOS lui-même (FDUBL, FORMAT, BACKUP, SYSGEN, SOLE). Au démarrage, entrez une date de son époque, ex. 10/08/91."
+      },
+      "es": {
+        "title": "LDOS 5.3.1 doble densidad (sistema completo)",
+        "description": "LDOS en un disquete de doble densidad de 180 KB (duplicador Radio Shack, pista 0 de simple densidad para arrancar), con los archivos de los dos disquetes de LDOS: ayuda (HELP DIR), BASIC, utilidades. Creado en este emulador con el propio LDOS (FDUBL, FORMAT, BACKUP, SYSGEN, SOLE). Al arrancar, introduzca una fecha de su época, p. ej. 10/08/91."
+      },
+      "zh": {
+        "title": "LDOS 5.3.1 双密度（完整系统）",
+        "description": "180 KB 双密度软盘上的 LDOS（Radio Shack 倍密器，0 磁道为单密度以便启动），包含两张 LDOS 软盘的全部文件：帮助（HELP DIR）、BASIC、实用工具。在本模拟器中用 LDOS 自身制作（FDUBL、FORMAT、BACKUP、SYSGEN、SOLE）。启动时输入那个年代的日期，例如 10/08/91。"
+      }
+    }
   }
 ]

@@ -51,6 +51,10 @@ Web fonts are downloaded from Google Fonts only when chosen. Direct link:
   a drawer opened with ☰.
 - **Light and dark themes**: follows the system by default; choose in Display, or with
   the sun / moon button at the bottom of the menu.
+- **Languages**: English, French, Spanish and Simplified Chinese, chosen in Display (the
+  browser's language by default). Direct link: `?lang=fr`. Texts are in
+  [`www/i18n.js`](www/i18n.js); the program, disk and repository lists can translate their
+  fields in `"i18n": { "fr": { "description": "…" } }`.
 - **Preferences** (theme, menu, open sections, sound, Turbo, repository...) are kept
   in the browser.
 - **Program card**: under the screen, the name of the program or disk being run, with

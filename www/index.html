@@ -44,7 +44,7 @@
   </svg>
 
   <div id="app" class="app">
-    <aside id="sidebar" class="sidebar" aria-label="Emulator menu">
+    <aside id="sidebar" class="sidebar" aria-label="Emulator menu" data-i18n-aria="menu.label">
       <div class="sb-header">
         <div class="logo" aria-hidden="true">
           <!-- Blocs semi-graphiques 2 × 3 du TRS-80 -->
@@ -56,226 +56,226 @@
         </div>
         <div class="sb-title">
           <strong>TRS-80 Model I</strong>
-          <span>Emulator by VE2CUY</span>
+          <span data-i18n="app.byline">Emulator by VE2CUY</span>
         </div>
         <button id="sb-collapse" type="button" class="sb-collapse" aria-label="Collapse the menu" title="Collapse the menu">
           <svg class="icon"><use href="#i-chevron"/></svg>
         </button>
-        <button id="sb-close" type="button" class="icon-button sb-close" aria-label="Close the menu">
+        <button id="sb-close" type="button" class="icon-button sb-close" aria-label="Close the menu" data-i18n-aria="menu.close">
           <svg class="icon"><use href="#i-x"/></svg>
         </button>
       </div>
 
       <nav class="nav">
-        <p class="nav-heading">Emulator</p>
+        <p class="nav-heading" data-i18n="nav.emulator">Emulator</p>
 
         <div class="nav-group">
-          <button type="button" class="nav-item" aria-expanded="false" aria-controls="panel-machine" data-tip="Machine">
+          <button type="button" class="nav-item" aria-expanded="false" aria-controls="panel-machine" data-tip="Machine" data-i18n-tip="nav.machine">
             <svg class="chev"><use href="#i-chevron"/></svg>
             <svg class="icon"><use href="#i-cpu"/></svg>
-            <span class="label">Machine</span>
+            <span class="label" data-i18n="nav.machine">Machine</span>
           </button>
           <div id="panel-machine" class="nav-panel" hidden>
-            <label class="field">ROM
-              <select id="rom-list"><option value="">Choose…</option></select>
+            <label class="field"><span data-i18n="rom.label">ROM</span>
+              <select id="rom-list"><option value="" data-i18n="choose">Choose…</option></select>
             </label>
             <div class="row">
-              <label class="button secondary">Load ROM file…
+              <label class="button secondary"><span data-i18n="rom.load">Load ROM file…</span>
                 <input id="rom-file" type="file" accept=".rom,.bin,application/octet-stream" hidden>
               </label>
               <button type="button" class="secondary with-icon" data-repo="rom">
-                <svg class="icon"><use href="#i-cloud"/></svg>From repository</button>
+                <svg class="icon"><use href="#i-cloud"/></svg><span data-i18n="repo.from">From repository</span></button>
             </div>
             <div id="rom-tar" class="info-box" hidden>
-              <span>This ROM is only published in the release archive of
-                <a href="https://github.com/kiwisincebirth/TRS-80-ROMS">kiwisincebirth/TRS-80-ROMS</a>,
-                which your browser cannot download directly.</span>
-              <span>1. Download <strong>TRS-80-…-ROM-Images.tar</strong> from the
-                <a href="https://github.com/kiwisincebirth/TRS-80-ROMS/releases/latest">latest release</a>.</span>
-              <span>2. Open the archive here; <strong id="rom-tar-member"></strong> will be extracted from it:</span>
-              <label class="button">Open .tar archive…
+              <span data-i18n-html="rom.tar1"></span>
+              <span data-i18n-html="rom.tar2"></span>
+              <span><span data-i18n="rom.tar3a">2. Open the archive here;</span>
+                <strong id="rom-tar-member"></strong> <span data-i18n="rom.tar3b">will be extracted from it:</span></span>
+              <label class="button"><span data-i18n="rom.tarOpen">Open .tar archive…</span>
                 <input id="tar-file" type="file" accept=".tar,application/x-tar" hidden>
               </label>
             </div>
-            <label class="switch" title="Model I expansion interface: 40 Hz clock interrupt, used by some programs">
-              <input id="expansion" type="checkbox" checked><span></span>Expansion interface (40 Hz)</label>
-            <label class="switch" title="Sound from the cassette output (port FFh), like the real machine">
-              <input id="sound" type="checkbox" checked><span></span>Sound</label>
-            <label class="switch" title="Imitate the floppy drives: motor hum and head steps">
-              <input id="drive-sound" type="checkbox"><span></span>Disk drive sounds</label>
-            <p class="hint">ROMs in the list are downloaded from
+            <label class="switch" title="Model I expansion interface: 40 Hz clock interrupt, used by some programs" data-i18n-title="opt.expansion.tip">
+              <input id="expansion" type="checkbox" checked><span class="knob"></span><span data-i18n="opt.expansion">Expansion interface (40 Hz)</span></label>
+            <label class="switch" title="Sound from the cassette output (port FFh), like the real machine" data-i18n-title="opt.sound.tip">
+              <input id="sound" type="checkbox" checked><span class="knob"></span><span data-i18n="opt.sound">Sound</span></label>
+            <label class="switch" title="Imitate the floppy drives: motor hum and head steps" data-i18n-title="opt.drive.tip">
+              <input id="drive-sound" type="checkbox"><span class="knob"></span><span data-i18n="opt.drive">Disk drive sounds</span></label>
+            <p class="hint" data-i18n-html="rom.hint">ROMs in the list are downloaded from
               <a href="https://github.com/kiwisincebirth/TRS-80-ROMS">kiwisincebirth/TRS-80-ROMS</a>
               when you choose them. They are © Tandy / Microsoft.</p>
           </div>
         </div>
 
         <div class="nav-group">
-          <button type="button" class="nav-item" aria-expanded="false" aria-controls="panel-programs" data-tip="Programs">
+          <button type="button" class="nav-item" aria-expanded="false" aria-controls="panel-programs" data-tip="Programs" data-i18n-tip="nav.programs">
             <svg class="chev"><use href="#i-chevron"/></svg>
             <svg class="icon"><use href="#i-tape"/></svg>
-            <span class="label">Programs</span>
+            <span class="label" data-i18n="nav.programs">Programs</span>
           </button>
           <div id="panel-programs" class="nav-panel" hidden>
-            <label class="field">Run a program
-              <select id="program-list" disabled><option value="">Choose…</option></select>
+            <label class="field"><span data-i18n="prog.run">Run a program</span>
+              <select id="program-list" disabled><option value="" data-i18n="choose">Choose…</option></select>
             </label>
-            <label id="cmd-button" class="button secondary disabled">Load program (.CMD, .CAS, .BAS)…
+            <label id="cmd-button" class="button secondary disabled"><span data-i18n="prog.load">Load program (.CMD, .CAS, .BAS)…</span>
               <input id="cmd-file" type="file" accept=".cmd,.cas,.bas,.txt" hidden disabled>
             </label>
             <div class="row">
               <button type="button" class="secondary with-icon" data-repo="cmd">
-                <svg class="icon"><use href="#i-cloud"/></svg>Programs</button>
+                <svg class="icon"><use href="#i-cloud"/></svg><span data-i18n="prog.repo">Programs</span></button>
               <button type="button" class="secondary with-icon" data-repo="bas">
-                <svg class="icon"><use href="#i-cloud"/></svg>BASIC</button>
-              <button id="type-button" type="button" class="secondary" disabled>Type text…</button>
+                <svg class="icon"><use href="#i-cloud"/></svg><span data-i18n="prog.repoBasic">BASIC</span></button>
+              <button id="type-button" type="button" class="secondary" disabled data-i18n="type.button">Type text…</button>
             </div>
             <div id="type-panel" class="type-panel" hidden>
-              <label for="type-text" class="hint">Text to type on the TRS-80 keyboard, for example a
+              <label for="type-text" class="hint" data-i18n="type.label">Text to type on the TRS-80 keyboard, for example a
                 BASIC program. You can also paste with Ctrl+V on the screen.</label>
               <textarea id="type-text" rows="8" spellcheck="false" placeholder="10 PRINT &quot;HELLO&quot;&#10;20 GOTO 10&#10;RUN"></textarea>
               <div class="row">
-                <button id="type-send" type="button">Type it</button>
-                <button id="type-stop" type="button" class="secondary">Stop</button>
-                <button id="type-keep" type="button" class="secondary" title="Save this text in your library as a .BAS file">Keep</button>
+                <button id="type-send" type="button" data-i18n="type.send">Type it</button>
+                <button id="type-stop" type="button" class="secondary" data-i18n="type.stop">Stop</button>
+                <button id="type-keep" type="button" class="secondary" title="Save this text in your library as a .BAS file"
+                        data-i18n="type.keep" data-i18n-title="type.keep.tip">Keep</button>
               </div>
             </div>
-            <p id="programs-hint" class="hint">Load the Level II ROM first.</p>
+            <p id="programs-hint" class="hint" data-i18n="prog.hint">Load the Level II ROM first.</p>
           </div>
         </div>
 
         <div class="nav-group">
-          <button type="button" class="nav-item" aria-expanded="false" aria-controls="panel-disks" data-tip="Disks">
+          <button type="button" class="nav-item" aria-expanded="false" aria-controls="panel-disks" data-tip="Disks" data-i18n-tip="nav.disks">
             <svg class="chev"><use href="#i-chevron"/></svg>
             <svg class="icon"><use href="#i-disk"/></svg>
-            <span class="label">Disks</span>
+            <span class="label" data-i18n="nav.disks">Disks</span>
           </button>
           <div id="panel-disks" class="nav-panel" hidden>
-            <label class="field">Boot a disk
-              <select id="disk-list" disabled><option value="">Choose…</option></select>
+            <label class="field"><span data-i18n="disk.boot">Boot a disk</span>
+              <select id="disk-list" disabled><option value="" data-i18n="choose">Choose…</option></select>
             </label>
             <button type="button" class="secondary with-icon" data-repo="disk">
-              <svg class="icon"><use href="#i-cloud"/></svg>Disks from repository</button>
+              <svg class="icon"><use href="#i-cloud"/></svg><span data-i18n="disk.repo">Disks from repository</span></button>
             <div id="drives" class="drives"></div>
-            <p class="hint">Drive 0 is the boot drive: inserting a disk there restarts the TRS-80 on it.
+            <p class="hint" data-i18n="disk.hint">Drive 0 is the boot drive: inserting a disk there restarts the TRS-80 on it.
               JV1, JV3 and DMK images, single or double density. As on a real Model I, track 0
               must be single density to boot.</p>
           </div>
         </div>
 
         <div class="nav-group">
-          <button type="button" class="nav-item" aria-expanded="false" aria-controls="panel-library" data-tip="My library">
+          <button type="button" class="nav-item" aria-expanded="false" aria-controls="panel-library" data-tip="My library" data-i18n-tip="nav.library">
             <svg class="chev"><use href="#i-chevron"/></svg>
             <svg class="icon"><use href="#i-folder"/></svg>
-            <span class="label">My library</span>
+            <span class="label" data-i18n="nav.library">My library</span>
             <span id="library-count" class="badge" hidden></span>
           </button>
           <div id="panel-library" class="nav-panel" hidden>
-            <label class="button secondary">Add files…
+            <label class="button secondary"><span data-i18n="lib.add">Add files…</span>
               <input id="library-file" type="file" multiple accept=".dsk,.dmk,.jv1,.jv3,.cmd,.cas,.bas,.txt" hidden>
             </label>
-            <label class="switch"><input id="keep-files" type="checkbox" checked><span></span>Keep the files I open</label>
+            <label class="switch"><input id="keep-files" type="checkbox" checked><span class="knob"></span><span data-i18n="lib.keepOpen">Keep the files I open</span></label>
             <ul id="library-list" class="library"></ul>
-            <p id="library-empty" class="hint">Disks, programs (.CMD, .CAS) and BASIC listings (.BAS)
+            <p id="library-empty" class="hint" data-i18n="lib.empty">Disks, programs (.CMD, .CAS) and BASIC listings (.BAS)
               you keep are stored in this browser, on this device only. Nothing is uploaded.</p>
             <p id="library-usage" class="hint"></p>
           </div>
         </div>
 
         <div class="nav-group">
-          <button type="button" class="nav-item" aria-expanded="false" aria-controls="panel-repo" data-tip="Repository">
+          <button type="button" class="nav-item" aria-expanded="false" aria-controls="panel-repo" data-tip="Repository" data-i18n-tip="nav.repo">
             <svg class="chev"><use href="#i-chevron"/></svg>
             <svg class="icon"><use href="#i-cloud"/></svg>
-            <span class="label">Repository</span>
+            <span class="label" data-i18n="nav.repo">Repository</span>
           </button>
           <div id="panel-repo" class="nav-panel" hidden>
             <fieldset class="field segmented four">
-              <legend>Files from the external repository</legend>
-              <label><input type="radio" name="repo-kind" value="rom" checked><span>ROM</span></label>
-              <label><input type="radio" name="repo-kind" value="disk"><span>Disks</span></label>
-              <label><input type="radio" name="repo-kind" value="cmd"><span>CMD</span></label>
-              <label><input type="radio" name="repo-kind" value="bas"><span>BASIC</span></label>
+              <legend data-i18n="repo.legend">Files from the external repository</legend>
+              <label><input type="radio" name="repo-kind" value="rom" checked><span data-i18n="repo.rom">ROM</span></label>
+              <label><input type="radio" name="repo-kind" value="disk"><span data-i18n="repo.disk">Disks</span></label>
+              <label><input type="radio" name="repo-kind" value="cmd"><span data-i18n="repo.cmd">CMD</span></label>
+              <label><input type="radio" name="repo-kind" value="bas"><span data-i18n="repo.bas">BASIC</span></label>
             </fieldset>
             <ul id="repo-list" class="library"></ul>
             <p id="repo-status" class="hint"></p>
             <details class="repo-settings">
-              <summary>Repository address</summary>
+              <summary data-i18n="repo.address">Repository address</summary>
               <div class="type-panel">
                 <input id="repo-url" type="url" spellcheck="false" autocomplete="off">
                 <div class="row">
-                  <button id="repo-save" type="button">Use</button>
-                  <button id="repo-default" type="button" class="secondary">Default</button>
+                  <button id="repo-save" type="button" data-i18n="repo.use">Use</button>
+                  <button id="repo-default" type="button" class="secondary" data-i18n="repo.default">Default</button>
                 </div>
-                <p class="hint">The repository has the folders <code>rom/</code>, <code>disk/</code>,
-                  <code>cmd/</code> and <code>bas/</code>, each with an <code>index.json</code> listing its
-                  files. Files from your device: use the <em>Load…</em> and <em>Insert…</em> buttons,
-                  or <em>My library</em>.</p>
+                <p class="hint" data-i18n-html="repo.help"></p>
               </div>
             </details>
           </div>
         </div>
 
-        <p class="nav-heading">Settings</p>
+        <p class="nav-heading" data-i18n="nav.settings">Settings</p>
 
         <div class="nav-group">
-          <button type="button" class="nav-item" aria-expanded="false" aria-controls="panel-display" data-tip="Display">
+          <button type="button" class="nav-item" aria-expanded="false" aria-controls="panel-display" data-tip="Display" data-i18n-tip="nav.display">
             <svg class="chev"><use href="#i-chevron"/></svg>
             <svg class="icon"><use href="#i-monitor"/></svg>
-            <span class="label">Display</span>
+            <span class="label" data-i18n="nav.display">Display</span>
           </button>
           <div id="panel-display" class="nav-panel" hidden>
-            <label class="field">Font
+            <label class="field"><span data-i18n="display.lang">Language</span>
+              <select id="lang-list"></select>
+            </label>
+            <label class="field"><span data-i18n="display.font">Font</span>
               <select id="font-list"></select>
             </label>
             <fieldset class="field segmented">
-              <legend>Theme</legend>
-              <label><input type="radio" name="theme" value="system" checked><span>System</span></label>
-              <label><input type="radio" name="theme" value="light"><span>Light</span></label>
-              <label><input type="radio" name="theme" value="dark"><span>Dark</span></label>
+              <legend data-i18n="display.theme">Theme</legend>
+              <label><input type="radio" name="theme" value="system" checked><span data-i18n="theme.system">System</span></label>
+              <label><input type="radio" name="theme" value="light"><span data-i18n="theme.light">Light</span></label>
+              <label><input type="radio" name="theme" value="dark"><span data-i18n="theme.dark">Dark</span></label>
             </fieldset>
           </div>
         </div>
 
         <div class="nav-group">
-          <button type="button" class="nav-item" aria-expanded="false" aria-controls="panel-keyboard" data-tip="Keyboard">
+          <button type="button" class="nav-item" aria-expanded="false" aria-controls="panel-keyboard" data-tip="Keyboard" data-i18n-tip="nav.keyboard">
             <svg class="chev"><use href="#i-chevron"/></svg>
             <svg class="icon"><use href="#i-keyboard"/></svg>
-            <span class="label">Keyboard</span>
+            <span class="label" data-i18n="nav.keyboard">Keyboard</span>
           </button>
           <div id="panel-keyboard" class="nav-panel" hidden>
             <table class="keys">
-              <tr><th>TRS-80</th><th>PC</th></tr>
-              <tr><td>ENTER</td><td>Enter</td></tr>
-              <tr><td>BREAK</td><td>Esc or End</td></tr>
-              <tr><td>CLEAR</td><td>Home or Delete</td></tr>
-              <tr><td>← (backspace)</td><td>Backspace or Left arrow</td></tr>
-              <tr><td>→ (tab)</td><td>Tab or Right arrow</td></tr>
-              <tr><td>↑ ↓</td><td>Up and Down arrows</td></tr>
+              <tr><th>TRS-80</th><th data-i18n="keys.pc">PC</th></tr>
+              <tr><td>ENTER</td><td data-i18n="keys.enter">Enter</td></tr>
+              <tr><td>BREAK</td><td data-i18n="keys.break">Esc or End</td></tr>
+              <tr><td>CLEAR</td><td data-i18n="keys.clear">Home or Delete</td></tr>
+              <tr><td data-i18n="keys.left">← (backspace)</td><td data-i18n="keys.leftPc">Backspace or Left arrow</td></tr>
+              <tr><td data-i18n="keys.right">→ (tab)</td><td data-i18n="keys.rightPc">Tab or Right arrow</td></tr>
+              <tr><td>↑ ↓</td><td data-i18n="keys.upDown">Up and Down arrows</td></tr>
             </table>
-            <p class="hint">Type symbols as you would on a PC: the emulator handles the TRS-80 Shift
+            <p class="hint" data-i18n="keys.symbols">Type symbols as you would on a PC: the emulator handles the TRS-80 Shift
               key, whose layout is different.</p>
-            <p class="hint">On a tablet or phone, tap the screen (or “⌨ Keyboard”) to show the
+            <p class="hint" data-i18n="keys.touch">On a tablet or phone, tap the screen (or “⌨ Keyboard”) to show the
               on-screen keyboard; the buttons under the screen give BREAK, CLEAR, the arrows and ENTER.</p>
           </div>
         </div>
 
         <div class="nav-group">
-          <button type="button" class="nav-item" aria-expanded="false" aria-controls="panel-about" data-tip="About">
+          <button type="button" class="nav-item" aria-expanded="false" aria-controls="panel-about" data-tip="About" data-i18n-tip="nav.about">
             <svg class="chev"><use href="#i-chevron"/></svg>
             <svg class="icon"><use href="#i-info"/></svg>
-            <span class="label">About</span>
+            <span class="label" data-i18n="nav.about">About</span>
           </button>
           <div id="panel-about" class="nav-panel" hidden>
-            <p class="hint">Version 1.0 · Written in Rust and WebAssembly · Apache 2.0 license.</p>
-            <p class="hint"><a href="https://github.com/ve2cuy/trs80-emu">Source code</a> ·
-              <a href="https://ve2cuy.github.io/blog/">VE2CUY's blog</a></p>
-            <p class="hint">TRS-80 ROMs are © Tandy / Microsoft and are not part of this project.</p>
+            <p class="hint" data-i18n="about.version">Version 1.0 · Written in Rust and WebAssembly · Apache 2.0 license.</p>
+            <p class="hint"><a href="https://github.com/ve2cuy/trs80-emu" data-i18n="about.source">Source code</a> ·
+              <a href="https://ve2cuy.github.io/blog/" data-i18n="about.blog">VE2CUY's blog</a></p>
+            <p class="hint" data-i18n="about.roms">TRS-80 ROMs are © Tandy / Microsoft and are not part of this project.</p>
           </div>
         </div>
       </nav>
 
       <div class="sb-footer">
         <span class="label">v1.0</span>
-        <button id="theme-toggle" type="button" class="icon-button" data-tip="Light / dark" aria-label="Switch between light and dark themes">
+        <button id="theme-toggle" type="button" class="icon-button" data-tip="Light / dark" data-i18n-tip="theme.toggle"
+                aria-label="Switch between light and dark themes" data-i18n-aria="theme.toggle.aria">
           <svg class="icon icon-sun"><use href="#i-sun"/></svg>
           <svg class="icon icon-moon"><use href="#i-moon"/></svg>
         </button>
@@ -285,38 +285,38 @@
 
     <main class="content">
       <header class="toolbar">
-        <button id="menu-button" type="button" class="icon-button menu-button" aria-label="Open the menu" aria-controls="sidebar">
+        <button id="menu-button" type="button" class="icon-button menu-button" aria-label="Open the menu" data-i18n-aria="menu.open" aria-controls="sidebar">
           <svg class="icon"><use href="#i-menu"/></svg>
         </button>
         <h1>TRS-80 Model I</h1>
         <div class="toolbar-actions">
-          <span id="speed" class="speed" title="Emulated CPU speed"></span>
-          <label class="switch compact" title="Run ten times faster"><input id="turbo" type="checkbox"><span></span>Turbo</label>
+          <span id="speed" class="speed" title="Emulated CPU speed" data-i18n-title="speed.tip"></span>
+          <label class="switch compact" title="Run ten times faster" data-i18n-title="turbo.tip"><input id="turbo" type="checkbox"><span class="knob"></span><span data-i18n="turbo">Turbo</span></label>
           <button id="reset" type="button" class="secondary with-icon" disabled>
-            <svg class="icon"><use href="#i-reset"/></svg><span>Reset</span></button>
+            <svg class="icon"><use href="#i-reset"/></svg><span data-i18n="reset">Reset</span></button>
         </div>
       </header>
 
       <div class="stage">
         <div id="monitor" class="monitor">
           <canvas id="screen" width="1536" height="1152" tabindex="0"
-                  aria-label="TRS-80 screen: click, then type on your keyboard"></canvas>
+                  aria-label="TRS-80 screen: click, then type on your keyboard" data-i18n-aria="screen.aria"></canvas>
           <div id="overlay" class="overlay">
-            <p>To start, choose a <strong>Level II ROM</strong> in the Machine menu,
+            <p data-i18n-html="overlay.start">To start, choose a <strong>Level II ROM</strong> in the Machine menu,
               or load your own ROM file (12 KB).</p>
-            <button id="overlay-menu" type="button">Open the Machine menu</button>
-            <p class="small">TRS-80 ROMs are © Tandy / Microsoft and are not part of this project.
+            <button id="overlay-menu" type="button" data-i18n="overlay.menu">Open the Machine menu</button>
+            <p class="small" data-i18n="overlay.legal">TRS-80 ROMs are © Tandy / Microsoft and are not part of this project.
               The ROM stays in your browser and is never uploaded.</p>
             <p id="error" class="error" role="alert"></p>
           </div>
-          <div id="drop-hint" class="drop-hint" hidden>Drop a disk, program or BASIC listing</div>
+          <div id="drop-hint" class="drop-hint" hidden data-i18n="drop">Drop a disk, program or BASIC listing</div>
           <!-- Tablettes : le clavier virtuel n'apparaît que pour un champ de texte. -->
           <textarea id="touch-input" aria-hidden="true" tabindex="-1" autocomplete="off"
                     autocorrect="off" autocapitalize="off" spellcheck="false"></textarea>
         </div>
 
-        <div id="touch-keys" class="touch-keys" aria-label="TRS-80 keys for touch screens">
-          <button type="button" id="touch-keyboard" class="secondary">⌨ Keyboard</button>
+        <div id="touch-keys" class="touch-keys" aria-label="TRS-80 keys for touch screens" data-i18n-aria="touch.aria">
+          <button type="button" id="touch-keyboard" class="secondary" data-i18n="touch.keyboard">⌨ Keyboard</button>
           <button type="button" class="secondary" data-key="Escape">BREAK</button>
           <button type="button" class="secondary" data-key="Home">CLEAR</button>
           <button type="button" class="secondary" data-key="ArrowUp">↑</button>
@@ -333,7 +333,8 @@
             <span id="now-sub" class="now-sub"></span>
             <div id="now-lines"></div>
           </div>
-          <button id="now-close" type="button" class="icon-button small" aria-label="Hide" title="Hide">
+          <button id="now-close" type="button" class="icon-button small" aria-label="Hide" title="Hide"
+                  data-i18n-aria="now.hide" data-i18n-title="now.hide">
             <svg class="icon"><use href="#i-x"/></svg>
           </button>
         </section>

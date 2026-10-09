@@ -1,6 +1,6 @@
 // Page de l'émulateur : charge le module WebAssembly, la ROM et les programmes, puis
 // fait tourner la boucle d'affichage. Toute l'émulation est dans Rust (crates/web).
-// Les textes de l'interface sont en anglais.
+// Les textes de l'interface sont dans i18n.js (anglais, français, espagnol, chinois).
 
 // Version de déploiement (?v=<commit> inscrit par GitHub Actions dans index.html) : ajoutée
 // à chaque fichier chargé, pour qu'une mise à jour ne mélange jamais anciens et nouveaux
@@ -8,6 +8,7 @@
 const BUILD = new URL(import.meta.url).searchParams.get('v') ?? 'dev';
 const V = `?v=${BUILD === 'dev' ? Date.now() : BUILD}`;
 
+const { LANGUAGES, browserLanguage, getLanguage, setLanguage, t, localized } = await import(`./i18n.js${V}`);
 const { default: init, Emulator } = await import(`./pkg/trs80_web.js${V}`);
 const { FONTS, buildAtlas, drawText } = await import(`./fonts.js${V}`);
 
@@ -44,6 +45,7 @@ const prefs = {
   driveSound: false,    // imiter le bruit des lecteurs de disquettes
   repo: 'https://ve2cuy.com/trs80', // dépôt externe (dossiers rom, disk, cmd, bas)
   repoKind: 'rom',
+  lang: null,           // langue de l'interface (null : celle du fureteur)
   ...readPrefs(),
 };
 
@@ -58,6 +60,22 @@ function readPrefs() {
 function savePrefs() {
   try { localStorage.setItem(PREFS_KEY, JSON.stringify(prefs)); } catch { /* stockage indisponible */ }
 }
+
+// ------------------------------------------------------------------ langue
+
+// Langue : ?lang=<code> (pour ce chargement seulement), sinon le choix conservé, sinon celle
+// du fureteur. Les textes créés par ce module se redessinent par les fonctions inscrites
+// dans languageListeners.
+const languageListeners = [];
+const langList = document.getElementById('lang-list');
+for (const [code, name] of Object.entries(LANGUAGES)) langList.append(new Option(name, code));
+const langParam = new URLSearchParams(location.search).get('lang');
+langList.value = setLanguage(langParam in LANGUAGES ? langParam : prefs.lang ?? browserLanguage());
+langList.addEventListener('change', () => {
+  prefs.lang = setLanguage(langList.value);
+  savePrefs();
+  for (const listener of languageListeners) listener();
+});
 
 turbo.checked = prefs.turbo;
 soundBox.checked = prefs.sound;
@@ -98,10 +116,11 @@ function applySidebar() {
     && (prefs.sidebar ?? (innerWidth < 1100 ? 'collapsed' : 'expanded')) === 'collapsed';
   app.classList.toggle('collapsed', collapsed);
   const button = document.getElementById('sb-collapse');
-  button.title = collapsed ? 'Expand the menu' : 'Collapse the menu';
+  button.title = t(collapsed ? 'menu.expand' : 'menu.collapse');
   button.setAttribute('aria-label', button.title);
   if (!phone.matches) setDrawer(false);
 }
+languageListeners.push(applySidebar);
 
 function setDrawer(open) {
   app.classList.toggle('drawer-open', open);
@@ -183,9 +202,9 @@ function showStatus(message, isError = false) {
   statusBox.textContent = message;
   statusBox.classList.toggle('error', isError);
 }
-window.addEventListener('error', (e) => showStatus(`Error: ${e.message}`, true));
+window.addEventListener('error', (e) => showStatus(t('error', { msg: e.message }), true));
 window.addEventListener('unhandledrejection', (e) =>
-  showStatus(`Error: ${e.reason?.message ?? e.reason}`, true));
+  showStatus(t('error', { msg: e.reason?.message ?? e.reason }), true));
 
 const wasm = await init({ module_or_path: `pkg/trs80_web_bg.wasm${V}` });
 const WIDTH = Emulator.width();
@@ -272,14 +291,24 @@ async function loadRomIndex() {
     roms = [];
   }
   for (const r of roms) {
-    romList.append(new Option(r.title, r.id));
+    romList.append(new Option(localized(r, 'title'), r.id));
   }
 }
+
+/** Titres de la liste des ROM dans la langue courante. */
+function relabelRomList() {
+  for (const option of romList.options) {
+    const rom = roms.find((r) => r.id === option.value);
+    if (rom) option.textContent = localized(rom, 'title');
+    else if (option.value === 'custom') option.textContent = t('rom.custom');
+  }
+}
+languageListeners.push(relabelRomList);
 
 /** Affiche la ROM courante dans la liste; un fichier personnel y apparaît comme « Your ROM file ». */
 function selectRomInList(id) {
   if (id === 'custom' && !romList.querySelector('option[value="custom"]')) {
-    romList.append(new Option('Your ROM file', 'custom'));
+    romList.append(new Option(t('rom.custom'), 'custom'));
   }
   romList.value = id ?? '';
 }
@@ -312,23 +341,23 @@ async function chooseListedRom(id) {
   if (rom.source === 'tar') {
     romTarMember.textContent = rom.member;
     romTar.hidden = false;
-    showStatus(`${rom.title}: open the release archive to continue.`);
+    showStatus(t('rom.tarStatus', { name: localized(rom, 'title') }));
     return;
   }
-  showStatus(`Downloading ${rom.title}…`);
+  showStatus(t('downloading', { name: localized(rom, 'title') }));
   try {
     const res = await fetch(rom.url);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const bytes = new Uint8Array(await res.arrayBuffer());
     if (rom.sha256 && (await sha256Hex(bytes)) !== rom.sha256) {
-      throw new Error('the downloaded file does not match the expected checksum');
+      throw new Error(t('rom.checksum'));
     }
     if (start(bytes)) {
       saveRom(rom.id, bytes);
-      showStatus(`${rom.title} loaded.`);
+      showStatus(t('rom.loaded', { name: localized(rom, 'title') }));
     }
   } catch (e) {
-    showStatus(`Cannot download ${rom.title}: ${e.message ?? e}`, true);
+    showStatus(t('download.fail', { name: localized(rom, 'title'), msg: e.message ?? e }), true);
   }
 }
 
@@ -341,13 +370,13 @@ document.getElementById('tar-file').addEventListener('change', async (event) => 
   if (!file || !rom) return;
   const bytes = extractFromTar(new Uint8Array(await file.arrayBuffer()), rom.member);
   if (!bytes) {
-    showStatus(`${rom.member} was not found in ${file.name}.`, true);
+    showStatus(t('rom.notInTar', { member: rom.member, file: file.name }), true);
     return;
   }
   if (start(bytes)) {
     romTar.hidden = true;
     saveRom(rom.id, bytes);
-    showStatus(`${rom.title} loaded from ${file.name}.`);
+    showStatus(t('rom.loadedFrom', { name: localized(rom, 'title'), file: file.name }));
   }
 });
 
@@ -370,7 +399,7 @@ function start(bytes) {
     emulator = new Emulator(bytes);
   } catch (e) {
     emulator = null;
-    errorBox.textContent = `ROM rejected: ${e.message ?? e}`;
+    errorBox.textContent = t('rom.rejected', { msg: e.message ?? e });
     setRunning(false);
     return false;
   }
@@ -394,7 +423,7 @@ document.getElementById('rom-file').addEventListener('change', async (event) => 
     romTar.hidden = true;
     selectRomInList('custom');
     saveRom('custom', bytes);
-    showStatus(`${file.name} loaded.`);
+    showStatus(t('rom.loaded', { name: file.name }));
   }
 });
 resetButton.addEventListener('click', () => {
@@ -414,33 +443,66 @@ async function loadProgramIndex() {
   } catch {
     programs = [];
   }
-  for (const p of programs) {
-    const option = document.createElement('option');
-    option.value = p.id;
-    option.textContent = `${p.title} (${p.year})`;
-    programList.append(option);
+  for (const p of programs) programList.append(new Option('', p.id));
+  relabelProgramList();
+}
+
+function relabelProgramList() {
+  for (const option of programList.options) {
+    const p = programs.find((x) => x.id === option.value);
+    if (p) option.textContent = `${localized(p, 'title')} (${p.year})`;
   }
 }
+languageListeners.push(relabelProgramList);
 
 // ------------------------------------------------------------------ programme en cours
 
 // Carte sous l'écran : nom du programme (ou de la disquette) chargé et, si on la connaît,
-// sa description. info = { title, sub, lines: [{ text, muted }] }.
+// sa description. Une « source » ({ name, entry } d'un index, ou { name, header } d'un .CMD)
+// est conservée : la carte se recompose dans la langue choisie.
 const nowInfo = document.getElementById('now-info');
 let nowKind = null;
+let nowSource = null;
 
-function showNowInfo(info, kind = 'program') {
+/** Textes d'une source : { title, sub, lines: [{ text, muted }] }. */
+function describeSource(source) {
+  const e = source.entry;
+  if (e) {
+    const title = localized(e, 'title');
+    const controls = localized(e, 'controls');
+    return {
+      title: title ?? source.name,
+      sub: [title ? source.name : null, e.year, e.authors].filter(Boolean).join(' · '),
+      lines: [
+        { text: localized(e, 'description') },
+        { text: controls && t('now.controls', { c: controls }) },
+        { text: localized(e, 'license'), muted: true },
+      ],
+    };
+  }
+  const header = source.header ?? {};
+  return {
+    title: source.name,
+    sub: header.name ? t('now.module', { name: header.name }) : '',
+    lines: [{ text: header.copyright, muted: true }],
+  };
+}
+
+function showNowInfo(source, kind = 'program') {
   nowKind = kind;
+  nowSource = source;
+  const info = describeSource(source);
   document.getElementById('now-icon').firstElementChild
     .setAttribute('href', `#i-${kind === 'disk' ? 'disk' : kind === 'basic' ? 'basic' : 'file'}`);
   document.getElementById('now-title').textContent = info.title;
   const sub = document.getElementById('now-sub');
   sub.textContent = info.sub ?? '';
   sub.hidden = !info.sub;
-  document.getElementById('now-lines').replaceChildren(...(info.lines ?? []).filter((l) => l?.text)
+  document.getElementById('now-lines').replaceChildren(...info.lines.filter((l) => l?.text)
     .map((l) => element('p', l.muted ? 'muted' : '', l.text)));
   nowInfo.hidden = false;
 }
+languageListeners.push(() => { if (nowKind) showNowInfo(nowSource, nowKind); });
 
 function hideNowInfo() {
   nowInfo.hidden = true;
@@ -448,17 +510,9 @@ function hideNowInfo() {
 }
 document.getElementById('now-close').addEventListener('click', hideNowInfo);
 
-/** Description d'une entrée de programs/index.json, de disks/index.json ou d'un dépôt. */
+/** Source d'une entrée de programs/index.json, de disks/index.json ou d'un dépôt. */
 function entryInfo(e, name = e.file) {
-  return {
-    title: e.title ?? name,
-    sub: [e.title ? name : null, e.year, e.authors].filter(Boolean).join(' · '),
-    lines: [
-      { text: e.description },
-      { text: e.controls && `Controls: ${e.controls}` },
-      { text: e.license, muted: true },
-    ],
-  };
+  return { name, entry: e };
 }
 
 /**
@@ -489,13 +543,28 @@ function describe(name, bytes) {
     const e = entries.find((x) => x.file.split('/').pop().toLowerCase() === lower);
     if (e) return entryInfo(e, name);
   }
-  const info = { title: name, sub: '', lines: [] };
-  if (/\.cmd$/i.test(name)) {
-    const header = cmdHeader(bytes);
-    if (header.name && header.name.toLowerCase() !== lower.replace(/\.cmd$/, '')) info.sub = `Module ${header.name}`;
-    if (header.copyright) info.lines.push({ text: header.copyright, muted: true });
-  }
-  return info;
+  if (!/\.cmd$/i.test(name)) return { name };
+  const header = cmdHeader(bytes);
+  // Un nom de module identique au nom du fichier n'apprend rien.
+  if (header.name?.toLowerCase() === lower.replace(/\.cmd$/, '')) delete header.name;
+  return { name, header };
+}
+
+/**
+ * Messages de Rust (en anglais, de forme fixe) dans la langue courante : description d'une
+ * cassette chargée ou d'une disquette insérée.
+ */
+function casMessage(name, message) {
+  let m = message.match(/^machine-language tape, started at ([0-9A-F]+)h$/);
+  if (m) return t('run.casSystem', { name, addr: m[1] });
+  m = message.match(/^BASIC tape \((\d+) bytes\), running$/);
+  if (m) return t('run.casBasic', { name, size: m[1] });
+  return `${name}: ${message}`;
+}
+
+function diskMessage(desc) {
+  const m = desc.match(/^(\S+), (\d+) sectors(, write-protected)?$/);
+  return m ? t('disk.desc', { format: m[1], n: m[2] }) + (m[3] ? t('disk.protected') : '') : desc;
 }
 
 /**
@@ -509,17 +578,17 @@ function runFile(bytes, name, info = null) {
     runBasic(bytes, info);
     return;
   }
-  const label = info.title;
+  const label = describeSource(info).title;
   try {
     if (/\.cas$/i.test(name)) {
-      showStatus(`${label}: ${emulator.load_cas(bytes)}`);
+      showStatus(casMessage(label, emulator.load_cas(bytes)));
     } else {
       const entry = emulator.load_cmd(bytes);
-      showStatus(`${label} loaded, started at ${entry.toString(16).toUpperCase().padStart(4, '0')}h`);
+      showStatus(t('run.cmd', { name: label, addr: entry.toString(16).toUpperCase().padStart(4, '0') }));
     }
     showNowInfo(info, /\.cas$/i.test(name) && info.basic ? 'basic' : 'program');
   } catch (e) {
-    showStatus(`Cannot run ${label}: ${e.message ?? e}`, true);
+    showStatus(t('run.fail', { name: label, msg: e.message ?? e }), true);
   }
   showScreen();
 }
@@ -539,7 +608,7 @@ function runBasic(bytes, info) {
   }
   const text = new TextDecoder('latin1').decode(bytes).replace(/\r\n?/g, '\n').trim();
   emulator.type_text(`NEW\n${text}\nRUN\n`);
-  showStatus(`${info.title}: typing the listing, then RUN…`);
+  showStatus(t('run.basText', { name: describeSource(info).title }));
   showNowInfo(info, 'basic');
   showScreen();
 }
@@ -552,7 +621,7 @@ async function runProgram(id) {
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     runFile(new Uint8Array(await res.arrayBuffer()), p.file, entryInfo(p));
   } catch (e) {
-    showStatus(`Cannot download ${p.title}: ${e.message ?? e}`, true);
+    showStatus(t('download.fail', { name: localized(p, 'title'), msg: e.message ?? e }), true);
   }
 }
 
@@ -581,6 +650,19 @@ function element(tag, className, text) {
   return el;
 }
 
+/** Élément dont le texte (clé de i18n.js) suit la langue choisie. */
+function textElement(tag, className, key) {
+  const el = element(tag, className, t(key));
+  el.dataset.i18n = key;
+  return el;
+}
+
+/** Infobulle (title) qui suit la langue choisie. */
+function setTip(el, key) {
+  el.title = t(key);
+  el.dataset.i18nTitle = key;
+}
+
 /** Icône du sprite de index.html. */
 function icon(name) {
   const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
@@ -591,13 +673,25 @@ function icon(name) {
   return svg;
 }
 
-function iconButton(name, title, extra = '') {
+/** Bouton icône; `key` (i18n.js) donne son infobulle et son nom pour les lecteurs d'écran. */
+function iconButton(name, key, extra = '') {
   const button = element('button', `icon-button small ${extra}`);
   button.type = 'button';
-  button.title = title;
-  button.setAttribute('aria-label', title);
+  setTip(button, key);
+  button.setAttribute('aria-label', button.title);
+  button.dataset.i18nAria = key;
   button.append(icon(name));
   return button;
+}
+
+/** Liste « Lecteur… » pour insérer une disquette dans les lecteurs 1 à 3. */
+function driveSelect() {
+  const into = element('select');
+  setTip(into, 'lib.into.tip');
+  const first = new Option(t('lib.drive'), '');
+  first.dataset.i18n = 'lib.drive';
+  into.append(first, ...[1, 2, 3].map((d) => new Option(t('lib.driveN', { n: d }), d)));
+  return into;
 }
 
 function download(bytes, fileName) {
@@ -615,18 +709,19 @@ function makeDriveRow(drive) {
   const name = element('span', 'drive-name');
   head.append(element('span', 'drive-no', String(drive)), name);
   const actions = element('div', 'drive-actions');
-  const insertLabel = element('label', 'button secondary', 'Insert…');
+  const insertLabel = element('label', 'button secondary');
+  insertLabel.append(textElement('span', '', 'drive.insert'));
   const input = document.createElement('input');
   input.type = 'file';
   input.accept = '.dsk,.dmk,.jv1,.jv3';
   input.hidden = true;
   insertLabel.append(input);
-  const blank = element('button', 'secondary', 'Blank');
+  const blank = textElement('button', 'secondary', 'drive.blank');
   blank.type = 'button';
-  blank.title = 'Insert an unformatted disk, to format from the DOS (e.g. FORMAT :1)';
-  const eject = iconButton('eject', 'Eject');
-  const keep = iconButton('folder-plus', 'Keep in my library (with its changes)');
-  const save = iconButton('download', 'Download the disk image');
+  setTip(blank, 'drive.blank.tip');
+  const eject = iconButton('eject', 'drive.eject');
+  const keep = iconButton('folder-plus', 'drive.keep');
+  const save = iconButton('download', 'drive.download');
   // Erreur d'insertion, affichée sur la ligne du lecteur pour ne pas passer inaperçue.
   const error = element('span', 'drive-error');
   error.setAttribute('role', 'alert');
@@ -637,7 +732,8 @@ function makeDriveRow(drive) {
   let current = null; // { name, bytes, libraryId } : image d'origine
 
   function refresh() {
-    name.textContent = current ? current.name : 'empty';
+    name.textContent = current ? current.name : t('drive.empty');
+    name.dataset.modified = t('drive.modified');
     name.title = current ? current.name : '';
     name.classList.toggle('empty', !current);
     name.classList.toggle('modified', !!(current && emulator?.disk_modified(drive)));
@@ -649,7 +745,7 @@ function makeDriveRow(drive) {
     const image = emulator?.disk_image(drive);
     if (!image) {
       if (current?.bytes && !emulator?.disk_modified(drive)) return { bytes: current.bytes, name: current.name };
-      showStatus('Saving is only supported for JV1 and JV3 images.', true);
+      showStatus(t('drive.saveOnly'), true);
       return null;
     }
     // Une disquette reformatée ou une image DMK est enregistrée en JV3 : extension .dsk.
@@ -664,13 +760,13 @@ function makeDriveRow(drive) {
       const desc = emulator.insert_disk(drive, bytes);
       current = { name: fileName, bytes, libraryId };
       error.textContent = '';
-      showStatus(`Drive ${drive}: ${fileName} (${desc}).`);
+      showStatus(t('drive.inserted', { n: drive, name: fileName, desc: diskMessage(desc) }));
       refresh();
       return true;
     } catch (e) {
-      const message = `${fileName} not inserted: ${e.message ?? e}`;
-      error.textContent = current ? `${message} (${current.name} is still in the drive)` : message;
-      showStatus(`Cannot insert ${fileName}: ${e.message ?? e}`, true);
+      const message = t('drive.notInserted', { name: fileName, msg: e.message ?? e });
+      error.textContent = current ? t('drive.stillIn', { msg: message, name: current.name }) : message;
+      showStatus(t('drive.insertFail', { name: fileName, msg: e.message ?? e }), true);
       return false;
     }
   }
@@ -681,9 +777,9 @@ function makeDriveRow(drive) {
     if (!insert(fileName, bytes, libraryId)) return false;
     if (drive === 0) {
       emulator.reset();
-      showStatus(`Booting ${fileName} from drive 0…`);
+      showStatus(t('drive.booting', { name: fileName }));
       const known = disks.find((d) => d.file.split('/').pop().toLowerCase() === fileName.toLowerCase());
-      showNowInfo(info ?? (known ? entryInfo(known, fileName) : { title: fileName }), 'disk');
+      showNowInfo(info ?? (known ? entryInfo(known, fileName) : { name: fileName }), 'disk');
     }
     return true;
   }
@@ -704,7 +800,7 @@ function makeDriveRow(drive) {
     emulator.insert_blank_disk(drive);
     current = { name: `blank-${drive}.dsk`, bytes: null, libraryId: null };
     error.textContent = '';
-    showStatus(`Drive ${drive}: blank disk. Format it from the DOS (e.g. FORMAT :${drive}).`);
+    showStatus(t('drive.blankStatus', { n: drive }));
     refresh();
     focusScreen();
   });
@@ -720,7 +816,7 @@ function makeDriveRow(drive) {
     if (!image) return;
     // La disquette vient de la bibliothèque : son entrée est mise à jour.
     current.libraryId = await keepFile(image.name, image.bytes, { id: current.libraryId });
-    if (current.libraryId != null) showStatus(`${image.name} kept in your library.`);
+    if (current.libraryId != null) showStatus(t('lib.kept', { name: image.name }));
   });
   save.addEventListener('click', () => {
     const image = currentImage();
@@ -747,6 +843,7 @@ function makeDriveRow(drive) {
 }
 
 const driveRows = [0, 1, 2, 3].map(makeDriveRow);
+languageListeners.push(() => driveRows.forEach((r) => r.refresh()));
 // Le DOS peut écrire sur la disquette : on met à jour l'indication « modified ».
 setInterval(() => driveRows.forEach((r) => r.refresh()), 1000);
 
@@ -766,11 +863,17 @@ async function loadDiskIndex() {
   const local = (await fetchJson(`disks/local/index.json${V}`))
     .map((d) => ({ ...d, file: `local/${d.file}`, local: true }));
   disks = [...published, ...local];
-  for (const d of disks) {
-    const label = `${d.title}${d.year ? ` (${d.year})` : ''}${d.local ? ' — local' : ''}`;
-    diskList.append(new Option(label, d.id));
+  for (const d of disks) diskList.append(new Option('', d.id));
+  relabelDiskList();
+}
+
+function relabelDiskList() {
+  for (const option of diskList.options) {
+    const d = disks.find((x) => x.id === option.value);
+    if (d) option.textContent = `${localized(d, 'title')}${d.year ? ` (${d.year})` : ''}${d.local ? ` — ${t('disk.local')}` : ''}`;
   }
 }
+languageListeners.push(relabelDiskList);
 
 async function bootDisk(id) {
   const d = disks.find((x) => x.id === id);
@@ -781,7 +884,7 @@ async function bootDisk(id) {
     const name = d.file.split('/').pop();
     driveRows[0].insertAndBoot(name, new Uint8Array(await res.arrayBuffer()), null, entryInfo(d, name));
   } catch (e) {
-    showStatus(`Cannot download ${d.title}: ${e.message ?? e}`, true);
+    showStatus(t('download.fail', { name: localized(d, 'title'), msg: e.message ?? e }), true);
   }
   showScreen();
 }
@@ -793,9 +896,9 @@ diskList.addEventListener('change', () => bootDisk(diskList.value));
 // Fichiers de l'utilisateur, conservés dans IndexedDB (ce fureteur, cet appareil) :
 // { id, name, kind, bytes, size, updated }.
 const KINDS = [
-  { kind: 'disk', pattern: /\.(dsk|dmk|jv1|jv3)$/i, icon: 'disk', label: 'Disk' },
-  { kind: 'program', pattern: /\.(cmd|cas)$/i, icon: 'file', label: 'Program' },
-  { kind: 'basic', pattern: /\.(bas|txt)$/i, icon: 'basic', label: 'BASIC' },
+  { kind: 'disk', pattern: /\.(dsk|dmk|jv1|jv3)$/i, icon: 'disk' },
+  { kind: 'program', pattern: /\.(cmd|cas)$/i, icon: 'file' },
+  { kind: 'basic', pattern: /\.(bas|txt)$/i, icon: 'basic' },
 ];
 const libraryList = document.getElementById('library-list');
 const libraryCount = document.getElementById('library-count');
@@ -820,7 +923,7 @@ function sameBytes(a, b) {
 async function keepFile(name, bytes, { id = null } = {}) {
   const kind = kindOf(name);
   if (!kind) {
-    showStatus(`${name}: not a disk, program or BASIC file.`, true);
+    showStatus(t('lib.notSupported', { name }), true);
     return null;
   }
   const twin = library.find((f) => f.name === name && sameBytes(f.bytes, bytes));
@@ -834,7 +937,7 @@ async function keepFile(name, bytes, { id = null } = {}) {
     await refreshLibrary();
     return newId;
   } catch (e) {
-    showStatus(`Cannot keep ${name}: ${e.message ?? e}`, true);
+    showStatus(t('lib.keepFail', { name, msg: e.message ?? e }), true);
     return null;
   }
 }
@@ -860,9 +963,10 @@ function renderLibrary() {
   libraryList.replaceChildren(...library.map(libraryItem));
   navigator.storage?.estimate?.().then(({ usage, quota }) => {
     document.getElementById('library-usage').textContent = library.length
-      ? `${formatSize(usage)} used of ${formatSize(quota)} available in this browser.` : '';
+      ? t('lib.usage', { used: formatSize(usage), quota: formatSize(quota) }) : '';
   }).catch(() => {});
 }
+languageListeners.push(renderLibrary);
 
 function libraryItem(file) {
   const kind = KINDS.find((k) => k.kind === file.kind) ?? KINDS[1];
@@ -871,19 +975,17 @@ function libraryItem(file) {
   const nameEl = element('span', 'lib-name', file.name);
   nameEl.title = file.name;
   meta.append(nameEl, element('span', 'lib-sub',
-    `${kind.label} · ${formatSize(file.size)} · ${new Date(file.updated).toLocaleDateString()}`));
+    `${t(`kind.${kind.kind}`)} · ${formatSize(file.size)} · ${new Date(file.updated).toLocaleDateString(document.documentElement.lang)}`));
   const actions = element('div', 'lib-actions');
 
   if (file.kind === 'disk') {
-    const boot = element('button', 'secondary', 'Boot');
+    const boot = textElement('button', 'secondary', 'lib.boot');
     boot.type = 'button';
-    boot.title = 'Insert in drive 0 and restart';
+    setTip(boot, 'lib.boot.tip');
     boot.addEventListener('click', () => {
       if (driveRows[0].insertAndBoot(file.name, file.bytes, file.id)) showScreen();
     });
-    const into = element('select');
-    into.title = 'Insert in another drive';
-    into.append(new Option('Drive…', ''), ...[1, 2, 3].map((d) => new Option(`Drive ${d}`, d)));
+    const into = driveSelect();
     into.addEventListener('change', () => {
       const d = Number(into.value);
       into.value = '';
@@ -891,18 +993,18 @@ function libraryItem(file) {
     });
     actions.append(boot, into);
   } else {
-    const run = element('button', 'secondary', 'Run');
+    const run = textElement('button', 'secondary', 'lib.run');
     run.type = 'button';
     run.addEventListener('click', () => runFile(file.bytes, file.name));
     actions.append(run);
   }
   for (const b of actions.querySelectorAll('button, select')) b.disabled = !emulator;
 
-  const get = iconButton('download', 'Download');
+  const get = iconButton('download', 'lib.download');
   get.addEventListener('click', () => download(file.bytes, file.name));
-  const del = iconButton('trash', 'Delete from the library', 'danger');
+  const del = iconButton('trash', 'lib.delete', 'danger');
   del.addEventListener('click', async () => {
-    if (!confirm(`Delete ${file.name} from your library?`)) return;
+    if (!confirm(t('lib.confirmDelete', { name: file.name }))) return;
     await dbRequest('files', 'readwrite', (s) => s.delete(file.id)).catch(() => {});
     await refreshLibrary();
   });
@@ -915,7 +1017,7 @@ document.getElementById('library-file').addEventListener('change', async (event)
   const files = [...event.target.files];
   event.target.value = '';
   for (const file of files) await keepFile(file.name, new Uint8Array(await file.arrayBuffer()));
-  if (files.length) showStatus(`${files.length} file${files.length > 1 ? 's' : ''} added to your library.`);
+  if (files.length) showStatus(t(files.length > 1 ? 'lib.addedN' : 'lib.added1', { n: files.length }));
 });
 
 // ------------------------------------------------------------------ dépôt externe
@@ -941,31 +1043,32 @@ async function loadRepo(kind) {
   for (const radio of document.querySelectorAll('input[name="repo-kind"]')) radio.checked = radio.value === kind;
   const indexUrl = repoUrl(`${kind}/index.json`);
   repoList.replaceChildren();
-  repoStatus.textContent = 'Loading…';
+  repoStatus.textContent = t('repo.loading');
   try {
     let entries = repoCache.get(indexUrl);
     if (!entries) {
       const res = await fetch(indexUrl, { cache: 'no-cache' });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const list = await res.json();
-      if (!Array.isArray(list)) throw new Error('index.json is not a list');
+      if (!Array.isArray(list)) throw new Error(t('repo.notList'));
       entries = list.map((e) => (typeof e === 'string' ? { file: e } : e)).filter((e) => e?.file);
       repoCache.set(indexUrl, entries);
     }
     if (prefs.repoKind !== kind) return; // une autre catégorie a été choisie entre-temps
-    repoStatus.textContent = entries.length ? `${prefs.repo}/${kind}/` : 'This folder is empty.';
+    repoStatus.textContent = entries.length ? `${prefs.repo}/${kind}/` : t('repo.empty');
     repoList.replaceChildren(...entries.map((e) => repoItem(kind, e)));
   } catch (e) {
     if (prefs.repoKind !== kind) return;
-    const reason = e instanceof TypeError
-      ? 'unreachable, or it does not allow cross-origin requests (CORS)' : e.message;
-    repoStatus.textContent = `Repository not available: ${indexUrl} (${reason}).`;
+    const reason = e instanceof TypeError ? t('repo.unreachable') : e.message;
+    repoStatus.textContent = t('repo.unavailable', { url: indexUrl, reason });
   }
 }
+// Nouvelle langue : la liste ouverte est redessinée (depuis le cache, sans requête).
+languageListeners.push(() => { if (prefs.open.includes('repo')) loadRepo(prefs.repoKind); });
 
 async function fetchRepoFile(kind, entry) {
   const url = repoUrl(`${kind}/${entry.file.split('/').map(encodeURIComponent).join('/')}`);
-  showStatus(`Downloading ${entry.file}…`);
+  showStatus(t('downloading', { name: entry.file }));
   const res = await fetch(url);
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   return new Uint8Array(await res.arrayBuffer());
@@ -975,46 +1078,45 @@ function repoItem(kind, entry) {
   const name = entry.file.split('/').pop();
   const li = element('li', 'lib-item');
   const meta = element('div', 'lib-meta');
-  const title = element('span', 'lib-name', entry.title ?? name);
-  title.title = [entry.title, entry.description, entry.license].filter(Boolean).join('\n\n') || name;
+  const title = element('span', 'lib-name', localized(entry, 'title') ?? name);
+  title.title = [localized(entry, 'title'), localized(entry, 'description'), localized(entry, 'license')]
+    .filter(Boolean).join('\n\n') || name;
   meta.append(title, element('span', 'lib-sub', [name, entry.year, entry.authors].filter(Boolean).join(' · ')));
   const actions = element('div', 'lib-actions');
 
   /** Télécharge le fichier puis applique `use`; les erreurs vont dans la ligne d'état. */
   const withFile = (use, needsEmulator = true) => async () => {
     if (needsEmulator && !emulator) {
-      showStatus('Load the Level II ROM first.', true);
+      showStatus(t('prog.hint'), true);
       return;
     }
     try {
       await use(await fetchRepoFile(kind, entry));
     } catch (e) {
-      showStatus(`Cannot download ${name}: ${e.message ?? e}`, true);
+      showStatus(t('download.fail', { name, msg: e.message ?? e }), true);
     }
   };
-  const button = (label, handler, tip) => {
-    const b = element('button', 'secondary', label);
+  const button = (key, handler, tip) => {
+    const b = textElement('button', 'secondary', key);
     b.type = 'button';
-    if (tip) b.title = tip;
+    if (tip) setTip(b, tip);
     b.addEventListener('click', handler);
     actions.append(b);
   };
 
   if (kind === 'rom') {
-    button('Load', withFile((bytes) => {
+    button('repo.load', withFile((bytes) => {
       if (!start(bytes)) return;
       romTar.hidden = true;
       selectRomInList('custom');
       saveRom('custom', bytes);
-      showStatus(`${entry.title ?? name} loaded from the repository.`);
+      showStatus(t('repo.romLoaded', { name: localized(entry, 'title') ?? name }));
     }, false));
   } else if (kind === 'disk') {
-    button('Boot', withFile((bytes) => {
-      if (driveRows[0].insertAndBoot(name, bytes)) showScreen();
-    }), 'Insert in drive 0 and restart');
-    const into = element('select');
-    into.title = 'Insert in another drive';
-    into.append(new Option('Drive…', ''), ...[1, 2, 3].map((d) => new Option(`Drive ${d}`, d)));
+    button('lib.boot', withFile((bytes) => {
+      if (driveRows[0].insertAndBoot(name, bytes, null, entryInfo(entry, name))) showScreen();
+    }), 'lib.boot.tip');
+    const into = driveSelect();
     into.addEventListener('change', () => {
       const d = Number(into.value);
       into.value = '';
@@ -1022,17 +1124,17 @@ function repoItem(kind, entry) {
     });
     actions.append(into);
   } else {
-    button('Run', withFile((bytes) => runFile(bytes, name, entryInfo(entry, name))));
+    button('lib.run', withFile((bytes) => runFile(bytes, name, entryInfo(entry, name))));
   }
   actions.append(element('span', 'spacer'));
   if (kind !== 'rom') {
-    const keep = iconButton('folder-plus', 'Keep in my library');
+    const keep = iconButton('folder-plus', 'repo.keep');
     keep.addEventListener('click', withFile(async (bytes) => {
-      if ((await keepFile(name, bytes)) != null) showStatus(`${name} kept in your library.`);
+      if ((await keepFile(name, bytes)) != null) showStatus(t('lib.kept', { name }));
     }, false));
     actions.append(keep);
   }
-  const get = iconButton('download', 'Download to this device');
+  const get = iconButton('download', 'repo.download');
   get.addEventListener('click', withFile((bytes) => { download(bytes, name); showStatus(''); }, false));
   actions.append(get);
   li.append(icon(REPO_ICONS[kind]), meta, actions);
@@ -1056,7 +1158,7 @@ function useRepo(address) {
     url = new URL(address);
     if (!/^https?:$/.test(url.protocol)) throw new Error();
   } catch {
-    repoStatus.textContent = 'Enter a web address, e.g. https://example.com/trs80';
+    repoStatus.textContent = t('repo.badUrl');
     return;
   }
   prefs.repo = repoInput.value = url.href.replace(/\/+$/, '');
@@ -1087,7 +1189,7 @@ monitor.addEventListener('drop', async (e) => {
   if (!file || !emulator) return;
   const kind = kindOf(file.name);
   if (!kind) {
-    showStatus(`${file.name}: not a disk, program or BASIC file.`, true);
+    showStatus(t('lib.notSupported', { name: file.name }), true);
     return;
   }
   const bytes = new Uint8Array(await file.arrayBuffer());
@@ -1106,7 +1208,7 @@ function typeOnTrs80(text) {
   if (!emulator || !text) return;
   const accepted = emulator.type_text(text);
   const skipped = [...text.replace(/\r/g, '')].length - accepted;
-  showStatus(`Typing ${accepted} characters…` + (skipped > 0 ? ` (${skipped} without a TRS-80 key skipped)` : ''));
+  showStatus(t('type.typing', { n: accepted }) + (skipped > 0 ? t('type.skipped', { n: skipped }) : ''));
   showScreen();
 }
 
@@ -1122,16 +1224,16 @@ document.getElementById('type-send').addEventListener('click', () => {
 document.getElementById('type-keep').addEventListener('click', async () => {
   const text = typeText.value.trim();
   if (!text) return;
-  let name = prompt('Name of the BASIC file in your library:', 'program.bas');
+  let name = prompt(t('type.prompt'), 'program.bas');
   if (!name?.trim()) return;
   name = /\.(bas|txt)$/i.test(name.trim()) ? name.trim() : `${name.trim()}.bas`;
   if ((await keepFile(name, new TextEncoder().encode(`${text}\n`))) != null) {
-    showStatus(`${name} kept in your library.`);
+    showStatus(t('lib.kept', { name }));
   }
 });
 document.getElementById('type-stop').addEventListener('click', () => {
   emulator?.cancel_typing();
-  showStatus('Typing stopped.');
+  showStatus(t('type.stopped'));
 });
 
 // Ctrl+V sur l'écran : le texte du presse-papiers est tapé sur le TRS-80.
@@ -1486,12 +1588,28 @@ const fontList = document.getElementById('font-list');
 let font = FONTS[0];
 let atlas = null; // glyphes de la police courante (null : police d'origine, dessinée par Rust)
 
+/** Nom d'une police dans la langue courante (les noms propres restent tels quels). */
+function fontLabel(f) {
+  const key = `font.${f.id}`;
+  const text = t(key);
+  return text === key ? f.label : text;
+}
+
+function relabelFontList() {
+  for (const optgroup of fontList.querySelectorAll('optgroup')) {
+    optgroup.label = t(`font.group.${optgroup.dataset.group}`);
+  }
+  for (const option of fontList.options) option.textContent = fontLabel(FONTS.find((f) => f.id === option.value));
+}
+languageListeners.push(relabelFontList);
+
 for (const group of [...new Set(FONTS.map((f) => f.group))]) {
   const optgroup = document.createElement('optgroup');
-  optgroup.label = group;
-  for (const f of FONTS.filter((x) => x.group === group)) optgroup.append(new Option(f.label, f.id));
+  optgroup.dataset.group = group;
+  for (const f of FONTS.filter((x) => x.group === group)) optgroup.append(new Option('', f.id));
   fontList.append(optgroup);
 }
+relabelFontList();
 
 async function selectFont(id) {
   const chosen = FONTS.find((f) => f.id === id) ?? FONTS[0];
@@ -1500,7 +1618,7 @@ async function selectFont(id) {
     font = chosen;
     try { localStorage.setItem('trs80-font', chosen.id); } catch { /* stockage indisponible */ }
   } catch (e) {
-    showStatus(`Font ${chosen.label}: ${e.message ?? e}`, true);
+    showStatus(t('font.fail', { name: fontLabel(chosen), msg: e.message ?? e }), true);
   }
   fontList.value = font.id;
   lastVideo = null; // force le redessin

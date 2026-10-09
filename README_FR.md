@@ -50,6 +50,10 @@ Lien direct : `?font=vt323`.
   c'est un tiroir qu'on ouvre avec ☰.
 - **Thèmes clair et sombre** : celui du système par défaut; au choix dans Display, ou avec le
   bouton soleil / lune au bas du menu.
+- **Langues** : anglais, français, espagnol et chinois simplifié, au choix dans Affichage
+  (celle du fureteur par défaut). Lien direct : `?lang=fr`. Les textes sont dans
+  [`www/i18n.js`](www/i18n.js); les listes de programmes, de disquettes et du dépôt peuvent
+  traduire leurs champs dans `"i18n": { "fr": { "description": "…" } }`.
 - **Préférences** (thème, menu, sections ouvertes, son, Turbo, dépôt...) conservées dans le
   fureteur.
 - **Fiche du programme** : sous l'écran, le nom du programme ou de la disquette en cours, avec

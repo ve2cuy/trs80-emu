@@ -7,7 +7,24 @@
     "authors": "VE2CUY",
     "description": "A Space Invaders-inspired game written in Z80 assembly for this project. English or French, chosen on the title screen.",
     "controls": "Arrow keys to move, Space to fire, Break (Esc) quits.",
-    "license": "Written by VE2CUY for this project (source code: asm/invaders.asm)"
+    "license": "Written by VE2CUY for this project (source code: asm/invaders.asm)",
+    "i18n": {
+      "fr": {
+        "description": "Un jeu inspiré de Space Invaders, écrit en assembleur Z80 pour ce projet. En anglais ou en français, au choix sur l’écran titre.",
+        "controls": "Flèches pour se déplacer, Espace pour tirer, Break (Échap) pour quitter.",
+        "license": "Écrit par VE2CUY pour ce projet (code source : asm/invaders.asm)"
+      },
+      "es": {
+        "description": "Un juego inspirado en Space Invaders, escrito en ensamblador Z80 para este proyecto. En inglés o francés, a elegir en la pantalla de título.",
+        "controls": "Flechas para moverse, Espacio para disparar, Break (Esc) para salir.",
+        "license": "Escrito por VE2CUY para este proyecto (código fuente: asm/invaders.asm)"
+      },
+      "zh": {
+        "description": "受《太空侵略者》启发、为本项目用 Z80 汇编编写的游戏。可在标题画面选择英文或法文。",
+        "controls": "方向键移动，空格键射击，Break（Esc）退出。",
+        "license": "由 VE2CUY 为本项目编写（源代码：asm/invaders.asm）"
+      }
+    }
   },
   {
     "id": "ve2cuy-invaders-tape",
@@ -17,7 +34,27 @@
     "authors": "VE2CUY",
     "description": "The same game, loaded from a 500-baud cassette image (.CAS) like a SYSTEM tape.",
     "controls": "Arrow keys to move, Space to fire, Break (Esc) quits.",
-    "license": "Written by VE2CUY for this project (source code: asm/invaders.asm)"
+    "license": "Written by VE2CUY for this project (source code: asm/invaders.asm)",
+    "i18n": {
+      "fr": {
+        "title": "VE2CUY Invaders (cassette)",
+        "description": "Le même jeu, chargé depuis une image de cassette à 500 bauds (.CAS), comme une cassette SYSTEM.",
+        "controls": "Flèches pour se déplacer, Espace pour tirer, Break (Échap) pour quitter.",
+        "license": "Écrit par VE2CUY pour ce projet (code source : asm/invaders.asm)"
+      },
+      "es": {
+        "title": "VE2CUY Invaders (casete)",
+        "description": "El mismo juego, cargado desde una imagen de casete de 500 baudios (.CAS), como una cinta SYSTEM.",
+        "controls": "Flechas para moverse, Espacio para disparar, Break (Esc) para salir.",
+        "license": "Escrito por VE2CUY para este proyecto (código fuente: asm/invaders.asm)"
+      },
+      "zh": {
+        "title": "VE2CUY Invaders（磁带）",
+        "description": "同一款游戏，从 500 波特的磁带映像（.CAS）加载，就像 SYSTEM 磁带一样。",
+        "controls": "方向键移动，空格键射击，Break（Esc）退出。",
+        "license": "由 VE2CUY 为本项目编写（源代码：asm/invaders.asm）"
+      }
+    }
   },
   {
     "id": "seadragon",
@@ -27,7 +64,24 @@
     "authors": "Wayne Westmoreland & Terry Gilman",
     "description": "Steer a submarine through an undersea cavern, dodging mines and depth charges.",
     "controls": "Arrow keys to move, Space to fire. Shift+Break (Shift+Esc) quits.",
-    "license": "Public domain (released by Wayne Westmoreland, 1995)"
+    "license": "Public domain (released by Wayne Westmoreland, 1995)",
+    "i18n": {
+      "fr": {
+        "description": "Pilotez un sous-marin dans une caverne sous-marine, en évitant mines et grenades sous-marines.",
+        "controls": "Flèches pour se déplacer, Espace pour tirer. Maj+Break (Maj+Échap) pour quitter.",
+        "license": "Domaine public (libéré par Wayne Westmoreland, 1995)"
+      },
+      "es": {
+        "description": "Dirija un submarino por una caverna submarina, esquivando minas y cargas de profundidad.",
+        "controls": "Flechas para moverse, Espacio para disparar. Mayús+Break (Mayús+Esc) para salir.",
+        "license": "Dominio público (liberado por Wayne Westmoreland, 1995)"
+      },
+      "zh": {
+        "description": "驾驶潜艇穿越海底洞穴，躲避水雷和深水炸弹。",
+        "controls": "方向键移动，空格键射击。Shift+Break（Shift+Esc）退出。",
+        "license": "公有领域（Wayne Westmoreland 于 1995 年发布）"
+      }
+    }
   },
   {
     "id": "armored-patrol",
@@ -37,6 +91,23 @@
     "authors": "Wayne Westmoreland & Terry Gilman",
     "description": "First-person tank battle in a 3-D landscape.",
     "controls": "Instructions are shown in the game. Shift+Break (Shift+Esc) quits.",
-    "license": "Public domain (released by Wayne Westmoreland, 1995)"
+    "license": "Public domain (released by Wayne Westmoreland, 1995)",
+    "i18n": {
+      "fr": {
+        "description": "Combat de chars en vue subjective dans un paysage en 3D.",
+        "controls": "Les instructions sont affichées dans le jeu. Maj+Break (Maj+Échap) pour quitter.",
+        "license": "Domaine public (libéré par Wayne Westmoreland, 1995)"
+      },
+      "es": {
+        "description": "Batalla de tanques en primera persona en un paisaje en 3D.",
+        "controls": "Las instrucciones se muestran en el juego. Mayús+Break (Mayús+Esc) para salir.",
+        "license": "Dominio público (liberado por Wayne Westmoreland, 1995)"
+      },
+      "zh": {
+        "description": "在 3D 场景中进行的第一人称坦克战。",
+        "controls": "游戏中会显示说明。Shift+Break（Shift+Esc）退出。",
+        "license": "公有领域（Wayne Westmoreland 于 1995 年发布）"
+      }
+    }
   }
 ]

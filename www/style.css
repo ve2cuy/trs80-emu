@@ -337,7 +337,7 @@ textarea {
 /* Interrupteur : une case à cocher dessinée comme un bouton à glissière. */
 .switch { display: inline-flex; align-items: center; gap: 10px; cursor: pointer; font-size: 0.9rem; user-select: none; }
 .switch input { position: absolute; opacity: 0; width: 1px; height: 1px; }
-.switch span {
+.switch .knob {
   position: relative;
   flex: none;
   width: 36px;
@@ -346,7 +346,7 @@ textarea {
   background: var(--border);
   transition: background 0.15s;
 }
-.switch span::after {
+.switch .knob::after {
   content: "";
   position: absolute;
   top: 2px;
@@ -358,9 +358,9 @@ textarea {
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
   transition: transform 0.15s;
 }
-.switch input:checked + span { background: var(--accent); }
-.switch input:checked + span::after { transform: translateX(16px); }
-.switch input:focus-visible + span { outline: 2px solid var(--accent); outline-offset: 2px; }
+.switch input:checked + .knob { background: var(--accent); }
+.switch input:checked + .knob::after { transform: translateX(16px); }
+.switch input:focus-visible + .knob { outline: 2px solid var(--accent); outline-offset: 2px; }
 
 .segmented { flex-direction: row; flex-wrap: wrap; margin: 0; padding: 0; border: 0; }
 .segmented legend { width: 100%; padding: 0; margin-bottom: 4px; }
@@ -431,7 +431,7 @@ table.keys th { color: var(--muted); font-weight: 600; }
   font: 0.85rem ui-monospace, Consolas, monospace;
 }
 .drive-name.empty { color: var(--muted); }
-.drive-name.modified::after { content: " • modified"; color: var(--accent-ink); font-family: system-ui, sans-serif; }
+.drive-name.modified::after { content: " • " attr(data-modified); color: var(--accent-ink); font-family: system-ui, sans-serif; }
 .drive-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; }
 .drive-actions .button, .drive-actions button.secondary { padding: 4px 10px; font-size: 0.85rem; }
 .drive-error { color: var(--error); font-size: 0.82rem; }

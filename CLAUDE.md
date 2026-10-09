@@ -11,6 +11,11 @@ départ, si plus de contexte est nécessaire.
 
 - Échanges avec l'utilisateur, documentation, commentaires et messages de commit : **en français**.
   Identificateurs du code : en anglais.
+- Interface Web multilingue : tous ses textes sont dans `www/i18n.js` (anglais, français,
+  espagnol, chinois simplifié). Toute nouvelle chaîne s'ajoute aux quatre langues; dans
+  `index.html`, attributs `data-i18n*`; dans `main.js`, `t('clé', { valeurs })`. Les index
+  (`programs/index.json`, `disks/index.json`, `roms.json`, dépôt) peuvent traduire leurs
+  champs dans `i18n.<langue>`.
 - `crates/z80` reste `no_std` et sans dépendance : il doit pouvoir tourner sur STM32.
   Le processeur ne connaît la machine qu'à travers le trait `Bus`.
 - Toute nouvelle instruction ou correction du Z80 s'accompagne d'un test dans
