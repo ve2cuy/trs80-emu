@@ -79,7 +79,7 @@ const STRINGS = {
     'disk.boot': 'Boot a disk',
     'disk.repo': 'Disks from repository',
     'disk.local': 'local',
-    'disk.hint': 'Drive 0 is the boot drive: inserting a disk there restarts the TRS-80 on it. JV1, JV3 and DMK images, single or double density. As on a real Model I, track 0 must be single density to boot.',
+    'disk.hint': 'Drive 0 is the boot drive: inserting a disk there restarts the TRS-80 on it. JV1, JV3, DMK and IMD images, single or double density. On the Model I, as on the real one, track 0 must be single density to boot.',
     'drive.insert': 'Insert…',
     'drive.blank': 'Blank',
     'drive.blank.tip': 'Insert an unformatted disk, to format from the DOS (e.g. FORMAT :1)',
@@ -261,7 +261,7 @@ const STRINGS = {
     'disk.boot': 'Démarrer une disquette',
     'disk.repo': 'Disquettes du dépôt',
     'disk.local': 'locale',
-    'disk.hint': 'Le lecteur 0 sert au démarrage : y insérer une disquette redémarre le TRS-80 dessus. Images JV1, JV3 et DMK, en simple ou double densité. Comme sur un vrai Model I, la piste 0 doit être en simple densité pour démarrer.',
+    'disk.hint': 'Le lecteur 0 sert au démarrage : y insérer une disquette redémarre le TRS-80 dessus. Images JV1, JV3, DMK et IMD, en simple ou double densité. Sur le Model I, comme sur le vrai, la piste 0 doit être en simple densité pour démarrer.',
     'drive.insert': 'Insérer…',
     'drive.blank': 'Vierge',
     'drive.blank.tip': 'Insérer une disquette non formatée, à formater depuis le DOS (ex. FORMAT :1)',
@@ -443,7 +443,7 @@ const STRINGS = {
     'disk.boot': 'Arrancar un disquete',
     'disk.repo': 'Disquetes del repositorio',
     'disk.local': 'local',
-    'disk.hint': 'La unidad 0 es la de arranque: insertar un disquete en ella reinicia el TRS-80 desde él. Imágenes JV1, JV3 y DMK, en simple o doble densidad. Como en un Model I real, la pista 0 debe ser de simple densidad para arrancar.',
+    'disk.hint': 'La unidad 0 es la de arranque: insertar un disquete en ella reinicia el TRS-80 desde él. Imágenes JV1, JV3, DMK e IMD, en simple o doble densidad. En el Model I, como en el real, la pista 0 debe ser de simple densidad para arrancar.',
     'drive.insert': 'Insertar…',
     'drive.blank': 'Virgen',
     'drive.blank.tip': 'Insertar un disquete sin formato, para formatearlo desde el DOS (p. ej. FORMAT :1)',
@@ -625,7 +625,7 @@ const STRINGS = {
     'disk.boot': '从软盘启动',
     'disk.repo': '在线仓库中的软盘',
     'disk.local': '本地',
-    'disk.hint': '0 号驱动器是启动驱动器：在其中插入软盘会让 TRS-80 从该软盘重新启动。支持 JV1、JV3 和 DMK 映像，单密度或双密度。与真正的 Model I 一样，0 磁道必须为单密度才能启动。',
+    'disk.hint': '0 号驱动器是启动驱动器：在其中插入软盘会让 TRS-80 从该软盘重新启动。支持 JV1、JV3、DMK 和 IMD 映像，单密度或双密度。在 Model I 上（与真机一样），0 磁道必须为单密度才能启动。',
     'drive.insert': '插入…',
     'drive.blank': '空白盘',
     'drive.blank.tip': '插入未格式化的软盘，在 DOS 中格式化（例如 FORMAT :1）',
@@ -1249,6 +1249,7 @@ Object.assign(STRINGS.zh, {
 
 // ---------------------------------------------------------------- modèles
 Object.assign(STRINGS.en, {
+  'more': 'More information',
   'clip.paste': 'Paste text (Ctrl+V): it is typed on the TRS-80',
   'clip.copy': 'Copy the screen text (Ctrl+C)',
   'clip.copied': 'Screen text copied.',
@@ -1275,6 +1276,7 @@ Object.assign(STRINGS.en, {
 Object.assign(STRINGS.en, { 'model.label': 'Model', 'model.1': 'TRS-80 Model I', 'model.2': 'TRS-80 Model II',
   'rom.ownM2': 'Model II: load your own 2 KB boot ROM (ROM menu), then a TRSDOS-II disk (.imd, .dmk).', 'model.3': 'TRS-80 Model III', 'model.4': 'TRS-80 Model 4' });
 Object.assign(STRINGS.fr, {
+  'more': 'Plus d’information',
   'clip.paste': 'Coller du texte (Ctrl+V) : il est tapé sur le TRS-80',
   'clip.copy': 'Copier le texte de l’écran (Ctrl+C)',
   'clip.copied': 'Texte de l’écran copié.',
@@ -1301,6 +1303,7 @@ Object.assign(STRINGS.fr, {
 Object.assign(STRINGS.fr, { 'model.label': 'Modèle', 'model.1': 'TRS-80 Model I', 'model.2': 'TRS-80 Model II',
   'rom.ownM2': 'Model II : chargez votre ROM d’amorçage de 2 Ko (menu ROM), puis une disquette TRSDOS-II (.imd, .dmk).', 'model.3': 'TRS-80 Model III', 'model.4': 'TRS-80 Model 4' });
 Object.assign(STRINGS.es, {
+  'more': 'Más información',
   'clip.paste': 'Pegar texto (Ctrl+V): se teclea en el TRS-80',
   'clip.copy': 'Copiar el texto de la pantalla (Ctrl+C)',
   'clip.copied': 'Texto de la pantalla copiado.',
@@ -1327,6 +1330,7 @@ Object.assign(STRINGS.es, {
 Object.assign(STRINGS.es, { 'model.label': 'Modelo', 'model.1': 'TRS-80 Model I', 'model.2': 'TRS-80 Model II',
   'rom.ownM2': 'Model II: cargue su propia ROM de arranque de 2 KB (menú ROM) y luego un disco TRSDOS-II (.imd, .dmk).', 'model.3': 'TRS-80 Model III', 'model.4': 'TRS-80 Model 4' });
 Object.assign(STRINGS.zh, {
+  'more': '更多信息',
   'clip.paste': '粘贴文本（Ctrl+V）：在 TRS-80 上键入',
   'clip.copy': '复制屏幕文本（Ctrl+C）',
   'clip.copied': '已复制屏幕文本。',

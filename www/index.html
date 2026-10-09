@@ -126,9 +126,12 @@
               <input id="sound" type="checkbox" checked><span class="knob"></span><span data-i18n="opt.sound">Sound</span></label>
             <label class="switch" title="Imitate the floppy drives: motor hum and head steps" data-i18n-title="opt.drive.tip">
               <input id="drive-sound" type="checkbox"><span class="knob"></span><span data-i18n="opt.drive">Disk drive sounds</span></label>
-            <p class="hint" data-i18n-html="rom.hint">ROMs in the list are downloaded from
+            <details class="more">
+              <summary data-i18n="more">More information</summary>
+              <p class="hint" data-i18n-html="rom.hint">ROMs in the list are downloaded from
               <a href="https://github.com/kiwisincebirth/TRS-80-ROMS">kiwisincebirth/TRS-80-ROMS</a>
               when you choose them. They are © Tandy / Microsoft.</p>
+            </details>
           </div>
         </div>
 
@@ -183,11 +186,17 @@
             <div id="hard-section">
               <p class="sub-heading" data-i18n="hd.title">Hard disks</p>
               <div id="hard-drives" class="drives"></div>
-              <p class="hint" data-i18n-html="hd.hint"></p>
+              <details class="more">
+                <summary data-i18n="more">More information</summary>
+                <p class="hint" data-i18n-html="hd.hint"></p>
+              </details>
             </div>
-            <p class="hint" data-i18n="disk.hint">Drive 0 is the boot drive: inserting a disk there restarts the TRS-80 on it.
+            <details class="more">
+              <summary data-i18n="more">More information</summary>
+              <p class="hint" data-i18n="disk.hint">Drive 0 is the boot drive: inserting a disk there restarts the TRS-80 on it.
               JV1, JV3 and DMK images, single or double density. As on a real Model I, track 0
               must be single density to boot.</p>
+            </details>
           </div>
         </div>
 
@@ -280,10 +289,13 @@
               <tr><td data-i18n="keys.right">→ (tab)</td><td data-i18n="keys.rightPc">Tab or Right arrow</td></tr>
               <tr><td>↑ ↓</td><td data-i18n="keys.upDown">Up and Down arrows</td></tr>
             </table>
-            <p class="hint" data-i18n="keys.symbols">Type symbols as you would on a PC: the emulator handles the TRS-80 Shift
+            <details class="more">
+              <summary data-i18n="more">More information</summary>
+              <p class="hint" data-i18n="keys.symbols">Type symbols as you would on a PC: the emulator handles the TRS-80 Shift
               key, whose layout is different.</p>
-            <p class="hint" data-i18n="keys.touch">On a tablet or phone, tap the screen (or “⌨ Keyboard”) to show the
+              <p class="hint" data-i18n="keys.touch">On a tablet or phone, tap the screen (or “⌨ Keyboard”) to show the
               on-screen keyboard; the buttons under the screen give BREAK, CLEAR, the arrows and ENTER.</p>
+            </details>
           </div>
         </div>
 

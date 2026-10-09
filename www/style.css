@@ -337,6 +337,32 @@ textarea {
 .field { display: flex; flex-direction: column; gap: 4px; font-size: 0.85rem; color: var(--muted); }
 .row { display: flex; flex-wrap: wrap; gap: 8px; }
 .hint { margin: 0; color: var(--muted); font-size: 0.82rem; }
+/* Textes d'aide : repliés par défaut, « + » les déplie. */
+.more > summary {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 0.8rem;
+  cursor: pointer;
+  list-style: none;
+  user-select: none;
+}
+.more > summary::-webkit-details-marker { display: none; }
+.more > summary::before {
+  content: "+";
+  display: inline-grid;
+  place-items: center;
+  width: 16px;
+  height: 16px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  font-weight: 600;
+  line-height: 1;
+}
+.more[open] > summary::before { content: "−"; }
+.more > summary:hover { color: var(--text); }
+.more[open] > summary { margin-bottom: 4px; }
 .small { font-size: 0.85rem; color: #a3a8b3; max-width: 32em; }
 .error { color: var(--error); min-height: 1.5em; }
 
