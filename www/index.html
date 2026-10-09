@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" class="no-js">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -11,6 +11,19 @@
       const theme = JSON.parse(localStorage.getItem('trs80-prefs') ?? '{}').theme;
       if (theme === 'light' || theme === 'dark') document.documentElement.dataset.theme = theme;
     } catch { /* stockage indisponible */ }
+    // Scripts permis : le message « scripts bloqués » reste caché pendant le chargement.
+    // S'il n'est toujours pas prêt après 12 s (module ou WebAssembly bloqué, fureteur trop
+    // ancien), main.js n'a pas démarré : le message s'affiche, dans la langue du fureteur.
+    document.documentElement.classList.replace('no-js', 'js-loading');
+    setTimeout(() => {
+      const root = document.documentElement;
+      if (root.classList.contains('js-ready')) return;
+      root.classList.replace('js-loading', 'js-failed');
+      let lang = (navigator.language || 'en').slice(0, 2);
+      try { lang = JSON.parse(localStorage.getItem('trs80-prefs') ?? '{}').lang || lang; } catch { /* rien */ }
+      const blocks = document.querySelectorAll('.js-required p[lang]');
+      if ([...blocks].some((p) => p.lang === lang)) blocks.forEach((p) => { p.hidden = p.lang !== lang; });
+    }, 12000);
   </script>
   <link rel="stylesheet" href="style.css?v=dev">
 </head>
@@ -38,6 +51,7 @@
       <symbol id="i-file" viewBox="0 0 24 24"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6"/></symbol>
       <symbol id="i-basic" viewBox="0 0 24 24"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6M8 13h8M8 17h5"/></symbol>
       <symbol id="i-text" viewBox="0 0 24 24"><path d="M4 7V5h16v2M12 5v14M9 19h6"/></symbol>
+      <symbol id="i-globe" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/></symbol>
       <symbol id="i-cloud" viewBox="0 0 24 24"><path d="M7 18h10.5a4.5 4.5 0 0 0 .6-8.96A6 6 0 0 0 6.3 10.1 4 4 0 0 0 7 18z"/></symbol>
       <symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></symbol>
     </defs>
@@ -219,9 +233,6 @@
             <span class="label" data-i18n="nav.display">Display</span>
           </button>
           <div id="panel-display" class="nav-panel" hidden>
-            <label class="field"><span data-i18n="display.lang">Language</span>
-              <select id="lang-list"></select>
-            </label>
             <label class="field"><span data-i18n="display.font">Font</span>
               <select id="font-list"></select>
             </label>
@@ -264,7 +275,7 @@
             <span class="label" data-i18n="nav.about">About</span>
           </button>
           <div id="panel-about" class="nav-panel" hidden>
-            <p class="hint" data-i18n="about.version">Version 1.0 · Written in Rust and WebAssembly · Apache 2.0 license.</p>
+            <p class="hint" data-i18n="about.version">Version 1.1 · Written in Rust and WebAssembly · Apache 2.0 license.</p>
             <p class="hint"><a href="https://github.com/ve2cuy/trs80-emu" data-i18n="about.source">Source code</a> ·
               <a href="https://ve2cuy.github.io/blog/" data-i18n="about.blog">VE2CUY's blog</a></p>
             <p class="hint" data-i18n="about.roms">TRS-80 ROMs are © Tandy / Microsoft and are not part of this project.</p>
@@ -273,12 +284,7 @@
       </nav>
 
       <div class="sb-footer">
-        <span class="label">v1.0</span>
-        <button id="theme-toggle" type="button" class="icon-button" data-tip="Light / dark" data-i18n-tip="theme.toggle"
-                aria-label="Switch between light and dark themes" data-i18n-aria="theme.toggle.aria">
-          <svg class="icon icon-sun"><use href="#i-sun"/></svg>
-          <svg class="icon icon-moon"><use href="#i-moon"/></svg>
-        </button>
+        <span class="label">v1.1</span>
       </div>
     </aside>
     <div id="backdrop" class="backdrop" hidden></div>
@@ -294,6 +300,18 @@
           <label class="switch compact" title="Run ten times faster" data-i18n-title="turbo.tip"><input id="turbo" type="checkbox"><span class="knob"></span><span data-i18n="turbo">Turbo</span></label>
           <button id="reset" type="button" class="secondary with-icon" disabled>
             <svg class="icon"><use href="#i-reset"/></svg><span data-i18n="reset">Reset</span></button>
+          <span class="toolbar-sep" aria-hidden="true"></span>
+          <!-- Langue : liste native du fureteur, cachée sous un bouton compact (globe et code). -->
+          <label class="lang-picker" title="Language" data-i18n-title="display.lang">
+            <svg class="icon"><use href="#i-globe"/></svg>
+            <span id="lang-code">EN</span>
+            <select id="lang-list" aria-label="Language" data-i18n-aria="display.lang"></select>
+          </label>
+          <button id="theme-toggle" type="button" class="icon-button" title="Light / dark" data-i18n-title="theme.toggle"
+                  aria-label="Switch between light and dark themes" data-i18n-aria="theme.toggle.aria">
+            <svg class="icon icon-sun"><use href="#i-sun"/></svg>
+            <svg class="icon icon-moon"><use href="#i-moon"/></svg>
+          </button>
         </div>
       </header>
 
@@ -302,6 +320,24 @@
           <canvas id="screen" width="1536" height="1152" tabindex="0"
                   aria-label="TRS-80 screen: click, then type on your keyboard" data-i18n-aria="screen.aria"></canvas>
           <div id="overlay" class="overlay">
+            <!-- Affiché sans JavaScript (aucune traduction possible : les quatre langues). -->
+            <div class="js-required" role="alert">
+              <p lang="en"><strong>The emulator cannot start: this browser blocks the page's scripts.</strong>
+                Allow JavaScript for this site, then reload the page. <em>Brave:</em> click the lion icon
+                in the address bar and turn Shields down for this site (or turn off “Block scripts”).
+                NoScript, uBlock Origin or another blocker: allow this site.</p>
+              <p lang="fr"><strong>L’émulateur ne peut pas démarrer : le fureteur bloque les scripts de la page.</strong>
+                Autorisez JavaScript pour ce site, puis rechargez la page. <em>Brave :</em> cliquez sur
+                l’icône du lion dans la barre d’adresse et désactivez les boucliers pour ce site (ou
+                « Bloquer les scripts »). NoScript, uBlock Origin ou un autre bloqueur : autorisez ce site.</p>
+              <p lang="es"><strong>El emulador no puede iniciarse: el navegador bloquea los scripts de la página.</strong>
+                Permita JavaScript para este sitio y recargue la página. <em>Brave:</em> haga clic en el
+                icono del león en la barra de direcciones y desactive los escudos para este sitio (o
+                «Bloquear scripts»). NoScript, uBlock Origin u otro bloqueador: permita este sitio.</p>
+              <p lang="zh"><strong>模拟器无法启动：浏览器阻止了本页面的脚本。</strong>
+                请允许此网站运行 JavaScript，然后重新加载页面。<em>Brave：</em>点击地址栏中的狮子图标，
+                为此网站关闭护盾（或关闭“阻止脚本”）。使用 NoScript、uBlock Origin 等拦截器时，请允许此网站。</p>
+            </div>
             <p data-i18n-html="overlay.start">To start, choose a <strong>Level II ROM</strong> in the Machine menu,
               or load your own ROM file (12 KB).</p>
             <button id="overlay-menu" type="button" data-i18n="overlay.menu">Open the Machine menu</button>

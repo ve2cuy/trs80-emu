@@ -44,8 +44,20 @@ TRS-80 ROMs are © Tandy / Microsoft and are not included.
 - **Your own disks** (TRSDOS, NEWDOS...): copy them to `disks/local/`, then run
   `python disks/make_index.py` and reload the page: they appear in "Boot a disk",
   marked "local". Any `.DSK`/`.DMK` image can also be inserted with "Insert…".
-- "Load program (.CMD, .CAS)…" runs a program or a cassette image; "Type text…" or
-  Ctrl+V on the screen types text (e.g. a BASIC program).
+- "Load program (.CMD, .CAS, .BAS)…" runs a program, a cassette image or a BASIC
+  listing; "Type text…" or Ctrl+V on the screen types text (e.g. a BASIC program).
+- The interface language (English, French, Spanish, Chinese) is chosen with the globe
+  at the top right.
+
+## Nothing works? (scripts blocked)
+
+The page needs JavaScript and WebAssembly. If the screen shows a message about blocked
+scripts, or the menu does not respond:
+
+- **Brave**: click the lion icon in the address bar and turn Shields down for this site
+  (or turn off "Block scripts"), then reload.
+- **NoScript, uBlock Origin** or another blocker: allow `localhost` (or the site), then
+  reload.
 
 ## Version française
 
@@ -88,8 +100,21 @@ Les ROM du TRS-80 sont © Tandy / Microsoft et ne sont pas incluses.
   `python disks/make_index.py` et recharger la page : elles apparaissent dans « Boot a
   disk », marquées « local ». Toute image `.DSK`/`.DMK` peut aussi être insérée avec
   « Insert… ».
-- « Load program (.CMD, .CAS)… » lance un programme ou une cassette; « Type text… » ou
-  Ctrl+V sur l'écran tape du texte (ex. un programme BASIC).
+- « Charger un programme (.CMD, .CAS, .BAS)… » lance un programme, une cassette ou un
+  listing BASIC; « Taper du texte… » ou Ctrl+V sur l'écran tape du texte (ex. un
+  programme BASIC).
+- La langue de l'interface (anglais, français, espagnol, chinois) se choisit avec le globe
+  en haut à droite.
+
+### Rien ne fonctionne ? (scripts bloqués)
+
+La page a besoin de JavaScript et de WebAssembly. Si l'écran affiche un message sur des
+scripts bloqués, ou si le menu ne répond pas :
+
+- **Brave** : cliquer sur l'icône du lion dans la barre d'adresse et désactiver les
+  boucliers pour ce site (ou « Bloquer les scripts »), puis recharger.
+- **NoScript, uBlock Origin** ou un autre bloqueur : autoriser `localhost` (ou le site),
+  puis recharger.
 
 ---
 

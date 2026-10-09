@@ -73,6 +73,7 @@ const STRINGS = {
     'run.fail': 'Cannot run {name}: {msg}',
     'download.fail': 'Cannot download {name}: {msg}',
     'downloading': 'Downloading {name}…',
+    'net.blocked': 'the download was blocked, or the network is unavailable. A content blocker (ad blocker, Brave Shields) may block it: allow this site, then try again',
     'error': 'Error: {msg}',
 
     'disk.boot': 'Boot a disk',
@@ -170,7 +171,7 @@ const STRINGS = {
     'keys.symbols': 'Type symbols as you would on a PC: the emulator handles the TRS-80 Shift key, whose layout is different.',
     'keys.touch': 'On a tablet or phone, tap the screen (or “⌨ Keyboard”) to show the on-screen keyboard; the buttons under the screen give BREAK, CLEAR, the arrows and ENTER.',
 
-    'about.version': 'Version 1.0 · Written in Rust and WebAssembly · Apache 2.0 license.',
+    'about.version': 'Version 1.1 · Written in Rust and WebAssembly · Apache 2.0 license.',
     'about.source': 'Source code',
     'about.blog': "VE2CUY's blog",
     'about.roms': 'TRS-80 ROMs are © Tandy / Microsoft and are not part of this project.',
@@ -254,6 +255,7 @@ const STRINGS = {
     'run.fail': 'Impossible de lancer {name} : {msg}',
     'download.fail': 'Impossible de télécharger {name} : {msg}',
     'downloading': 'Téléchargement de {name}…',
+    'net.blocked': 'le téléchargement a été bloqué, ou le réseau est indisponible. Un bloqueur (de publicité, boucliers de Brave) peut en être la cause : autorisez ce site, puis réessayez',
     'error': 'Erreur : {msg}',
 
     'disk.boot': 'Démarrer une disquette',
@@ -351,7 +353,7 @@ const STRINGS = {
     'keys.symbols': 'Les symboles se tapent comme sur un PC : l’émulateur s’occupe de la touche MAJ du TRS-80, dont la disposition est différente.',
     'keys.touch': 'Sur une tablette ou un téléphone, touchez l’écran (ou « ⌨ Clavier ») pour faire apparaître le clavier virtuel; les boutons sous l’écran donnent BREAK, CLEAR, les flèches et ENTER.',
 
-    'about.version': 'Version 1.0 · Écrit en Rust et WebAssembly · Licence Apache 2.0.',
+    'about.version': 'Version 1.1 · Écrit en Rust et WebAssembly · Licence Apache 2.0.',
     'about.source': 'Code source',
     'about.blog': 'Le blogue de VE2CUY',
     'about.roms': 'Les ROM du TRS-80 sont © Tandy / Microsoft et ne font pas partie de ce projet.',
@@ -435,6 +437,7 @@ const STRINGS = {
     'run.fail': 'No se puede ejecutar {name}: {msg}',
     'download.fail': 'No se puede descargar {name}: {msg}',
     'downloading': 'Descargando {name}…',
+    'net.blocked': 'la descarga fue bloqueada o la red no está disponible. Un bloqueador (de anuncios, escudos de Brave) puede impedirla: permita este sitio y vuelva a intentarlo',
     'error': 'Error: {msg}',
 
     'disk.boot': 'Arrancar un disquete',
@@ -532,7 +535,7 @@ const STRINGS = {
     'keys.symbols': 'Escriba los símbolos como en un PC: el emulador gestiona la tecla Mayús del TRS-80, cuya distribución es diferente.',
     'keys.touch': 'En una tableta o teléfono, toque la pantalla (o «⌨ Teclado») para mostrar el teclado virtual; los botones bajo la pantalla dan BREAK, CLEAR, las flechas y ENTER.',
 
-    'about.version': 'Versión 1.0 · Escrito en Rust y WebAssembly · Licencia Apache 2.0.',
+    'about.version': 'Versión 1.1 · Escrito en Rust y WebAssembly · Licencia Apache 2.0.',
     'about.source': 'Código fuente',
     'about.blog': 'El blog de VE2CUY',
     'about.roms': 'Las ROM del TRS-80 son © Tandy / Microsoft y no forman parte de este proyecto.',
@@ -616,6 +619,7 @@ const STRINGS = {
     'run.fail': '无法运行 {name}：{msg}',
     'download.fail': '无法下载 {name}：{msg}',
     'downloading': '正在下载 {name}…',
+    'net.blocked': '下载被拦截，或网络不可用。内容拦截器（广告拦截器、Brave 护盾）可能会阻止下载：请允许此网站，然后重试',
     'error': '错误：{msg}',
 
     'disk.boot': '从软盘启动',
@@ -713,7 +717,7 @@ const STRINGS = {
     'keys.symbols': '像在 PC 上一样输入符号：模拟器会处理 TRS-80 的 Shift 键，其键位布局不同。',
     'keys.touch': '在平板电脑或手机上，轻触屏幕（或“⌨ 键盘”）即可显示屏幕键盘；屏幕下方的按钮提供 BREAK、CLEAR、方向键和 ENTER。',
 
-    'about.version': '版本 1.0 · 使用 Rust 和 WebAssembly 编写 · Apache 2.0 许可证。',
+    'about.version': '版本 1.1 · 使用 Rust 和 WebAssembly 编写 · Apache 2.0 许可证。',
     'about.source': '源代码',
     'about.blog': 'VE2CUY 的博客',
     'about.roms': 'TRS-80 ROM 版权归 Tandy / Microsoft 所有，不属于本项目。',

@@ -5,10 +5,11 @@
 An emulator of the **TRS-80 Model I**, written in Rust, that runs in a web
 browser (WebAssembly).
 
-> Version 1.0: Level II ROM, BASIC, text and semigraphics, `.CMD` programs and
+> Version 1.1: Level II ROM, BASIC, text and semigraphics, `.CMD` programs and
 > `.CAS` cassettes, **floppy disks** (LDOS, TRSDOS, NEWDOS...), **sound**, pasting
 > text, 40 Hz clock, and **VE2CUY Invaders**, a game written in Z80 assembly for
-> this project.
+> this project. New in 1.1: side menu, light and dark themes, four languages, file
+> library, external repository, disk drive sounds, tablet keyboard.
 > See [docs/conception.md](docs/conception.md) (in French).
 
 **▶️ Try it online: <https://ve2cuy.github.io/trs80-emu/>**
@@ -50,9 +51,9 @@ Web fonts are downloaded from Google Fonts only when chosen. Direct link:
   it can be reduced to a column of icons (round button on its edge); on a phone, it is
   a drawer opened with ☰.
 - **Light and dark themes**: follows the system by default; choose in Display, or with
-  the sun / moon button at the bottom of the menu.
-- **Languages**: English, French, Spanish and Simplified Chinese, chosen in Display (the
-  browser's language by default). Direct link: `?lang=fr`. Texts are in
+  the sun / moon button at the top right.
+- **Languages**: English, French, Spanish and Simplified Chinese, chosen with the globe at
+  the top right (the browser's language by default). Direct link: `?lang=fr`. Texts are in
   [`www/i18n.js`](www/i18n.js); the program, disk and repository lists can translate their
   fields in `"i18n": { "fr": { "description": "…" } }`.
 - **Preferences** (theme, menu, open sections, sound, Turbo, repository...) are kept
@@ -91,12 +92,19 @@ Only `file` is required (a plain file name is also accepted). The server must al
 cross-origin requests (CORS header `Access-Control-Allow-Origin: *`), since the page is
 served from another address.
 
-## Running the emulator locally (release 1.0)
+### Scripts blocked (Brave, NoScript…)
+
+The page needs JavaScript and WebAssembly. When scripts are blocked, the screen explains
+what to do, in four languages: in **Brave**, click the lion icon in the address bar and
+turn Shields down for the site (or turn off "Block scripts"), then reload. A download
+stopped by a content blocker (the ROM, a repository file) is also reported as such.
+
+## Running the emulator locally (release 1.1)
 
 No compilation needed: download the ready-to-run archive and you only need
 **Python 3** and a web browser.
 
-1. Download `trs80-emu-1.0.0.zip` from the
+1. Download `trs80-emu-1.1.0.zip` from the
    [releases page](https://github.com/ve2cuy/trs80-emu/releases/latest) and unzip it.
 2. Start it:
    - **Windows**: double-click `start.bat`;

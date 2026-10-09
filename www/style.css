@@ -168,7 +168,7 @@ svg.icon, svg.chev {
 .sb-collapse:hover { color: var(--accent-ink); }
 .sb-collapse svg { width: 16px; height: 16px; transform: rotate(180deg); transition: transform 0.2s; }
 .collapsed .sb-collapse svg { transform: none; }
-.sb-close { display: none; margin-left: auto; }
+.sidebar .sb-close { display: none; margin-left: auto; }
 
 .nav { flex: 1; overflow-y: auto; overflow-x: hidden; padding: 8px 12px 16px; }
 
@@ -470,6 +470,35 @@ table.keys th { color: var(--muted); font-weight: 600; }
 .toolbar h1 { margin: 0; font-size: 1.15rem; font-weight: 600; }
 .toolbar-actions { display: flex; align-items: center; gap: 14px; margin-left: auto; }
 .menu-button { display: none; }
+.toolbar-sep { width: 1px; height: 22px; background: var(--border); }
+
+/* Choix de la langue : bouton compact (globe et code); la liste native, transparente,
+   le recouvre et s'ouvre au clic avec les noms complets. */
+.lang-picker {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 36px;
+  padding: 0 8px;
+  border-radius: 8px;
+  color: var(--muted);
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+.lang-picker:hover { background: var(--surface-2); color: var(--accent-ink); }
+.lang-picker:focus-within { outline: 2px solid var(--accent); }
+.lang-picker svg { width: 18px; height: 18px; }
+.lang-picker select {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  opacity: 0;
+  cursor: pointer;
+}
 .speed { color: var(--muted); font-size: 0.85rem; font-variant-numeric: tabular-nums; min-width: 5.5em; text-align: right; }
 .with-icon svg { width: 17px; height: 17px; }
 
@@ -517,6 +546,22 @@ canvas:focus-visible { box-shadow: 0 0 0 3px var(--accent); }
   text-align: center;
 }
 .overlay p { margin: 0; }
+
+/* Scripts bloqués (classe no-js laissée sur <html>) ou démarrage raté (js-failed) : seul le
+   message qui explique comment autoriser le site reste sur l'écran. */
+.js-required { display: none; }
+.no-js .js-required, .js-failed .js-required {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-width: 46em;
+  text-align: left;
+  font-size: clamp(0.72rem, 1.3vw, 0.9rem);
+  line-height: 1.4;
+}
+.no-js .overlay, .js-failed .overlay { justify-content: flex-start; overflow-y: auto; }
+.no-js .overlay > :not(.js-required), .js-failed .overlay > :not(.js-required) { display: none; }
+.js-required strong { color: #ffd479; }
 .overlay .error { color: #ff8a80; }
 
 .drop-hint {
@@ -606,17 +651,19 @@ canvas:focus-visible { box-shadow: 0 0 0 3px var(--accent); }
     background: rgba(0, 0, 0, 0.45);
   }
   .sb-collapse { display: none; }
-  .sb-close { display: inline-grid; }
+  .sidebar .sb-close { display: inline-grid; }
   /* (Dans le tiroir, le menu est toujours déplié : main.js n'y met pas .collapsed.) */
 
   .content { padding: 8px 10px 16px; }
-  .toolbar { margin-bottom: 8px; gap: 6px; }
-  .toolbar h1 { font-size: 1rem; }
-  .toolbar-actions { gap: 8px; }
+  .toolbar { margin-bottom: 8px; gap: 4px; }
+  .toolbar h1 { min-width: 0; overflow: hidden; font-size: 0.95rem; white-space: nowrap; text-overflow: ellipsis; }
+  .toolbar-actions { gap: 2px; }
   .menu-button { display: inline-grid; }
-  .speed { display: none; }
-  .with-icon span { display: none; }
-  .with-icon { padding: 7px 9px; }
+  .speed, .toolbar-sep, .switch.compact [data-i18n] { display: none; }
+  .switch.compact { margin-right: 6px; }
+  .toolbar .with-icon span { display: none; }
+  .toolbar .with-icon { padding: 7px 9px; }
+  .lang-picker { padding: 0 5px; }
   .stage { --screen-width: 100%; }
   .monitor { border-radius: 10px; }
 }

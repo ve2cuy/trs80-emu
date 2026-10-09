@@ -5,9 +5,11 @@
 Émulateur du **TRS-80 Model 1**, écrit en Rust, qui s'exécute dans un fureteur
 web (WebAssembly).
 
-> Version 1.0 : ROM Level II, BASIC, texte et semi-graphiques, programmes `.CMD` et
+> Version 1.1 : ROM Level II, BASIC, texte et semi-graphiques, programmes `.CMD` et
 > cassettes `.CAS`, **disquettes** (LDOS, TRSDOS, NEWDOS...), **son**, collage de texte,
 > horloge à 40 Hz, et **VE2CUY Invaders**, un jeu écrit en assembleur Z80 pour ce projet.
+> Nouveau en 1.1 : menu latéral, thèmes clair et sombre, quatre langues, bibliothèque de
+> fichiers, dépôt externe, bruit des lecteurs, clavier sur tablette.
 > Voir [docs/conception.md](docs/conception.md).
 
 **▶️ Essayer en ligne : <https://ve2cuy.github.io/trs80-emu/>**
@@ -49,9 +51,9 @@ Lien direct : `?font=vt323`.
   on peut le réduire à une colonne d'icônes (bouton rond sur son bord); sur un téléphone,
   c'est un tiroir qu'on ouvre avec ☰.
 - **Thèmes clair et sombre** : celui du système par défaut; au choix dans Display, ou avec le
-  bouton soleil / lune au bas du menu.
-- **Langues** : anglais, français, espagnol et chinois simplifié, au choix dans Affichage
-  (celle du fureteur par défaut). Lien direct : `?lang=fr`. Les textes sont dans
+  bouton soleil / lune en haut à droite.
+- **Langues** : anglais, français, espagnol et chinois simplifié, au choix avec le globe en
+  haut à droite (celle du fureteur par défaut). Lien direct : `?lang=fr`. Les textes sont dans
   [`www/i18n.js`](www/i18n.js); les listes de programmes, de disquettes et du dépôt peuvent
   traduire leurs champs dans `"i18n": { "fr": { "description": "…" } }`.
 - **Préférences** (thème, menu, sections ouvertes, son, Turbo, dépôt...) conservées dans le
@@ -91,12 +93,20 @@ Seul `file` est obligatoire (un simple nom de fichier est aussi accepté). Le se
 permettre les requêtes d'une autre origine (en-tête CORS `Access-Control-Allow-Origin: *`),
 puisque la page est servie depuis une autre adresse.
 
-## Lancer l'émulateur localement (version 1.0)
+### Scripts bloqués (Brave, NoScript…)
+
+La page a besoin de JavaScript et de WebAssembly. Si les scripts sont bloqués, l'écran
+explique la marche à suivre, en quatre langues : dans **Brave**, cliquer sur l'icône du lion
+dans la barre d'adresse et désactiver les boucliers pour le site (ou « Bloquer les
+scripts »), puis recharger. Un téléchargement arrêté par un bloqueur (la ROM, un fichier du
+dépôt) est aussi signalé comme tel.
+
+## Lancer l'émulateur localement (version 1.1)
 
 Rien à compiler : téléchargez l'archive prête à l'emploi; il suffit de **Python 3** et
 d'un fureteur.
 
-1. Télécharger `trs80-emu-1.0.0.zip` sur la
+1. Télécharger `trs80-emu-1.1.0.zip` sur la
    [page des versions](https://github.com/ve2cuy/trs80-emu/releases/latest) et la
    décompresser.
 2. Lancer :

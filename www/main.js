@@ -70,9 +70,12 @@ const languageListeners = [];
 const langList = document.getElementById('lang-list');
 for (const [code, name] of Object.entries(LANGUAGES)) langList.append(new Option(name, code));
 const langParam = new URLSearchParams(location.search).get('lang');
+const langCode = document.getElementById('lang-code');
 langList.value = setLanguage(langParam in LANGUAGES ? langParam : prefs.lang ?? browserLanguage());
+langCode.textContent = langList.value.toUpperCase();
 langList.addEventListener('change', () => {
   prefs.lang = setLanguage(langList.value);
+  langCode.textContent = prefs.lang.toUpperCase();
   savePrefs();
   for (const listener of languageListeners) listener();
 });
@@ -207,6 +210,18 @@ window.addEventListener('unhandledrejection', (e) =>
   showStatus(t('error', { msg: e.reason?.message ?? e.reason }), true));
 
 const wasm = await init({ module_or_path: `pkg/trs80_web_bg.wasm${V}` });
+// Scripts et WebAssembly fonctionnent : le message « scripts bloqués » de index.html n'a
+// plus lieu d'être (même s'il s'est affiché après un chargement très lent).
+document.documentElement.classList.remove('no-js', 'js-loading', 'js-failed');
+document.documentElement.classList.add('js-ready');
+
+/**
+ * Cause d'un téléchargement raté. Une TypeError de fetch() : requête bloquée (bloqueur de
+ * publicité, boucliers de Brave) ou réseau indisponible.
+ */
+function failure(e) {
+  return e instanceof TypeError ? t('net.blocked') : (e.message ?? e);
+}
 const WIDTH = Emulator.width();
 const HEIGHT = Emulator.height();
 
@@ -357,7 +372,7 @@ async function chooseListedRom(id) {
       showStatus(t('rom.loaded', { name: localized(rom, 'title') }));
     }
   } catch (e) {
-    showStatus(t('download.fail', { name: localized(rom, 'title'), msg: e.message ?? e }), true);
+    showStatus(t('download.fail', { name: localized(rom, 'title'), msg: failure(e) }), true);
   }
 }
 
@@ -621,7 +636,7 @@ async function runProgram(id) {
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     runFile(new Uint8Array(await res.arrayBuffer()), p.file, entryInfo(p));
   } catch (e) {
-    showStatus(t('download.fail', { name: localized(p, 'title'), msg: e.message ?? e }), true);
+    showStatus(t('download.fail', { name: localized(p, 'title'), msg: failure(e) }), true);
   }
 }
 
@@ -884,7 +899,7 @@ async function bootDisk(id) {
     const name = d.file.split('/').pop();
     driveRows[0].insertAndBoot(name, new Uint8Array(await res.arrayBuffer()), null, entryInfo(d, name));
   } catch (e) {
-    showStatus(t('download.fail', { name: localized(d, 'title'), msg: e.message ?? e }), true);
+    showStatus(t('download.fail', { name: localized(d, 'title'), msg: failure(e) }), true);
   }
   showScreen();
 }
@@ -1093,7 +1108,7 @@ function repoItem(kind, entry) {
     try {
       await use(await fetchRepoFile(kind, entry));
     } catch (e) {
-      showStatus(t('download.fail', { name, msg: e.message ?? e }), true);
+      showStatus(t('download.fail', { name, msg: failure(e) }), true);
     }
   };
   const button = (key, handler, tip) => {
