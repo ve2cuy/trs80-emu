@@ -13,6 +13,11 @@ browser (WebAssembly).
 
 **▶️ Try it online: <https://ve2cuy.github.io/trs80-emu/>**
 
+<p align="center">
+  <img src="docs/TRSDOS2_7.png" alt="The emulator running TRSDOS 2.7DD (double density) on a Model I" width="500">
+  <br><em>TRSDOS 2.7DD, Tandy's double-density DOS, booted from a disk image.</em>
+</p>
+
 ## ROMs
 
 No ROM is hosted in this repository: they are © Tandy / Microsoft. The drop-down

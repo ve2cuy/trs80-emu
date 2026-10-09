@@ -12,6 +12,11 @@ web (WebAssembly).
 
 **▶️ Essayer en ligne : <https://ve2cuy.github.io/trs80-emu/>**
 
+<p align="center">
+  <img src="docs/TRSDOS2_7.png" alt="L'émulateur faisant tourner TRSDOS 2.7DD (double densité) sur un Model I" width="500">
+  <br><em>TRSDOS 2.7DD, le DOS double densité de Tandy, démarré depuis une image de disquette.</em>
+</p>
+
 ## ROM
 
 Aucune ROM n'est hébergée dans ce dépôt : elles sont © Tandy / Microsoft. La liste
