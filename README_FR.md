@@ -111,10 +111,17 @@ dans le lecteur 1) contient RSHARD5/RSFORM5 pour LDOS 5.3 et RSHARD6/RSFORM6 pou
 TRSDOS 6.
 
 ```
-SYSTEM (DRIVE=2,DISABLE,DRIVER="RSHARD5")    valeurs proposées; 4 têtes
+SYSTEM (DRIVE=2,DISABLE,DRIVER="RSHARD5")    ENTRÉE partout, sauf « partition's number of heads » : 4
 RSFORM5 :2 (NAME="RIGID1",MPW="PASSWORD")     formater (Y), aucune piste bloquée (N)
 DIR :2
 ```
+
+- Sur le Model I, la disquette des pilotes est en double densité : démarrez LDOS 5.3.1 double
+  densité pour la lire.
+- Gardez 4 têtes : avec 2 têtes, RSFORM5 finit sur « DATA RECORD NOT FOUND DURING WRITE »
+  (il écrit sur une 3e tête; xtrs réagit pareil).
+- Non émulés, comme dans xtrs : les commandes de plusieurs secteurs et le DMA du contrôleur
+  (les pilotes RSHARD ne s'en servent pas).
 
 Essayé avec LDOS 5.3.1 sur le Model I (disquette double densité) et le Model III, et TRSDOS
 6.2.1 sur le Model 4. Enregistrez la configuration avec `SYSTEM (SYSGEN)` (LDOS) ou `SYSGEN`

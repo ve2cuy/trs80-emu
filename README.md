@@ -107,10 +107,16 @@ The DOS needs the RSHARD driver: the disk "RSHARD hard disk drivers" (Disks list
 in drive 1) has RSHARD5/RSFORM5 for LDOS 5.3 and RSHARD6/RSFORM6 for LS-DOS / TRSDOS 6.
 
 ```
-SYSTEM (DRIVE=2,DISABLE,DRIVER="RSHARD5")    accept the proposed values; 4 heads
+SYSTEM (DRIVE=2,DISABLE,DRIVER="RSHARD5")    ENTER everywhere, except "partition's number of heads": 4
 RSFORM5 :2 (NAME="RIGID1",MPW="PASSWORD")     format (Y), no locked-out track (N)
 DIR :2
 ```
+
+- On the Model I, the driver disk is double density: boot LDOS 5.3.1 double density to read it.
+- Keep 4 heads: with 2 heads, RSFORM5 ends with "DATA RECORD NOT FOUND DURING WRITE" (it writes
+  to a 3rd head; xtrs behaves the same).
+- Not emulated, as in xtrs: multi-sector commands and the controller's DMA (the RSHARD drivers
+  do not use them).
 
 Tested with LDOS 5.3.1 on the Model I (double-density disk) and Model III, and TRSDOS 6.2.1
 on the Model 4. Save the configuration with `SYSTEM (SYSGEN)` (LDOS) or `SYSGEN` (TRSDOS 6)
