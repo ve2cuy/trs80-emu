@@ -56,6 +56,7 @@
       <symbol id="i-cloud" viewBox="0 0 24 24"><path d="M7 18h10.5a4.5 4.5 0 0 0 .6-8.96A6 6 0 0 0 6.3 10.1 4 4 0 0 0 7 18z"/></symbol>
       <symbol id="i-paste" viewBox="0 0 24 24"><rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4V3h6v1M9 11h6M9 15h4"/></symbol>
       <symbol id="i-copy" viewBox="0 0 24 24"><rect x="8" y="8" width="12" height="13" rx="2"/><path d="M16 8V5a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h2"/></symbol>
+      <symbol id="i-modem" viewBox="0 0 24 24"><rect x="3" y="12" width="18" height="7" rx="2"/><path d="M7 16h.01M11 16h.01M8 8a6 6 0 0 1 8 0M10.5 10.5a2.5 2.5 0 0 1 3 0"/></symbol>
       <symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></symbol>
     </defs>
   </svg>
@@ -249,6 +250,35 @@
                 </div>
                 <p class="hint" data-i18n-html="repo.help"></p>
                 <p class="hint" data-i18n-html="repo.helpModels"></p>
+              </div>
+            </details>
+          </div>
+        </div>
+
+        <div class="nav-group" id="modem-group">
+          <button type="button" class="nav-item" aria-expanded="false" aria-controls="panel-modem" data-tip="Modem" data-i18n-tip="nav.modem">
+            <svg class="chev"><use href="#i-chevron"/></svg>
+            <svg class="icon"><use href="#i-modem"/></svg>
+            <span class="label" data-i18n="nav.modem">Modem</span>
+          </button>
+          <div id="panel-modem" class="nav-panel" hidden>
+            <p id="modem-status" class="modem-status"></p>
+            <button id="modem-hangup" type="button" class="secondary" data-i18n="modem.hangup" disabled>Hang up</button>
+            <label class="switch" title="Remove the ANSI sequences (colors, cursor) and replace the graphics characters, which the TRS-80 cannot display" data-i18n-title="modem.filter.tip">
+              <input id="modem-filter" type="checkbox" checked><span class="knob"></span><span data-i18n="modem.filter">Filter ANSI sequences</span></label>
+            <details class="more">
+              <summary data-i18n="more">More information</summary>
+              <p class="hint" data-i18n-html="modem.help"></p>
+            </details>
+            <details class="repo-settings">
+              <summary data-i18n="modem.relay">Telnet relay address</summary>
+              <div class="type-panel">
+                <input id="modem-relay" type="url" spellcheck="false" autocomplete="off">
+                <div class="row">
+                  <button id="modem-relay-save" type="button" data-i18n="repo.use">Use</button>
+                  <button id="modem-relay-default" type="button" class="secondary" data-i18n="repo.default">Default</button>
+                </div>
+                <p class="hint" data-i18n-html="modem.relayHelp"></p>
               </div>
             </details>
           </div>

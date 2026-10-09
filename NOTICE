@@ -34,8 +34,9 @@ README.md next to them). They are not covered by the Apache License.
     TRSDOS-II 2.0a for the Model II, Copyright 1981 Tandy Corporation.
     Provided for experimentation with the Model II emulation.
 
-- crates/trs80/src/hard.rs
-    Hard disk controller and Reed image format modelled on xtrs (trs_hard.c,
-    reed.h), Copyright (c) 2000-2020 Timothy P. Mann, MIT license.
+- crates/trs80/src/hard.rs, crates/trs80/src/serial.rs
+    Hard disk controller, Reed image format and RS-232 UART registers modelled on
+    xtrs (trs_hard.c, reed.h, trs_uart.h), Copyright (c) 2000-2020 Timothy P. Mann,
+    MIT license.
 
 TRS-80 ROMs are NOT included: they are (c) Tandy / Microsoft.

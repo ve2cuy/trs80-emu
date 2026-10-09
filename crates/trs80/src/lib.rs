@@ -21,6 +21,7 @@ mod fdc;
 mod cmd;
 mod font;
 mod hard;
+mod serial;
 mod keyboard;
 pub mod ldosfs;
 mod typer;
@@ -213,6 +214,8 @@ struct Board {
     fdc: Fdc,
     /// Disque dur Radio Shack (WD1010, ports C0h-CFh), Model I, III et 4.
     hard: hard::Controller,
+    /// Port série RS-232-C (UART, ports E8h-EBh), Model I, III et 4.
+    serial: serial::Serial,
     /// Temps machine (T-states), pour l'impulsion d'index des disquettes.
     now: u64,
     /// Interruption d'horloge en attente : effacée par la lecture de 37E0h.
@@ -368,7 +371,12 @@ impl Board {
     /// Model III : ports. Les verrous d'interruption se lisent inversés (0 = en attente).
     fn input3(&mut self, port: u8) -> u8 {
         match port {
-            0xE0..=0xE3 => !self.int_latch,
+            // Interruptions en attente (inversées) : horloge, et RS-232 (bit 4 : émission, bit 5 : réception).
+            0xE0..=0xE3 => {
+                let pending = self.int_latch | self.serial.interrupts();
+                self.serial.acknowledge();
+                !pending
+            }
             // Bit 7 : fin de commande du contrôleur; bit 5 : bouton RESET (relâché).
             0xE4..=0xE7 => !(if self.fdc.intrq { 0x80 } else { 0 }),
             // Lire ECh acquitte l'interruption d'horloge.
@@ -495,6 +503,7 @@ impl Bus for Board {
         match self.model {
             Model::II => self.input2(port as u8),
             _ if (0xC0..=0xCF).contains(&(port as u8)) => self.hard.read(port as u8),
+            _ if (0xE8..=0xEB).contains(&(port as u8)) => self.serial.read(port as u8),
             m if m.ports() => self.input3(port as u8),
             _ => 0xFF,
         }
@@ -506,6 +515,10 @@ impl Bus for Board {
         }
         if (0xC0..=0xCF).contains(&(port as u8)) {
             return self.hard.write(port as u8, val);
+        }
+        if (0xE8..=0xEB).contains(&(port as u8)) {
+            let (now, hz) = (self.now, self.clock_hz());
+            return self.serial.write(port as u8, val, now, hz);
         }
         if self.model.ports() {
             return self.output3(port as u8, val);
@@ -630,6 +643,7 @@ impl Trs80 {
             sound: 0,
             fdc,
             hard: hard::Controller::new(),
+            serial: serial::Serial::new(),
             now: 0,
             int_latch: 0,
             int_mask: 0,
@@ -724,6 +738,10 @@ impl Trs80 {
             let level = Audio::level(self.board.sound);
             self.board.now = self.cpu.cycles;
             self.board.fdc.tick(self.cpu.cycles);
+            if self.board.model != Model::II {
+                let hz = self.board.clock_hz();
+                self.board.serial.tick(self.cpu.cycles, hz);
+            }
             let t = self.cpu.step(&mut self.board);
             self.audio.advance(level, t);
             done += t;
@@ -796,7 +814,7 @@ impl Trs80 {
                     self.board.rtc_pending
                         || (self.board.fdc.intrq && self.board.fdc.present() && self.board.expansion)
                 }
-                Model::III | Model::IV => self.board.int_latch & self.board.int_mask != 0,
+                Model::III | Model::IV => (self.board.int_latch | self.board.serial.interrupts()) & self.board.int_mask != 0,
                 Model::II => false,
             };
             if pending && self.cpu.iff1 {
@@ -962,6 +980,27 @@ impl Trs80 {
     /// Retire la disquette du lecteur `drive`.
     pub fn eject_disk(&mut self, drive: usize) -> Option<Disk> {
         self.board.fdc.drives[drive % DRIVES].take()
+    }
+
+    /// Port série RS-232 : octets venus de l'autre bout (modem, Internet), que le TRS-80
+    /// recevra au rythme de la vitesse choisie. Model I, III et 4.
+    pub fn serial_send(&mut self, bytes: &[u8]) {
+        self.board.serial.send(bytes);
+    }
+
+    /// Port série RS-232 : octets émis par le TRS-80 depuis le dernier appel.
+    pub fn serial_take(&mut self) -> alloc::vec::Vec<u8> {
+        self.board.serial.take_output()
+    }
+
+    /// Port série RS-232 : octets reçus pas encore lus par le TRS-80 (contrôle de flux).
+    pub fn serial_pending(&self) -> usize {
+        self.board.serial.pending_input()
+    }
+
+    /// Port série RS-232 : vitesse choisie par le programme (bauds).
+    pub fn serial_baud(&self) -> u32 {
+        self.board.serial.baud()
     }
 
     /// Branche une image de disque dur (format Reed / HDV) sur l'unité `unit` (0 à 3) du

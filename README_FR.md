@@ -136,6 +136,28 @@ modèle. Au rechargement de la page, ou en revenant à ce modèle, ils sont remi
 lecteurs et le TRS-80 redémarre sur le lecteur 0. Le disque dur du Model II viendra
 plus tard.
 
+### Modem et BBS (RS-232)
+
+Le port série RS-232 (UART des ports E8h-EBh, Model I, III et 4) est relié à un modem Hayes
+virtuel qui joint les BBS par telnet, à travers un relais WebSocket
+([`server/telnet-relay`](server/telnet-relay/README.md)), car un fureteur ne peut pas ouvrir de
+connexion telnet. Pour l'instant, seul `bbs.electrodrome.net` est permis.
+
+```
+SET *KI KI
+SET *CL RS232T (BAUD=2400,WORD=8,PARITY=OFF)               Model III
+SET *CL RS232R (BAUD=2400,WORD=8,PARITY=OFF,BREAK=255)     Model I
+LCOMM *CL
+ATDT bbs.electrodrome.net                                   dans LCOMM : CONNECT, puis le BBS
+```
+
+`+++` (avec une pause avant et après) revient au mode commande du modem, `ATO` retourne en
+ligne, `ATH` ou le bouton Raccrocher (section Modem) termine l'appel. Le modem retire les
+séquences ANSI (couleurs, curseur) que le TRS-80 ne peut pas afficher (interrupteur dans la
+section Modem). Sur le Model I, `BREAK=255` contourne un défaut du pilote RS232R de LDOS
+5.3.1, qui sinon perd chaque caractère reçu. Essayé avec LDOS 5.3.1 (Model I et III); le
+Model II viendra plus tard.
+
 ### Dépôt externe
 
 Les fichiers viennent de l'appareil (Load…, Insert…, My library) ou d'un dépôt sur le Web,

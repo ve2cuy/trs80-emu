@@ -12,6 +12,7 @@ const { LANGUAGES, browserLanguage, getLanguage, setLanguage, t, localized } = a
 const { default: init, Emulator, assemble, asm_builtins_json } = await import(`./pkg/trs80_web.js${V}`);
 const { createIde } = await import(`./ide.js${V}`);
 const { FONTS, buildAtlas, drawText } = await import(`./fonts.js${V}`);
+const { Modem } = await import(`./modem.js${V}`);
 
 const canvas = document.getElementById('screen');
 const ctx = canvas.getContext('2d');
@@ -44,6 +45,8 @@ const prefs = {
   expansion: true,
   keepFiles: true,      // garder dans la bibliothèque les fichiers ouverts
   keepSession: true,    // retrouver les disques (avec leurs écritures) au rechargement
+  modemRelay: null,     // adresse du relais telnet (null : celle par défaut)
+  modemFilter: true,    // modem : retirer les séquences ANSI
   driveSound: false,    // imiter le bruit des lecteurs de disquettes
   repo: 'https://ve2cuy.com/trs80', // dépôt externe (dossiers rom, disk, cmd, bas)
   repoKind: 'rom',
@@ -412,6 +415,8 @@ function applyModel() {
   expansion.closest('label').hidden = prefs.model !== 1;
   // Disque dur Radio Shack : Model I, III et 4 (celui du Model II viendra plus tard).
   hardSection.hidden = prefs.model === 2;
+  // Port RS-232 : Model I, III et 4 (Model II : plus tard).
+  document.getElementById('modem-group').hidden = prefs.model === 2;
   const name = t(`model.${prefs.model}`);
   document.title = name;
   for (const el of document.querySelectorAll('.machine-name')) el.textContent = name;
@@ -492,6 +497,7 @@ function setRunning(running) {
 }
 
 function start(bytes) {
+  modem.hangup(false);
   // Images des disques durs (avec les écritures du DOS), à rebrancher sur la nouvelle machine.
   const hardImages = hardRows.map((r) => r.image());
   try {
@@ -1612,6 +1618,66 @@ function typeOnTrs80(text) {
   showScreen();
 }
 
+// ------------------------------------------------------------------ modem telnet
+
+// Le port RS-232 du TRS-80 est relié à un modem Hayes virtuel (modem.js) : ATDT hôte ouvre
+// un WebSocket vers le relais telnet (server/telnet-relay), qui se connecte au BBS.
+const DEFAULT_RELAY = 'wss://ve2cuy.com/trs80/relay';
+const modemStatus = document.getElementById('modem-status');
+const modemHangup = document.getElementById('modem-hangup');
+const modemFilter = document.getElementById('modem-filter');
+const modemRelay = document.getElementById('modem-relay');
+let modemState = { connected: false, online: false, host: '' };
+
+function showModemState(state = modemState) {
+  modemState = state;
+  const key = !state.host ? 'modem.idle' : !state.connected ? 'modem.dialing'
+    : state.online ? 'modem.online' : 'modem.command';
+  modemStatus.textContent = t(key, { host: state.host });
+  modemStatus.classList.toggle('online', state.connected);
+  modemHangup.disabled = !state.connected && !state.host;
+}
+languageListeners.push(() => showModemState());
+
+const modem = new Modem({
+  send: (bytes) => emulator?.serial_send(bytes),
+  relay: () => prefs.modemRelay || DEFAULT_RELAY,
+  baud: () => emulator?.serial_baud() ?? 300,
+  filter: () => prefs.modemFilter,
+  onState: (state) => {
+    // Fin de connexion : l'hôte n'est plus affiché.
+    showModemState(state.connected ? state : { ...state, host: state.online ? state.host : '' });
+  },
+});
+setInterval(() => modem.tick(), 200);
+showModemState();
+
+modemHangup.addEventListener('click', () => {
+  modem.hangup();
+  focusScreen();
+});
+modemFilter.checked = prefs.modemFilter;
+modemFilter.addEventListener('change', () => {
+  prefs.modemFilter = modemFilter.checked;
+  savePrefs();
+});
+modemRelay.value = prefs.modemRelay || DEFAULT_RELAY;
+function useRelay(address) {
+  try {
+    const url = new URL(address);
+    if (!/^wss?:$/.test(url.protocol)) throw new Error();
+    prefs.modemRelay = url.href === DEFAULT_RELAY ? null : url.href;
+    modemRelay.value = url.href;
+    savePrefs();
+    showStatus(t('modem.relaySet', { url: url.href }));
+  } catch {
+    showStatus(t('modem.badRelay'), true);
+  }
+}
+document.getElementById('modem-relay-save').addEventListener('click', () => useRelay(modemRelay.value.trim()));
+modemRelay.addEventListener('keydown', (e) => { if (e.key === 'Enter') useRelay(modemRelay.value.trim()); });
+document.getElementById('modem-relay-default').addEventListener('click', () => useRelay(DEFAULT_RELAY));
+
 // ------------------------------------------------------------------ copier-coller
 
 // Coller (CTRL+V hors d'un champ de saisie, ou bouton) : le texte est tapé sur le TRS-80.
@@ -2158,6 +2224,9 @@ function loop(now) {
       frameDebt -= frames;
       const emulated = frames * (turbo.checked ? 10 : emulator.typing() ? 4 : 1);
       emulator.run_frames(emulated);
+      // RS-232 : ce que le TRS-80 a émis va au modem.
+      const serialOut = emulator.serial_take();
+      if (serialOut.length) modem.write(serialOut);
       playAudio(emulated !== frames);
       driveNoise();
       frameCount += emulated;

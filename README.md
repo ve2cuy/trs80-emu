@@ -128,6 +128,28 @@ disks and hard disks in the drives, with their changes (SYSGEN, copied files…)
 the browser for each model. When the page is reloaded, or when you come back to that model,
 they are put back in the drives and the TRS-80 restarts on drive 0. The Model II hard disk will come later.
 
+### Modem and BBS (RS-232)
+
+The RS-232 serial port (UART on ports E8h-EBh, Model I, III and 4) is connected to a virtual
+Hayes modem that reaches BBSes over telnet, through a WebSocket relay
+([`server/telnet-relay`](server/telnet-relay/README.md)), since a browser cannot open telnet
+connections. For now, only `bbs.electrodrome.net` is allowed.
+
+```
+SET *KI KI
+SET *CL RS232T (BAUD=2400,WORD=8,PARITY=OFF)               Model III
+SET *CL RS232R (BAUD=2400,WORD=8,PARITY=OFF,BREAK=255)     Model I
+LCOMM *CL
+ATDT bbs.electrodrome.net                                   in LCOMM: CONNECT, then the BBS
+```
+
+`+++` (with a pause before and after) returns to the modem's command mode, `ATO` goes back
+online, `ATH` or the Hang up button (Modem section) ends the call. The modem removes the ANSI
+sequences (colors, cursor) that the TRS-80 cannot display (switch in the Modem section). On the
+Model I, `BREAK=255` works around a flaw of the LDOS 5.3.1 RS232R driver, which otherwise loses
+every received character. Tested with LDOS 5.3.1 (Model I and III); the Model II will come
+later.
+
 ### External repository
 
 Files can come from your device (Load…, Insert…, My library) or from a repository on the

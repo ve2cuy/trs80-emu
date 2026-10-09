@@ -169,6 +169,26 @@ impl Emulator {
         self.machine.eject_hard_disk(unit as usize);
     }
 
+    /// RS-232 : octets venus d'Internet (par le modem de la page), reçus par le TRS-80.
+    pub fn serial_send(&mut self, bytes: &[u8]) {
+        self.machine.serial_send(bytes);
+    }
+
+    /// RS-232 : octets émis par le TRS-80 depuis le dernier appel.
+    pub fn serial_take(&mut self) -> Vec<u8> {
+        self.machine.serial_take()
+    }
+
+    /// RS-232 : octets reçus pas encore lus par le TRS-80.
+    pub fn serial_pending(&self) -> u32 {
+        self.machine.serial_pending() as u32
+    }
+
+    /// RS-232 : vitesse choisie par le programme (bauds).
+    pub fn serial_baud(&self) -> u32 {
+        self.machine.serial_baud()
+    }
+
     /// Écritures sur la disquette du lecteur depuis son insertion (pour l'enregistrer).
     pub fn disk_writes(&self, drive: u32) -> u32 {
         self.machine.disk(drive as usize).map_or(0, |d| d.writes())

@@ -1,0 +1,19 @@
+# Relais WebSocket -> telnet du modem de l'émulateur TRS-80.
+# Installation : voir README.md (copier dans /etc/systemd/system/).
+[Unit]
+Description=TRS-80 emulator telnet relay (WebSocket -> telnet)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+ExecStart=/usr/bin/python3 /opt/trs80-relay/relay.py --listen 127.0.0.1 --port 8023
+Restart=on-failure
+RestartSec=5
+DynamicUser=yes
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+
+[Install]
+WantedBy=multi-user.target

@@ -117,6 +117,12 @@ l'utilisateur chargera son propre fichier ROM, conservé ensuite dans IndexedDB.
    (.hdv) dont l'en-tête donne les secteurs par cylindre (d'où les têtes); l'image s'allonge
    à l'écriture. Pilotes RSHARD5/RSHARD6 de MISOSYS (rshard.dsk, publiée); essayé avec
    LDOS 5.3.1 (Model I et III) et TRSDOS 6.2.1 (Model 4) : SYSTEM, RSFORM, COPY, DIR.
+12. ✅ RS-232 et modem (Model I, III et 4) : UART des ports E8h-EBh (`serial.rs`), octets reçus
+   au rythme de la vitesse choisie; Model III/4 : interruptions sur front, bit 5 de E0h pour
+   la réception (le pilote RS232T de LDOS l'autorise), bit 4 pour l'émission, acquittées par
+   la lecture de E0h. Modem Hayes dans la page (`www/modem.js`) et relais WebSocket -> telnet
+   en Python sans dépendance (`server/telnet-relay`). Essayé avec LCOMM de LDOS 5.3.1 sur
+   bbs.electrodrome.net.
 
 ## Références
 
