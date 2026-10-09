@@ -7,6 +7,7 @@ Comme pour les programmes, seules des disquettes dont la redistribution est
 | --- | --- | --- |
 | `ldos-531.dsk` | LDOS 5.3.1 pour le Model I, disquette système | JV1, 35 pistes, simple densité |
 | `ldos-531-dd.dsk` | LDOS 5.3.1 complet (fichiers des deux disquettes LDOS), double densité | JV3, 40 cylindres, piste 0 en simple densité |
+| `trsdos20a-m2.imd` | TRSDOS-II 2.0a pour le Model II — **pour expérimentation** | IMD, 8 pouces |
 
 ## Ajouter une disquette
 
@@ -53,3 +54,9 @@ JV3 et DMK. Fonctionnent : LDOS 5.3.1, TRSDOS 2.1, 2.3 et 2.7DD, NEWDOS 3.0, NEW
 DOSPLUS 3.5, DBLDOS 4.2. Le formatage (« écrire la piste ») fonctionne : bouton « Blank »
 pour insérer une disquette vierge, puis FORMAT dans le DOS. Une disquette dont la piste 0
 est en double densité ne démarre pas, comme sur un vrai Model I.
+
+## TRSDOS-II 2.0a (Model II)
+
+Copyright 1981 Tandy Corporation. Fournie **pour expérimentation** avec l'émulation du
+Model II. La ROM d'amorçage du Model II n'est pas fournie : chargez la vôtre. TRSDOS 2.0a
+n'accepte que les années 1980 à 1999 (ex. `10/09/86`), puis l'heure au format `HH.MM.SS`.

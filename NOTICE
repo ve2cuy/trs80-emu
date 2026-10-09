@@ -28,4 +28,8 @@ README.md next to them). They are not covered by the Apache License.
     is available with the permission of Andrew Graham.  LDOS/LS-DOS are
     available with the permission of William Schroeder."
 
+- www/disks/trsdos20a-m2.imd
+    TRSDOS-II 2.0a for the Model II, Copyright 1981 Tandy Corporation.
+    Provided for experimentation with the Model II emulation.
+
 TRS-80 ROMs are NOT included: they are (c) Tandy / Microsoft.

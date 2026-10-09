@@ -35,7 +35,8 @@ départ, si plus de contexte est nécessaire.
 - Listes de « Boot a disk » : `python www/disks/make_index.py` (publiées et locales);
   la GitHub Action lance `--check`.
 - Disquettes publiées (`www/disks/`) : seulement avec une autorisation vérifiable; LDOS 5.3.1
-  exige de conserver l'avis de MISOSYS (voir `www/disks/README.md`).
+  exige de conserver l'avis de MISOSYS (voir `www/disks/README.md`). Exception décidée par
+  l'auteur : TRSDOS-II 2.0a (`trsdos20a-m2.imd`, © Tandy) est publiée « pour expérimentation ».
 - **Ne jamais committer de ROM TRS-80** (droit d'auteur, y compris les versions modifiées
   comme la 1.4 de kiwisincebirth). Pour les tests : `crates/trs80/tests/roms/`, exclu par
   `.gitignore`. Dans la page : seulement des liens vers un tiers (`www/roms.json`).

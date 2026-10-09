@@ -46,5 +46,29 @@
       }
     },
     "model": 1
+  },
+  {
+    "id": "trsdos20a-m2",
+    "file": "trsdos20a-m2.imd",
+    "title": "TRSDOS-II 2.0a (Model II) — for experimentation",
+    "year": 1981,
+    "authors": "Tandy",
+    "description": "For experimentation. Model II system disk (8-inch, IMD image); load your own Model II boot ROM first. At boot, enter a date between 1980 and 1999, e.g. 10/09/86, then the time (HH.MM.SS). Try DIR.",
+    "license": "Copyright 1981 Tandy Corporation. Provided for experimentation.",
+    "i18n": {
+      "fr": {
+        "title": "TRSDOS-II 2.0a (Model II) — pour expérimentation",
+        "description": "Pour expérimentation. Disquette système du Model II (8 pouces, image IMD); chargez d’abord votre ROM d’amorçage du Model II. Au démarrage, entrez une date entre 1980 et 1999, ex. 10/09/86, puis l’heure (HH.MM.SS). Essayez DIR."
+      },
+      "es": {
+        "title": "TRSDOS-II 2.0a (Model II) — para experimentación",
+        "description": "Para experimentación. Disco de sistema del Model II (8 pulgadas, imagen IMD); cargue primero su ROM de arranque del Model II. Al arrancar, introduzca una fecha entre 1980 y 1999, p. ej. 10/09/86, y luego la hora (HH.MM.SS). Pruebe DIR."
+      },
+      "zh": {
+        "title": "TRSDOS-II 2.0a（Model II）— 供实验使用",
+        "description": "供实验使用。Model II 系统盘（8 英寸，IMD 映像）；请先加载您自己的 Model II 引导 ROM。启动时输入 1980 至 1999 年之间的日期（例如 10/09/86），然后输入时间（HH.MM.SS）。可以试试 DIR。"
+      }
+    },
+    "model": 2
   }
 ]
