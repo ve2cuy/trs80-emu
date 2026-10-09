@@ -137,6 +137,20 @@ fn model1_ldos_formats_and_uses_a_hard_disk() {
     let mut m = boot(image);
     assert!(!shows(&m, "UNFORMATTED"), "Écran :\n{}", screen(&m));
     check_dir(&mut m, 5);
+
+    // Configuration enregistrée sur la disquette système (SYSTEM (SYSGEN) : pas de commande
+    // SYSGEN sous LDOS 5.3) : au redémarrage, le pilote se charge seul.
+    type_line(&mut m, "SYSTEM (SYSGEN)");
+    assert!(wait_ready(&mut m, 30), "Écran :\n{}", screen(&m));
+    let floppy = m.disk(0).unwrap().image();
+    let hard = m.hard_disk(0).unwrap().image().to_vec();
+    let mut m = Trs80::new(&rom).unwrap();
+    m.insert_disk(0, floppy).unwrap();
+    m.insert_hard_disk(0, hard).unwrap();
+    answer(&mut m, "DATE", "10/08/91");
+    answer(&mut m, "TIME", "12:00:00");
+    assert!(wait_ready(&mut m, 10), "pas d'invite LDOS. Écran :\n{}", screen(&m));
+    check_dir(&mut m, 5);
 }
 
 #[test]

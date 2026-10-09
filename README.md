@@ -119,8 +119,9 @@ DIR :2
   do not use them).
 
 Tested with LDOS 5.3.1 on the Model I (double-density disk) and Model III, and TRSDOS 6.2.1
-on the Model 4. Save the configuration with `SYSTEM (SYSGEN)` (LDOS) or `SYSGEN` (TRSDOS 6)
-so that the driver loads at boot. The Model II hard disk will come later.
+on the Model 4. Save the configuration with `SYSTEM (SYSGEN)` (LDOS 5.3 has no SYSGEN program) or
+`SYSGEN` (TRSDOS 6) so that the driver loads at boot, then keep the system disk and the hard
+disk in My library (or download them): reloading the page brings back the original disks. The Model II hard disk will come later.
 
 ### External repository
 
