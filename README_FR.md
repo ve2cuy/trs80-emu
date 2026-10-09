@@ -51,7 +51,7 @@ Compiler, puis servir le dossier `www/` :
 ```bash
 wasm-pack build crates/web --target web --out-dir ../../www/pkg --no-pack
 cd www
-python -m http.server 8080
+python serve.py        # sans mise en cache; ou : python -m http.server 8080
 ```
 
 Ouvrir <http://localhost:8080>, choisir une ROM dans la liste (ou votre fichier), puis
@@ -87,7 +87,7 @@ programmes conçus pour disquette démarrent, mais rien n'est enregistré.
   « Boot a disk », marquées « local ».
 - **Lecteurs 0 à 3** : « Insert… » pour une image JV1, JV3 ou DMK, « Eject », et « Save » pour
   récupérer une disquette modifiée par le TRS-80 (JV1 et JV3). Le lecteur 0 sert au
-  démarrage : appuyer sur Reset.
+  démarrage : y insérer une disquette redémarre le TRS-80 dessus.
 - Contrôleur WD1771 de l'interface d'expansion du Model I, et **doubleurs de densité
   Percom et Radio Shack** (WD1791). Essayés : LDOS 5.3.1, TRSDOS 2.1, 2.3 et 2.7DD,
   NEWDOS 3.0, NEWDOS/80, DOSPLUS 3.5, DBLDOS 4.2. Pas encore : le formatage. Comme sur la

@@ -37,7 +37,7 @@ départ, si plus de contexte est nécessaire.
 cargo test                                                        # tests rapides
 cargo test --release -p z80 --test zex -- --ignored --nocapture   # ZEXDOC / ZEXALL
 wasm-pack build crates/web --target web --out-dir ../../www/pkg --no-pack
-cd www && python -m http.server 8080                              # http://localhost:8080
+cd www && python serve.py                                         # http://localhost:8080, sans cache
 ```
 
 - `www/rom/level2.rom` (exclu de Git) est chargé d'office en développement;

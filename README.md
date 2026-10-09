@@ -52,7 +52,7 @@ Build, then serve the `www/` folder:
 ```bash
 wasm-pack build crates/web --target web --out-dir ../../www/pkg --no-pack
 cd www
-python -m http.server 8080
+python serve.py        # no caching; or: python -m http.server 8080
 ```
 
 Open <http://localhost:8080>, choose a ROM in the list (or your own file), then
@@ -86,7 +86,8 @@ start, but nothing is saved.
   `www/disks/local/` with an `index.json` like `www/disks/index.json`; this folder is
   ignored by Git and its disks appear in "Boot a disk" marked "local".
 - **Drives 0 to 3**: "Insert…" any JV1, JV3 or DMK image, "Eject", and "Save" to download
-  a disk modified by the TRS-80 (JV1 and JV3). Drive 0 is the boot drive: press Reset.
+  a disk modified by the TRS-80 (JV1 and JV3). Drive 0 is the boot drive: inserting a disk
+  there restarts the TRS-80 on it.
 - WD1771 controller of the Model I expansion interface, plus the **Percom and Radio
   Shack double-density doublers** (WD1791). Tested: LDOS 5.3.1, TRSDOS 2.1, 2.3 and
   2.7DD, NEWDOS 3.0, NEWDOS/80, DOSPLUS 3.5, DBLDOS 4.2. Not yet: formatting. As on the

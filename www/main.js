@@ -375,7 +375,12 @@ function makeDriveRow(drive) {
   input.addEventListener('change', async (event) => {
     const file = event.target.files[0];
     event.target.value = '';
-    if (file) insert(file.name, new Uint8Array(await file.arrayBuffer()));
+    // Lecteur 0 : on redémarre aussitôt sur la disquette insérée. Lecteurs 1 à 3 : des
+    // disquettes de données, insérées pendant que le DOS tourne.
+    if (file && insert(file.name, new Uint8Array(await file.arrayBuffer())) && drive === 0) {
+      emulator.reset();
+      showStatus(`Booting ${file.name} from drive 0…`);
+    }
     canvas.focus();
   });
   eject.addEventListener('click', () => {
