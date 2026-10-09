@@ -194,3 +194,30 @@ fn model2_has_no_hard_disk_yet() {
     let mut m = Trs80::new(&rom).unwrap();
     assert!(m.insert_hard_disk(0, HardDisk::blank(306, 4)).is_err());
 }
+
+#[test]
+fn model1_backup_floppy_to_hard_disk() {
+    let (Some(rom), Some(rshard)) = (local("M1L2_1.3.bin").or_else(|| local("level2.rom")), local("rshard.dsk")) else {
+        return;
+    };
+    let mut m = Trs80::new(&rom).unwrap();
+    m.insert_disk(0, published("ldos-531-dd.dsk")).unwrap();
+    m.insert_disk(1, rshard).unwrap();
+    m.insert_hard_disk(0, HardDisk::blank(306, 4)).unwrap();
+    answer(&mut m, "DATE", "10/08/91");
+    answer(&mut m, "TIME", "12:00:00");
+    assert!(wait_ready(&mut m, 10));
+    install_driver(&mut m, 5);
+    format_and_copy(&mut m, 5);
+    // Géométries différentes : LDOS copie fichier par fichier, système et invisibles compris.
+    type_line(&mut m, "BACKUP :0 :2 (SYS,INV)");
+    assert!(wait_ready(&mut m, 120), "Écran :
+{}", screen(&m));
+    assert!(shows(&m, "BACKUP COMPLETE"), "Écran :
+{}", screen(&m));
+    type_line(&mut m, "DIR :2 (SYS,INV)");
+    (0..300).for_each(|_| m.run_frame());
+    let s = screen(&m);
+    assert!(s.contains("BACKUP/CMD") && s.contains("CONFIG/SYS"), "DIR :2. Écran :
+{s}");
+}
