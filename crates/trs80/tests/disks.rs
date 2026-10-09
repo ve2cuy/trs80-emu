@@ -122,4 +122,13 @@ fn extra_disk_from_environment() {
     m.key_up(enter);
     (0..300).for_each(|_| m.run_frame());
     eprintln!("Écran :\n{}", screen(&m));
+    if std::env::var("TRS80_FDC_TRACE").is_ok() {
+        for e in m.fdc_trace() {
+            eprintln!(
+                "  cmd {:02X}  lecteur {} piste {:3} secteur {:3} tête {:3} {}  état {:02X}",
+                e.command, e.drive, e.track, e.sector, e.head,
+                if e.double_density { "DD" } else { "SD" }, e.status
+            );
+        }
+    }
 }

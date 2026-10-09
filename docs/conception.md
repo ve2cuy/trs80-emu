@@ -74,7 +74,12 @@ l'utilisateur chargera son propre fichier ROM, conservé ensuite dans IndexedDB.
    sonores dans VE2CUY Invaders.
 7d. ✅ Disquettes : contrôleur WD1771 (`fdc.rs`) et images JV1/JV3/DMK (`disk.rs`, avec
    `alloc`); LDOS 5.3.1 fourni (`www/disks/`). Démarrent : LDOS 5.3.1, TRSDOS 2.1/2.3,
-   NEWDOS 3.0, NEWDOS/80, DOSPLUS 3.5. Reste : doubleurs de densité, formatage.
+   NEWDOS 3.0, NEWDOS/80, DOSPLUS 3.5. Reste : formatage.
+7f. ✅ Doubleurs de densité Percom (commandes FEh/FFh) et Radio Shack (80h/A0h dans le
+   registre de secteur), comme xtrs : le contrôleur actif (WD1771 ou WD1791) décide de la
+   densité des secteurs trouvés et du codage du type de secteur. Déplacements de tête
+   minutés (6 à 20 ms par piste) : l'interruption de fin arrive après la commande.
+   Démarrent en plus : TRSDOS 2.7DD, DBLDOS 4.2. Journal du contrôleur : `fdc_trace()`.
 7e. ✅ Licence Apache 2.0 (`LICENSE`, `NOTICE` pour les fichiers de tiers).
 6. ✅ Chargement de programmes `.CMD` (écriture directe en mémoire, après avoir amené
    le BASIC à « READY »), routines minimales à la place des appels de fichiers TRSDOS,
@@ -91,7 +96,7 @@ l'utilisateur chargera son propre fichier ROM, conservé ensuite dans IndexedDB.
    le texte depuis un atlas de 64 glyphes, sur un canvas de 1536 × 1152. Redessin seulement
    si la mémoire vidéo change. Clavier : chaque touche reste enfoncée au moins 3 images.
 7. ⬜ Confort : Reset, Turbo, collage de texte, sauvegarde et restauration de l'état.
-8. ⬜ Facultatif : modification minuscules, doubleurs de densité, formatage, Model III.
+8. ⬜ Facultatif : modification minuscules, formatage, Model III.
 9. ✅ Déploiement GitHub Pages par une GitHub Action (`.github/workflows/pages.yml`) :
    <https://ve2cuy.github.io/trs80-emu/>
 

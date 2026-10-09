@@ -28,7 +28,7 @@ Au démarrage, LDOS 5.3.1 demande la date : il n'accepte que des années de son
 
 ## Compatibilité de l'émulateur
 
-Contrôleur WD1771 du Model I, images JV1, JV3 et DMK. Fonctionnent : LDOS 5.3.1,
-TRSDOS 2.1 et 2.3, NEWDOS 3.0, NEWDOS/80, DOSPLUS 3.5 (simple densité). Pas encore :
-les systèmes en double densité qui exigent un « doubleur » particulier, et le
-formatage (commande « écrire la piste »).
+Contrôleur WD1771 du Model I et doubleurs Percom et Radio Shack (WD1791), images JV1,
+JV3 et DMK. Fonctionnent : LDOS 5.3.1, TRSDOS 2.1, 2.3 et 2.7DD, NEWDOS 3.0, NEWDOS/80,
+DOSPLUS 3.5, DBLDOS 4.2. Pas encore : le formatage (commande « écrire la piste »). Une
+disquette dont la piste 0 est en double densité ne démarre pas, comme sur un vrai Model I.

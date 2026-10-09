@@ -25,7 +25,7 @@ mod video;
 
 pub use cas::{CasError, Tape};
 pub use disk::{Disk, DiskError, Format};
-pub use fdc::DRIVES;
+pub use fdc::{DRIVES, FdcEvent};
 pub use cmd::CmdError;
 pub use keyboard::Key;
 pub use video::{SCREEN_HEIGHT, SCREEN_WIDTH};
@@ -195,6 +195,7 @@ impl Trs80 {
         self.cpu.reset();
         self.board.wide = false;
         self.board.rtc_pending = false;
+        self.board.fdc.reset();
         self.typer.cancel(&mut self.board.keyboard);
         self.board.keyboard.release_all();
     }
@@ -211,6 +212,7 @@ impl Trs80 {
         while done < cycles {
             let level = Audio::level(self.board.sound);
             self.board.now = self.cpu.cycles;
+            self.board.fdc.tick(self.cpu.cycles);
             let t = self.cpu.step(&mut self.board);
             self.audio.advance(level, t);
             done += t;
@@ -260,6 +262,16 @@ impl Trs80 {
     /// Retire la disquette du lecteur `drive`.
     pub fn eject_disk(&mut self, drive: usize) -> Option<Disk> {
         self.board.fdc.drives[drive % DRIVES].take()
+    }
+
+    /// Dernières commandes reçues par le contrôleur de disquettes (diagnostic).
+    pub fn fdc_trace(&self) -> &[FdcEvent] {
+        &self.board.fdc.trace
+    }
+
+    /// Le contrôleur de disquettes est-il en double densité (WD1791 d'un doubleur) ?
+    pub fn double_density(&self) -> bool {
+        self.board.fdc.double_density()
     }
 
     /// La disquette du lecteur `drive`.

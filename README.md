@@ -84,9 +84,10 @@ start, but nothing is saved.
   At boot, enter a date from its era, e.g. `10/08/91`. Direct link: `?disk=ldos-531`.
 - **Drives 0 to 3**: "Insert…" any JV1, JV3 or DMK image, "Eject", and "Save" to download
   a disk modified by the TRS-80 (JV1 and JV3). Drive 0 is the boot drive: press Reset.
-- WD1771 controller of the Model I expansion interface. Tested: LDOS 5.3.1, TRSDOS 2.1
-  and 2.3, NEWDOS 3.0, NEWDOS/80, DOSPLUS 3.5. Not yet: double-density systems that
-  need a specific "doubler", and formatting.
+- WD1771 controller of the Model I expansion interface, plus the **Percom and Radio
+  Shack double-density doublers** (WD1791). Tested: LDOS 5.3.1, TRSDOS 2.1, 2.3 and
+  2.7DD, NEWDOS 3.0, NEWDOS/80, DOSPLUS 3.5, DBLDOS 4.2. Not yet: formatting. As on the
+  real machine, a disk whose track 0 is double density cannot boot.
 
 ### Sound
 

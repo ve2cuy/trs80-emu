@@ -84,9 +84,10 @@ programmes conçus pour disquette démarrent, mais rien n'est enregistré.
 - **Lecteurs 0 à 3** : « Insert… » pour une image JV1, JV3 ou DMK, « Eject », et « Save » pour
   récupérer une disquette modifiée par le TRS-80 (JV1 et JV3). Le lecteur 0 sert au
   démarrage : appuyer sur Reset.
-- Contrôleur WD1771 de l'interface d'expansion du Model I. Essayés : LDOS 5.3.1, TRSDOS 2.1
-  et 2.3, NEWDOS 3.0, NEWDOS/80, DOSPLUS 3.5. Pas encore : les systèmes en double densité
-  qui exigent un « doubleur » particulier, et le formatage.
+- Contrôleur WD1771 de l'interface d'expansion du Model I, et **doubleurs de densité
+  Percom et Radio Shack** (WD1791). Essayés : LDOS 5.3.1, TRSDOS 2.1, 2.3 et 2.7DD,
+  NEWDOS 3.0, NEWDOS/80, DOSPLUS 3.5, DBLDOS 4.2. Pas encore : le formatage. Comme sur la
+  vraie machine, une disquette dont la piste 0 est en double densité ne peut pas démarrer.
 
 ### Son
 

@@ -7,8 +7,8 @@
 //! - **DMK** : pistes brutes avec table des marques d'adresse (IDAM); les secteurs
 //!   en simple densité y sont souvent enregistrés octet par octet en double.
 //!
-//! La densité est ignorée : un secteur est trouvé par piste, face et numéro, ce qui
-//! permet aussi aux DOS en double densité (avec « doubleur ») de fonctionner.
+//! Chaque secteur garde sa densité : le contrôleur ne trouve que les secteurs de la
+//! densité choisie (simple avec le WD1771, double avec le WD1791 d'un « doubleur »).
 
 use alloc::vec::Vec;
 
@@ -57,6 +57,8 @@ pub(crate) struct Sector {
     pub size_code: u8,
     /// Marque de données : FBh (normale), FAh, F9h ou F8h (« effacée »).
     pub dam: u8,
+    /// Double densité (MFM).
+    pub dd: bool,
     /// Position des données dans `Disk::data`.
     pub offset: usize,
     pub len: usize,
@@ -112,6 +114,7 @@ impl Disk {
                     sector: (i % 10) as u8,
                     size_code: 1,
                     dam: if track == 17 { 0xFA } else { 0xFB },
+                    dd: false,
                     offset: i * 256,
                     len: 256,
                     jv3_entry: None,
@@ -160,6 +163,7 @@ impl Disk {
                         sector,
                         size_code,
                         dam,
+                        dd,
                         offset,
                         len,
                         jv3_entry: Some(block + i * 3),
@@ -237,6 +241,7 @@ impl Disk {
                     sector,
                     size_code: size_code & 3,
                     dam: get(mark).unwrap(),
+                    dd: double,
                     offset,
                     len,
                     jv3_entry: None,
@@ -271,19 +276,20 @@ impl Disk {
         matches!(self.format, Format::Jv1 | Format::Jv3).then_some(self.data.as_slice())
     }
 
-    /// Indice du secteur (piste et face physiques, champ d'identification `track`/`sector`).
-    pub(crate) fn find(&self, phys_track: u8, side: u8, track_id: u8, sector: u8) -> Option<usize> {
-        // Les secteurs sont rangés par piste physique : JV1/JV3/DMK donnent le numéro de
-        // piste du champ d'identification, qui correspond à la piste physique.
-        let _ = phys_track;
+    /// Indice du secteur `sector` sur la piste `track`, dans la densité demandée.
+    /// (JV1, JV3 et DMK numérotent les pistes comme le champ d'identification.)
+    pub(crate) fn find(&self, track: u8, side: u8, sector: u8, dd: bool) -> Option<usize> {
         self.sectors
             .iter()
-            .position(|s| s.track == track_id && s.side == side && s.sector == sector)
+            .position(|s| s.track == track && s.side == side && s.sector == sector && s.dd == dd)
     }
 
-    /// Secteurs d'une piste physique (pour « lire l'adresse » et la vérification).
-    pub(crate) fn on_track(&self, track: u8, side: u8) -> impl Iterator<Item = (usize, &Sector)> {
-        self.sectors.iter().enumerate().filter(move |(_, s)| s.track == track && s.side == side)
+    /// Secteurs d'une piste lisibles dans la densité demandée (« lire l'adresse », vérification).
+    pub(crate) fn on_track(&self, track: u8, side: u8, dd: bool) -> impl Iterator<Item = (usize, &Sector)> {
+        self.sectors
+            .iter()
+            .enumerate()
+            .filter(move |(_, s)| s.track == track && s.side == side && s.dd == dd)
     }
 
     pub(crate) fn sector_data(&self, index: usize) -> &[u8] {
@@ -298,17 +304,18 @@ impl Disk {
         self.data[s.offset..s.offset + n].copy_from_slice(&bytes[..n]);
         self.sectors[index].dam = dam;
         if let Some(entry) = s.jv3_entry {
-            // JV3 : la marque de données est dans les bits 5-6 de l'indicateur (simple densité).
+            // JV3 : marque de données dans les bits 5-6 de l'indicateur (simple densité :
+            // FB, FA, F9, F8) ou dans le bit 5 (double densité : FB ou F8).
             let flags = &mut self.data[entry + 2];
-            if *flags & 0x80 == 0 {
-                let code = match dam {
-                    0xFB => 0,
-                    0xFA => 1,
-                    0xF9 => 2,
-                    _ => 3,
-                };
-                *flags = (*flags & !0x60) | (code << 5);
-            }
+            let code = match (*flags & 0x80 != 0, dam) {
+                (true, 0xF8) => 1,
+                (true, _) => 0,
+                (false, 0xFB) => 0,
+                (false, 0xFA) => 1,
+                (false, 0xF9) => 2,
+                (false, _) => 3,
+            };
+            *flags = (*flags & !0x60) | (code << 5);
         }
         self.modified = true;
     }
@@ -326,7 +333,8 @@ mod tests {
         let d = Disk::open(image).unwrap();
         assert_eq!(d.format(), Format::Jv1);
         assert_eq!(d.sector_count(), 350);
-        let i = d.find(17, 0, 17, 2).unwrap();
+        let i = d.find(17, 0, 2, false).unwrap();
+        assert!(d.find(17, 0, 2, true).is_none(), "JV1 : simple densité seulement");
         assert_eq!(d.sector_data(i)[0], 0x42);
         assert_eq!(d.sectors[i].dam, 0xFA, "répertoire : marque FAh");
     }
@@ -341,7 +349,7 @@ mod tests {
         let d = Disk::open(image).unwrap();
         assert_eq!(d.format(), Format::Jv3);
         assert_eq!(d.sector_count(), 2);
-        let i = d.find(1, 0, 1, 5).unwrap();
+        let i = d.find(1, 0, 5, false).unwrap();
         assert_eq!((d.sector_data(i).len(), d.sector_data(i)[0], d.sectors[i].dam), (128, 0x22, 0xFA));
     }
 
@@ -374,7 +382,7 @@ mod tests {
         }
         let d = Disk::open(image).unwrap();
         assert_eq!(d.format(), Format::Dmk);
-        let i = d.find(0, 0, 0, 0).unwrap();
+        let i = d.find(0, 0, 0, false).unwrap();
         assert_eq!(d.sector_data(i)[..4], [0, 1, 2, 3]);
         assert_eq!(d.sectors[i].dam, 0xFB);
     }
