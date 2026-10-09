@@ -217,8 +217,9 @@
               <label><input type="radio" name="repo-kind" value="cmd"><span data-i18n="repo.cmd">CMD</span></label>
               <label><input type="radio" name="repo-kind" value="bas"><span data-i18n="repo.bas">BASIC</span></label>
             </fieldset>
-            <label class="switch"><input id="repo-all" type="checkbox"><span data-i18n="repo.all">All models</span></label>
-            <ul id="repo-list" class="library"></ul>
+            <label class="switch"><input id="repo-all" type="checkbox"><span class="knob"></span><span data-i18n="repo.all">All models</span></label>
+            <select id="repo-select" aria-label="File" data-i18n-aria="repo.pick"></select>
+            <div id="repo-detail" class="lib-item repo-detail empty"></div>
             <p id="repo-status" class="hint"></p>
             <details class="repo-settings">
               <summary data-i18n="repo.address">Repository address</summary>

@@ -47,8 +47,9 @@ const prefs = {
   repo: 'https://ve2cuy.com/trs80', // dépôt externe (dossiers rom, disk, cmd, bas)
   repoKind: 'rom',
   repoAll: false, // dépôt : afficher les fichiers de tous les modèles
+  repoPick: {},   // dépôt : dernier fichier choisi par catégorie (rom, disk...)
   lang: null,           // langue de l'interface (null : celle du fureteur)
-  model: 1,             // modèle émulé : 1, 3 ou 4
+  model: 1,             // modèle émulé : 1, 2, 3 ou 4
   ...readPrefs(),
 };
 
@@ -1134,7 +1135,9 @@ document.getElementById('library-file').addEventListener('change', async (event)
 // Le serveur doit permettre les requêtes d'une autre origine (CORS).
 const DEFAULT_REPO = 'https://ve2cuy.com/trs80';
 const REPO_ICONS = { rom: 'cpu', disk: 'disk', cmd: 'file', bas: 'basic' };
-const repoList = document.getElementById('repo-list');
+const repoSelect = document.getElementById('repo-select');
+const repoDetail = document.getElementById('repo-detail');
+let repoShown = []; // entrées de la liste déroulante (catégorie et modèle courants)
 const repoStatus = document.getElementById('repo-status');
 const repoInput = document.getElementById('repo-url');
 const repoCache = new Map(); // adresse d'un index.json -> ses entrées
@@ -1148,7 +1151,8 @@ async function loadRepo(kind) {
   savePrefs();
   for (const radio of document.querySelectorAll('input[name="repo-kind"]')) radio.checked = radio.value === kind;
   const indexUrl = repoUrl(`${kind}/index.json`);
-  repoList.replaceChildren();
+  // L'ancienne liste reste affichée pendant le chargement : la vider raccourcirait le menu,
+  // qui sauterait (défilement ramené plus haut) puis s'allongerait de nouveau.
   repoStatus.textContent = t('repo.loading');
   try {
     let entries = repoCache.get(indexUrl);
@@ -1169,15 +1173,46 @@ async function loadRepo(kind) {
     else if (prefs.repoAll) summary = t('repo.countAll', { n: entries.length });
     else summary = t('repo.count', { n: shown.length, total: entries.length, model });
     repoStatus.textContent = shown.length ? `${prefs.repo}/${kind}/ — ${summary}` : summary;
-    repoList.replaceChildren(...shown.map((e) => repoItem(kind, e)));
+    fillRepoSelect(kind, shown);
   } catch (e) {
     if (prefs.repoKind !== kind) return;
+    fillRepoSelect(kind, []);
     const reason = e instanceof TypeError ? t('repo.unreachable') : e.message;
     repoStatus.textContent = t('repo.unavailable', { url: indexUrl, reason });
   }
 }
 // Nouvelle langue : la liste ouverte est redessinée (depuis le cache, sans requête).
 languageListeners.push(() => { if (prefs.open.includes('repo')) loadRepo(prefs.repoKind); });
+
+/** Liste déroulante des fichiers; la fiche du fichier choisi (actions) s'affiche dessous. */
+function fillRepoSelect(kind, shown) {
+  repoShown = shown;
+  repoSelect.replaceChildren(...shown.map((e, i) => {
+    const name = e.file.split('/').pop();
+    // Avec « Tous les modèles », chaque fichier indique ses modèles (ex. « M3/M4 »).
+    const models = prefs.repoAll && e.model != null ? ` — ${repoModels(e).map((m) => `M${m}`).join('/')}` : '';
+    return new Option(`${localized(e, 'title') ?? name}${models}`, String(i));
+  }));
+  // Liste vide : la liste et la fiche restent en place (hauteur stable du menu).
+  if (!shown.length) repoSelect.append(new Option('—', ''));
+  repoSelect.disabled = !shown.length;
+  const picked = shown.findIndex((e) => e.file === prefs.repoPick[kind]);
+  repoSelect.value = String(Math.max(picked, 0));
+  showRepoDetail(kind);
+}
+
+function showRepoDetail(kind) {
+  const entry = repoSelect.value === '' ? null : repoShown[Number(repoSelect.value)];
+  repoDetail.classList.toggle('empty', !entry);
+  repoDetail.replaceChildren(...(entry ? repoItem(kind, entry) : []));
+}
+
+repoSelect.addEventListener('change', () => {
+  const entry = repoShown[Number(repoSelect.value)];
+  if (entry) prefs.repoPick[prefs.repoKind] = entry.file;
+  savePrefs();
+  showRepoDetail(prefs.repoKind);
+});
 
 /** Modèles d'une entrée du dépôt (tous si elle n'en précise pas). */
 function repoModels(entry) {
@@ -1199,16 +1234,17 @@ async function fetchRepoFile(kind, entry) {
   return new Uint8Array(await res.arrayBuffer());
 }
 
+/** Contenu de la fiche d'un fichier du dépôt : titre, détails, description et actions. */
 function repoItem(kind, entry) {
   const name = entry.file.split('/').pop();
-  const li = element('li', 'lib-item');
   const meta = element('div', 'lib-meta');
   const title = element('span', 'lib-name', localized(entry, 'title') ?? name);
   title.title = [localized(entry, 'title'), localized(entry, 'description'), localized(entry, 'license')]
     .filter(Boolean).join('\n\n') || name;
-  // Avec « Tous les modèles », chaque fichier indique ses modèles (ex. « M3/M4 »).
-  const models = prefs.repoAll && entry.model != null ? repoModels(entry).map((m) => `M${m}`).join('/') : null;
+  const models = entry.model != null ? repoModels(entry).map((m) => `M${m}`).join('/') : null;
   meta.append(title, element('span', 'lib-sub', [models, name, entry.year, entry.authors].filter(Boolean).join(' · ')));
+  const about = localized(entry, 'description');
+  if (about) meta.append(element('span', 'lib-about', about));
   const actions = element('div', 'lib-actions');
 
   /** Télécharge le fichier puis applique `use`; les erreurs vont dans la ligne d'état. */
@@ -1264,8 +1300,7 @@ function repoItem(kind, entry) {
   const get = iconButton('download', 'repo.download');
   get.addEventListener('click', withFile((bytes) => { download(bytes, name); showStatus(''); }, false));
   actions.append(get);
-  li.append(icon(REPO_ICONS[kind]), meta, actions);
-  return li;
+  return [icon(REPO_ICONS[kind]), meta, actions];
 }
 
 for (const radio of document.querySelectorAll('input[name="repo-kind"]')) {
@@ -1869,7 +1904,6 @@ function loop(now) {
 }
 
 await Promise.all([loadProgramIndex(), loadRomIndex(), loadDiskIndex(), refreshLibrary()]);
-if (prefs.open.includes('repo')) loadRepo(prefs.repoKind); // section ouverte à la dernière visite
 const params = new URLSearchParams(location.search);
 // Police : ?font=<id>, sinon la dernière choisie.
 let savedFont = null;
@@ -1879,6 +1913,8 @@ await selectFont(params.get('font') ?? savedFont ?? 'trs80');
 const modelParam = Number(params.get('model'));
 if ([1, 2, 3, 4].includes(modelParam)) prefs.model = modelParam;
 applyModel();
+// Section ouverte à la dernière visite : fichiers du modèle choisi (après ?model=).
+if (prefs.open.includes('repo')) loadRepo(prefs.repoKind);
 const romParam = params.get('rom');
 if (romParam && roms.some((r) => r.id === romParam && r.source === 'url')) {
   selectRomInList(romParam);

@@ -1249,6 +1249,7 @@ Object.assign(STRINGS.zh, {
 
 // ---------------------------------------------------------------- modèles
 Object.assign(STRINGS.en, {
+  'repo.pick': 'File',
   'repo.helpModels': 'Files are sorted by model in subfolders (<code>disk/model3/</code>…); each <code>index.json</code> entry gives its <code>model</code> (1, 2, 3, 4 or a list). Only the files of the chosen model are shown, unless <em>All models</em> is checked.',
   'repo.all': 'All models', 'repo.count': '{n} of {total} files for the {model}', 'repo.countAll': '{n} files, all models', 'repo.noneForModel': 'No file for the {model} here ({n} for other models: check “All models”).',
   'overlay.start2': 'To start, load your own <strong>Model II boot ROM</strong> (2 KB) from the Machine menu, then insert a TRSDOS-II disk.',
@@ -1257,6 +1258,7 @@ Object.assign(STRINGS.en, {
 Object.assign(STRINGS.en, { 'model.label': 'Model', 'model.1': 'TRS-80 Model I', 'model.2': 'TRS-80 Model II',
   'rom.ownM2': 'Model II: load your own 2 KB boot ROM (ROM menu), then a TRSDOS-II disk (.imd, .dmk).', 'model.3': 'TRS-80 Model III', 'model.4': 'TRS-80 Model 4' });
 Object.assign(STRINGS.fr, {
+  'repo.pick': 'Fichier',
   'repo.helpModels': 'Les fichiers sont rangés par modèle dans des sous-dossiers (<code>disk/model3/</code>…); chaque entrée de <code>index.json</code> indique son <code>model</code> (1, 2, 3, 4 ou une liste). Seuls les fichiers du modèle choisi sont affichés, sauf si <em>Tous les modèles</em> est coché.',
   'repo.all': 'Tous les modèles', 'repo.count': '{n} fichier(s) sur {total} pour le {model}', 'repo.countAll': '{n} fichiers, tous modèles', 'repo.noneForModel': 'Aucun fichier pour le {model} ici ({n} pour d’autres modèles : cochez « Tous les modèles »).',
   'overlay.start2': 'Pour commencer, chargez votre propre <strong>ROM d’amorçage du Model II</strong> (2 Ko) dans le menu Machine, puis insérez une disquette TRSDOS-II.',
@@ -1265,6 +1267,7 @@ Object.assign(STRINGS.fr, {
 Object.assign(STRINGS.fr, { 'model.label': 'Modèle', 'model.1': 'TRS-80 Model I', 'model.2': 'TRS-80 Model II',
   'rom.ownM2': 'Model II : chargez votre ROM d’amorçage de 2 Ko (menu ROM), puis une disquette TRSDOS-II (.imd, .dmk).', 'model.3': 'TRS-80 Model III', 'model.4': 'TRS-80 Model 4' });
 Object.assign(STRINGS.es, {
+  'repo.pick': 'Archivo',
   'repo.helpModels': 'Los archivos se ordenan por modelo en subcarpetas (<code>disk/model3/</code>…); cada entrada de <code>index.json</code> indica su <code>model</code> (1, 2, 3, 4 o una lista). Solo se muestran los archivos del modelo elegido, salvo si <em>Todos los modelos</em> está marcado.',
   'repo.all': 'Todos los modelos', 'repo.count': '{n} de {total} archivos para el {model}', 'repo.countAll': '{n} archivos, todos los modelos', 'repo.noneForModel': 'Ningún archivo para el {model} aquí ({n} para otros modelos: marque «Todos los modelos»).',
   'overlay.start2': 'Para empezar, cargue su propia <strong>ROM de arranque del Model II</strong> (2 KB) en el menú Máquina y luego inserte un disco TRSDOS-II.',
@@ -1273,6 +1276,7 @@ Object.assign(STRINGS.es, {
 Object.assign(STRINGS.es, { 'model.label': 'Modelo', 'model.1': 'TRS-80 Model I', 'model.2': 'TRS-80 Model II',
   'rom.ownM2': 'Model II: cargue su propia ROM de arranque de 2 KB (menú ROM) y luego un disco TRSDOS-II (.imd, .dmk).', 'model.3': 'TRS-80 Model III', 'model.4': 'TRS-80 Model 4' });
 Object.assign(STRINGS.zh, {
+  'repo.pick': '文件',
   'repo.helpModels': '文件按型号存放在子文件夹中（<code>disk/model3/</code>…）；<code>index.json</code> 的每个条目注明其 <code>model</code>（1、2、3、4 或列表）。只显示所选型号的文件，除非勾选“所有型号”。',
   'repo.all': '所有型号', 'repo.count': '{model} 可用 {n} 个文件（共 {total} 个）', 'repo.countAll': '{n} 个文件，所有型号', 'repo.noneForModel': '此处没有适用于 {model} 的文件（其他型号有 {n} 个：请勾选“所有型号”）。',
   'overlay.start2': '开始前，请在“机器”菜单中加载您自己的 <strong>Model II 引导 ROM</strong>（2 KB），然后插入 TRSDOS-II 磁盘。',
