@@ -1248,12 +1248,28 @@ Object.assign(STRINGS.zh, {
 });
 
 // ---------------------------------------------------------------- modèles
+Object.assign(STRINGS.en, {
+  'overlay.start2': 'To start, load your own <strong>Model II boot ROM</strong> (2 KB) from the Machine menu, then insert a TRSDOS-II disk.',
+  'overlay.start3': 'To start, choose a <strong>Model III ROM</strong> in the Machine menu, or load your own ROM file (14 KB).',
+});
 Object.assign(STRINGS.en, { 'model.label': 'Model', 'model.1': 'TRS-80 Model I', 'model.2': 'TRS-80 Model II',
   'rom.ownM2': 'Model II: load your own 2 KB boot ROM (ROM menu), then a TRSDOS-II disk (.imd, .dmk).', 'model.3': 'TRS-80 Model III', 'model.4': 'TRS-80 Model 4' });
+Object.assign(STRINGS.fr, {
+  'overlay.start2': 'Pour commencer, chargez votre propre <strong>ROM d’amorçage du Model II</strong> (2 Ko) dans le menu Machine, puis insérez une disquette TRSDOS-II.',
+  'overlay.start3': 'Pour commencer, choisissez une <strong>ROM du Model III</strong> dans le menu Machine, ou chargez votre propre fichier ROM (14 Ko).',
+});
 Object.assign(STRINGS.fr, { 'model.label': 'Modèle', 'model.1': 'TRS-80 Model I', 'model.2': 'TRS-80 Model II',
   'rom.ownM2': 'Model II : chargez votre ROM d’amorçage de 2 Ko (menu ROM), puis une disquette TRSDOS-II (.imd, .dmk).', 'model.3': 'TRS-80 Model III', 'model.4': 'TRS-80 Model 4' });
+Object.assign(STRINGS.es, {
+  'overlay.start2': 'Para empezar, cargue su propia <strong>ROM de arranque del Model II</strong> (2 KB) en el menú Máquina y luego inserte un disco TRSDOS-II.',
+  'overlay.start3': 'Para empezar, elija una <strong>ROM del Model III</strong> en el menú Máquina, o cargue su propio archivo ROM (14 KB).',
+});
 Object.assign(STRINGS.es, { 'model.label': 'Modelo', 'model.1': 'TRS-80 Model I', 'model.2': 'TRS-80 Model II',
   'rom.ownM2': 'Model II: cargue su propia ROM de arranque de 2 KB (menú ROM) y luego un disco TRSDOS-II (.imd, .dmk).', 'model.3': 'TRS-80 Model III', 'model.4': 'TRS-80 Model 4' });
+Object.assign(STRINGS.zh, {
+  'overlay.start2': '开始前，请在“机器”菜单中加载您自己的 <strong>Model II 引导 ROM</strong>（2 KB），然后插入 TRSDOS-II 磁盘。',
+  'overlay.start3': '开始前，请在“机器”菜单中选择 <strong>Model III ROM</strong>，或加载您自己的 ROM 文件（14 KB）。',
+});
 Object.assign(STRINGS.zh, { 'model.label': '型号', 'model.1': 'TRS-80 Model I', 'model.2': 'TRS-80 Model II',
   'rom.ownM2': 'Model II：请载入您自己的 2 KB 引导 ROM（ROM 菜单），再插入 TRSDOS-II 磁盘（.imd、.dmk）。', 'model.3': 'TRS-80 Model III', 'model.4': 'TRS-80 Model 4' });
 

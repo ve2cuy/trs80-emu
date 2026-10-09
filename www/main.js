@@ -408,6 +408,10 @@ function applyModel() {
   const name = t(`model.${prefs.model}`);
   document.title = name;
   for (const el of document.querySelectorAll('.machine-name')) el.textContent = name;
+  // Message d'accueil (sans ROM) propre au modèle : ROM attendue et sa taille.
+  const start = document.getElementById('overlay-start');
+  start.dataset.i18nHtml = { 1: 'overlay.start', 2: 'overlay.start2' }[prefs.model] ?? 'overlay.start3';
+  start.innerHTML = t(start.dataset.i18nHtml);
   fillRomList();
   if (disks.length) fillDiskList();
 }
