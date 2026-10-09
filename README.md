@@ -43,6 +43,50 @@ Fonts are condensed to fit the narrow 64 × 16 grid; semigraphics are unchanged.
 Web fonts are downloaded from Google Fonts only when chosen. Direct link:
 `?font=vt323`.
 
+## Interface
+
+- **Side menu**: Machine (ROM, expansion interface, sound, disk drive sounds), Programs,
+  Disks, My library, Repository, Display (font, theme), Keyboard, About. On a computer,
+  it can be reduced to a column of icons (round button on its edge); on a phone, it is
+  a drawer opened with ☰.
+- **Light and dark themes**: follows the system by default; choose in Display, or with
+  the sun / moon button at the bottom of the menu.
+- **Preferences** (theme, menu, open sections, sound, Turbo, repository...) are kept
+  in the browser.
+- **Program card**: under the screen, the name of the program or disk being run, with
+  its description when known (built-in list, repository, or the name and copyright
+  records of a `.CMD` file).
+- **Disk drive sounds** (Machine): the motor hum and the steps of the head, synthesized
+  from the controller's activity.
+- **Drag and drop** a disk, program or BASIC listing onto the screen to run it.
+
+### My library
+
+Disks, programs (`.CMD`, `.CAS`) and BASIC listings (`.BAS`, text or tokenized) can be
+kept in the browser (IndexedDB, on this device only; nothing is uploaded): "Add files…",
+the "Keep" button of a drive (with the changes made by the DOS) or of the "Type text"
+panel, or automatically for the files you open ("Keep the files I open"). From the
+library: Boot or insert a disk, Run a program, download or delete.
+
+### External repository
+
+Files can come from your device (Load…, Insert…, My library) or from a repository on the
+Web, by default `https://ve2cuy.com/trs80`, which can be changed in the Repository section.
+It has four folders, `rom/`, `disk/`, `cmd/` and `bas/`, each with an `index.json` listing
+its files, in the same format as [`www/disks/index.json`](www/disks/index.json):
+
+```json
+[
+  { "file": "invaders.cmd", "title": "VE2CUY Invaders", "year": 2026, "authors": "VE2CUY",
+    "description": "…", "controls": "Arrows and space", "license": "…" },
+  "other.cmd"
+]
+```
+
+Only `file` is required (a plain file name is also accepted). The server must allow
+cross-origin requests (CORS header `Access-Control-Allow-Origin: *`), since the page is
+served from another address.
+
 ## Running the emulator locally (release 1.0)
 
 No compilation needed: download the ready-to-run archive and you only need
@@ -91,7 +135,7 @@ answer `MEM SIZE?` with ENTER.
 - **Built-in list**: VE2CUY Invaders ([source](asm/invaders.asm)) and games whose
   author allowed redistribution (Sea Dragon, Armored Patrol). Read
   [www/programs/README.md](www/programs/README.md) (in French) before adding one.
-- **"Load program (.CMD, .CAS)…"**: any program from your disk; nothing is uploaded.
+- **"Load program (.CMD, .CAS, .BAS)…"**: any program from your disk; nothing is uploaded.
   A cassette (`.CAS`) is loaded directly into memory: a machine-language tape is
   started, a BASIC tape is run.
 - **Pasting text**: Ctrl+V on the screen, or "Type text…", types the text on the

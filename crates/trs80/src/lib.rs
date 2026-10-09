@@ -274,6 +274,13 @@ impl Trs80 {
         &self.board.fdc.trace
     }
 
+    /// Activité des lecteurs, pour en imiter le bruit : (pas de la tête, accès), deux
+    /// compteurs cumulatifs qui reviennent à zéro après `u32::MAX`. Un accès (commande ou
+    /// sélection d'un lecteur garni) démarre le moteur.
+    pub fn disk_activity(&self) -> (u32, u32) {
+        (self.board.fdc.steps, self.board.fdc.accesses)
+    }
+
     /// Le contrôleur de disquettes est-il en double densité (WD1791 d'un doubleur) ?
     pub fn double_density(&self) -> bool {
         self.board.fdc.double_density()

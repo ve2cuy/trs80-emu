@@ -2,142 +2,345 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>TRS-80 Model I</title>
+  <meta name="color-scheme" content="light dark">
+  <script>
+    // Thème choisi, appliqué avant l'affichage pour éviter un éclair de l'autre thème.
+    try {
+      const theme = JSON.parse(localStorage.getItem('trs80-prefs') ?? '{}').theme;
+      if (theme === 'light' || theme === 'dark') document.documentElement.dataset.theme = theme;
+    } catch { /* stockage indisponible */ }
+  </script>
   <link rel="stylesheet" href="style.css?v=dev">
 </head>
 <body>
-  <main>
-    <h1>TRS-80 Model I</h1>
-    <p class="byline">Emulator by <strong>VE2CUY</strong></p>
+  <!-- Icônes (traits de 24 × 24, couleur du texte) -->
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <defs>
+      <symbol id="i-chevron" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></symbol>
+      <symbol id="i-cpu" viewBox="0 0 24 24"><rect x="7" y="7" width="10" height="10" rx="1.5"/><path d="M10 3v4M14 3v4M10 17v4M14 17v4M3 10h4M3 14h4M17 10h4M17 14h4"/></symbol>
+      <symbol id="i-tape" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="8.5" cy="11" r="2"/><circle cx="15.5" cy="11" r="2"/><path d="M8.5 13h7M7 19l1.5-3h7L17 19"/></symbol>
+      <symbol id="i-disk" viewBox="0 0 24 24"><path d="M5 3h11l5 5v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z"/><path d="M7 3v5h8V3M7 21v-7h10v7"/></symbol>
+      <symbol id="i-folder" viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></symbol>
+      <symbol id="i-folder-plus" viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M12 10v6M9 13h6"/></symbol>
+      <symbol id="i-monitor" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="13" rx="2"/><path d="M8 21h8M12 17v4"/></symbol>
+      <symbol id="i-keyboard" viewBox="0 0 24 24"><rect x="2" y="6" width="20" height="12" rx="2"/><path d="M6 10h.01M10 10h.01M14 10h.01M18 10h.01M7 14h10"/></symbol>
+      <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></symbol>
+      <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></symbol>
+      <symbol id="i-moon" viewBox="0 0 24 24"><path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"/></symbol>
+      <symbol id="i-menu" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"/></symbol>
+      <symbol id="i-download" viewBox="0 0 24 24"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></symbol>
+      <symbol id="i-trash" viewBox="0 0 24 24"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></symbol>
+      <symbol id="i-play" viewBox="0 0 24 24"><path d="M7 4l13 8-13 8z"/></symbol>
+      <symbol id="i-reset" viewBox="0 0 24 24"><path d="M4 12a8 8 0 1 0 2.3-5.7L4 8.6M4 4v4.6h4.6"/></symbol>
+      <symbol id="i-eject" viewBox="0 0 24 24"><path d="M12 5l7 8H5zM5 18h14"/></symbol>
+      <symbol id="i-file" viewBox="0 0 24 24"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6"/></symbol>
+      <symbol id="i-basic" viewBox="0 0 24 24"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6M8 13h8M8 17h5"/></symbol>
+      <symbol id="i-text" viewBox="0 0 24 24"><path d="M4 7V5h16v2M12 5v14M9 19h6"/></symbol>
+      <symbol id="i-cloud" viewBox="0 0 24 24"><path d="M7 18h10.5a4.5 4.5 0 0 0 .6-8.96A6 6 0 0 0 6.3 10.1 4 4 0 0 0 7 18z"/></symbol>
+      <symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></symbol>
+    </defs>
+  </svg>
 
-    <div class="monitor">
-      <canvas id="screen" width="1536" height="1152" tabindex="0"
-              aria-label="TRS-80 screen: click, then type on your keyboard"></canvas>
-      <div id="overlay" class="overlay">
-        <p>To start, choose a <strong>Level II ROM</strong> in the list below,
-          or load your own ROM file (12 KB).</p>
-        <p class="small">TRS-80 ROMs are © Tandy / Microsoft and are not part of this project.
-          The ROM stays in your browser and is never uploaded.</p>
-        <p id="error" class="error" role="alert"></p>
-      </div>
-      <!-- Tablettes : le clavier virtuel n'apparaît que pour un champ de texte. -->
-      <textarea id="touch-input" aria-hidden="true" tabindex="-1" autocomplete="off"
-                autocorrect="off" autocapitalize="off" spellcheck="false"></textarea>
-    </div>
-
-    <div id="touch-keys" class="touch-keys" aria-label="TRS-80 keys for touch screens">
-      <button type="button" id="touch-keyboard" class="secondary">⌨ Keyboard</button>
-      <button type="button" class="secondary" data-key="Escape">BREAK</button>
-      <button type="button" class="secondary" data-key="Home">CLEAR</button>
-      <button type="button" class="secondary" data-key="ArrowUp">↑</button>
-      <button type="button" class="secondary" data-key="ArrowDown">↓</button>
-      <button type="button" class="secondary" data-key="ArrowLeft">←</button>
-      <button type="button" class="secondary" data-key="ArrowRight">→</button>
-      <button type="button" class="secondary" data-key="Enter">ENTER</button>
-    </div>
-
-    <div class="controls">
-      <label for="rom-list">ROM:</label>
-      <select id="rom-list">
-        <option value="">Choose…</option>
-      </select>
-      <label class="button secondary">Load ROM file…
-        <input id="rom-file" type="file" accept=".rom,.bin,application/octet-stream" hidden>
-      </label>
-      <button id="reset" type="button" disabled>Reset</button>
-      <label><input id="turbo" type="checkbox"> Turbo (×10)</label>
-      <span id="speed" class="speed" title="Emulated CPU speed"></span>
-    </div>
-    <div class="controls">
-      <label for="font-list">Font:</label>
-      <select id="font-list"></select>
-      <label title="Model I expansion interface: 40 Hz clock interrupt, used by some programs">
-        <input id="expansion" type="checkbox" checked> Expansion interface (40 Hz clock)</label>
-      <label title="Sound from the cassette output (port FFh), like the real machine">
-        <input id="sound" type="checkbox" checked> Sound</label>
-    </div>
-
-    <div id="rom-tar" class="program-info" hidden>
-      <span>This ROM is only published in the release archive of
-        <a href="https://github.com/kiwisincebirth/TRS-80-ROMS">kiwisincebirth/TRS-80-ROMS</a>,
-        which your browser cannot download directly.</span>
-      <span>1. Download <strong>TRS-80-…-ROM-Images.tar</strong> from the
-        <a href="https://github.com/kiwisincebirth/TRS-80-ROMS/releases/latest">latest release</a>.</span>
-      <span>2. Open the archive here; <strong id="rom-tar-member"></strong> will be extracted from it:</span>
-      <label class="button">Open .tar archive…
-        <input id="tar-file" type="file" accept=".tar,application/x-tar" hidden>
-      </label>
-    </div>
-    <p id="status" class="status" role="status"></p>
-    <p class="small">ROMs in the list are downloaded from
-      <a href="https://github.com/kiwisincebirth/TRS-80-ROMS">github.com/kiwisincebirth/TRS-80-ROMS</a>
-      when you choose them.</p>
-
-    <section class="programs" aria-labelledby="programs-title">
-      <h2 id="programs-title">Programs</h2>
-      <div class="controls">
-        <label for="program-list">Run a program:</label>
-        <select id="program-list" disabled>
-          <option value="">Choose…</option>
-        </select>
-        <label id="cmd-button" class="button secondary disabled">Load program (.CMD, .CAS)…
-          <input id="cmd-file" type="file" accept=".cmd,.cas" hidden disabled>
-        </label>
-        <button id="type-button" type="button" class="secondary" disabled>Type text…</button>
-      </div>
-      <div id="type-panel" class="type-panel" hidden>
-        <label for="type-text">Text to type on the TRS-80 keyboard, for example a BASIC program.
-          You can also paste with Ctrl+V on the screen.</label>
-        <textarea id="type-text" rows="8" spellcheck="false" placeholder="10 PRINT &quot;HELLO&quot;&#10;20 GOTO 10&#10;RUN"></textarea>
-        <div class="controls">
-          <button id="type-send" type="button">Type it</button>
-          <button id="type-stop" type="button" class="secondary">Stop typing</button>
+  <div id="app" class="app">
+    <aside id="sidebar" class="sidebar" aria-label="Emulator menu">
+      <div class="sb-header">
+        <div class="logo" aria-hidden="true">
+          <!-- Blocs semi-graphiques 2 × 3 du TRS-80 -->
+          <svg viewBox="0 0 24 24"><g fill="currentColor" stroke="none">
+            <rect x="5" y="4" width="6" height="4.5" rx="1"/><rect x="13" y="9.75" width="6" height="4.5" rx="1"/>
+            <rect x="5" y="15.5" width="6" height="4.5" rx="1"/><rect x="13" y="15.5" width="6" height="4.5" rx="1" opacity=".45"/>
+            <rect x="13" y="4" width="6" height="4.5" rx="1" opacity=".45"/><rect x="5" y="9.75" width="6" height="4.5" rx="1" opacity=".45"/>
+          </g></svg>
         </div>
+        <div class="sb-title">
+          <strong>TRS-80 Model I</strong>
+          <span>Emulator by VE2CUY</span>
+        </div>
+        <button id="sb-collapse" type="button" class="sb-collapse" aria-label="Collapse the menu" title="Collapse the menu">
+          <svg class="icon"><use href="#i-chevron"/></svg>
+        </button>
+        <button id="sb-close" type="button" class="icon-button sb-close" aria-label="Close the menu">
+          <svg class="icon"><use href="#i-x"/></svg>
+        </button>
       </div>
-      <p id="programs-hint" class="small">Load the Level II ROM first.</p>
-      <div id="program-info" class="program-info" hidden></div>
-    </section>
 
-    <section class="programs" aria-labelledby="disks-title">
-      <h2 id="disks-title">Disks</h2>
-      <div class="controls">
-        <label for="disk-list">Boot a disk:</label>
-        <select id="disk-list" disabled>
-          <option value="">Choose…</option>
-        </select>
+      <nav class="nav">
+        <p class="nav-heading">Emulator</p>
+
+        <div class="nav-group">
+          <button type="button" class="nav-item" aria-expanded="false" aria-controls="panel-machine" data-tip="Machine">
+            <svg class="chev"><use href="#i-chevron"/></svg>
+            <svg class="icon"><use href="#i-cpu"/></svg>
+            <span class="label">Machine</span>
+          </button>
+          <div id="panel-machine" class="nav-panel" hidden>
+            <label class="field">ROM
+              <select id="rom-list"><option value="">Choose…</option></select>
+            </label>
+            <div class="row">
+              <label class="button secondary">Load ROM file…
+                <input id="rom-file" type="file" accept=".rom,.bin,application/octet-stream" hidden>
+              </label>
+              <button type="button" class="secondary with-icon" data-repo="rom">
+                <svg class="icon"><use href="#i-cloud"/></svg>From repository</button>
+            </div>
+            <div id="rom-tar" class="info-box" hidden>
+              <span>This ROM is only published in the release archive of
+                <a href="https://github.com/kiwisincebirth/TRS-80-ROMS">kiwisincebirth/TRS-80-ROMS</a>,
+                which your browser cannot download directly.</span>
+              <span>1. Download <strong>TRS-80-…-ROM-Images.tar</strong> from the
+                <a href="https://github.com/kiwisincebirth/TRS-80-ROMS/releases/latest">latest release</a>.</span>
+              <span>2. Open the archive here; <strong id="rom-tar-member"></strong> will be extracted from it:</span>
+              <label class="button">Open .tar archive…
+                <input id="tar-file" type="file" accept=".tar,application/x-tar" hidden>
+              </label>
+            </div>
+            <label class="switch" title="Model I expansion interface: 40 Hz clock interrupt, used by some programs">
+              <input id="expansion" type="checkbox" checked><span></span>Expansion interface (40 Hz)</label>
+            <label class="switch" title="Sound from the cassette output (port FFh), like the real machine">
+              <input id="sound" type="checkbox" checked><span></span>Sound</label>
+            <label class="switch" title="Imitate the floppy drives: motor hum and head steps">
+              <input id="drive-sound" type="checkbox"><span></span>Disk drive sounds</label>
+            <p class="hint">ROMs in the list are downloaded from
+              <a href="https://github.com/kiwisincebirth/TRS-80-ROMS">kiwisincebirth/TRS-80-ROMS</a>
+              when you choose them. They are © Tandy / Microsoft.</p>
+          </div>
+        </div>
+
+        <div class="nav-group">
+          <button type="button" class="nav-item" aria-expanded="false" aria-controls="panel-programs" data-tip="Programs">
+            <svg class="chev"><use href="#i-chevron"/></svg>
+            <svg class="icon"><use href="#i-tape"/></svg>
+            <span class="label">Programs</span>
+          </button>
+          <div id="panel-programs" class="nav-panel" hidden>
+            <label class="field">Run a program
+              <select id="program-list" disabled><option value="">Choose…</option></select>
+            </label>
+            <label id="cmd-button" class="button secondary disabled">Load program (.CMD, .CAS, .BAS)…
+              <input id="cmd-file" type="file" accept=".cmd,.cas,.bas,.txt" hidden disabled>
+            </label>
+            <div class="row">
+              <button type="button" class="secondary with-icon" data-repo="cmd">
+                <svg class="icon"><use href="#i-cloud"/></svg>Programs</button>
+              <button type="button" class="secondary with-icon" data-repo="bas">
+                <svg class="icon"><use href="#i-cloud"/></svg>BASIC</button>
+              <button id="type-button" type="button" class="secondary" disabled>Type text…</button>
+            </div>
+            <div id="type-panel" class="type-panel" hidden>
+              <label for="type-text" class="hint">Text to type on the TRS-80 keyboard, for example a
+                BASIC program. You can also paste with Ctrl+V on the screen.</label>
+              <textarea id="type-text" rows="8" spellcheck="false" placeholder="10 PRINT &quot;HELLO&quot;&#10;20 GOTO 10&#10;RUN"></textarea>
+              <div class="row">
+                <button id="type-send" type="button">Type it</button>
+                <button id="type-stop" type="button" class="secondary">Stop</button>
+                <button id="type-keep" type="button" class="secondary" title="Save this text in your library as a .BAS file">Keep</button>
+              </div>
+            </div>
+            <p id="programs-hint" class="hint">Load the Level II ROM first.</p>
+          </div>
+        </div>
+
+        <div class="nav-group">
+          <button type="button" class="nav-item" aria-expanded="false" aria-controls="panel-disks" data-tip="Disks">
+            <svg class="chev"><use href="#i-chevron"/></svg>
+            <svg class="icon"><use href="#i-disk"/></svg>
+            <span class="label">Disks</span>
+          </button>
+          <div id="panel-disks" class="nav-panel" hidden>
+            <label class="field">Boot a disk
+              <select id="disk-list" disabled><option value="">Choose…</option></select>
+            </label>
+            <button type="button" class="secondary with-icon" data-repo="disk">
+              <svg class="icon"><use href="#i-cloud"/></svg>Disks from repository</button>
+            <div id="drives" class="drives"></div>
+            <p class="hint">Drive 0 is the boot drive: inserting a disk there restarts the TRS-80 on it.
+              JV1, JV3 and DMK images, single or double density. As on a real Model I, track 0
+              must be single density to boot.</p>
+          </div>
+        </div>
+
+        <div class="nav-group">
+          <button type="button" class="nav-item" aria-expanded="false" aria-controls="panel-library" data-tip="My library">
+            <svg class="chev"><use href="#i-chevron"/></svg>
+            <svg class="icon"><use href="#i-folder"/></svg>
+            <span class="label">My library</span>
+            <span id="library-count" class="badge" hidden></span>
+          </button>
+          <div id="panel-library" class="nav-panel" hidden>
+            <label class="button secondary">Add files…
+              <input id="library-file" type="file" multiple accept=".dsk,.dmk,.jv1,.jv3,.cmd,.cas,.bas,.txt" hidden>
+            </label>
+            <label class="switch"><input id="keep-files" type="checkbox" checked><span></span>Keep the files I open</label>
+            <ul id="library-list" class="library"></ul>
+            <p id="library-empty" class="hint">Disks, programs (.CMD, .CAS) and BASIC listings (.BAS)
+              you keep are stored in this browser, on this device only. Nothing is uploaded.</p>
+            <p id="library-usage" class="hint"></p>
+          </div>
+        </div>
+
+        <div class="nav-group">
+          <button type="button" class="nav-item" aria-expanded="false" aria-controls="panel-repo" data-tip="Repository">
+            <svg class="chev"><use href="#i-chevron"/></svg>
+            <svg class="icon"><use href="#i-cloud"/></svg>
+            <span class="label">Repository</span>
+          </button>
+          <div id="panel-repo" class="nav-panel" hidden>
+            <fieldset class="field segmented four">
+              <legend>Files from the external repository</legend>
+              <label><input type="radio" name="repo-kind" value="rom" checked><span>ROM</span></label>
+              <label><input type="radio" name="repo-kind" value="disk"><span>Disks</span></label>
+              <label><input type="radio" name="repo-kind" value="cmd"><span>CMD</span></label>
+              <label><input type="radio" name="repo-kind" value="bas"><span>BASIC</span></label>
+            </fieldset>
+            <ul id="repo-list" class="library"></ul>
+            <p id="repo-status" class="hint"></p>
+            <details class="repo-settings">
+              <summary>Repository address</summary>
+              <div class="type-panel">
+                <input id="repo-url" type="url" spellcheck="false" autocomplete="off">
+                <div class="row">
+                  <button id="repo-save" type="button">Use</button>
+                  <button id="repo-default" type="button" class="secondary">Default</button>
+                </div>
+                <p class="hint">The repository has the folders <code>rom/</code>, <code>disk/</code>,
+                  <code>cmd/</code> and <code>bas/</code>, each with an <code>index.json</code> listing its
+                  files. Files from your device: use the <em>Load…</em> and <em>Insert…</em> buttons,
+                  or <em>My library</em>.</p>
+              </div>
+            </details>
+          </div>
+        </div>
+
+        <p class="nav-heading">Settings</p>
+
+        <div class="nav-group">
+          <button type="button" class="nav-item" aria-expanded="false" aria-controls="panel-display" data-tip="Display">
+            <svg class="chev"><use href="#i-chevron"/></svg>
+            <svg class="icon"><use href="#i-monitor"/></svg>
+            <span class="label">Display</span>
+          </button>
+          <div id="panel-display" class="nav-panel" hidden>
+            <label class="field">Font
+              <select id="font-list"></select>
+            </label>
+            <fieldset class="field segmented">
+              <legend>Theme</legend>
+              <label><input type="radio" name="theme" value="system" checked><span>System</span></label>
+              <label><input type="radio" name="theme" value="light"><span>Light</span></label>
+              <label><input type="radio" name="theme" value="dark"><span>Dark</span></label>
+            </fieldset>
+          </div>
+        </div>
+
+        <div class="nav-group">
+          <button type="button" class="nav-item" aria-expanded="false" aria-controls="panel-keyboard" data-tip="Keyboard">
+            <svg class="chev"><use href="#i-chevron"/></svg>
+            <svg class="icon"><use href="#i-keyboard"/></svg>
+            <span class="label">Keyboard</span>
+          </button>
+          <div id="panel-keyboard" class="nav-panel" hidden>
+            <table class="keys">
+              <tr><th>TRS-80</th><th>PC</th></tr>
+              <tr><td>ENTER</td><td>Enter</td></tr>
+              <tr><td>BREAK</td><td>Esc or End</td></tr>
+              <tr><td>CLEAR</td><td>Home or Delete</td></tr>
+              <tr><td>← (backspace)</td><td>Backspace or Left arrow</td></tr>
+              <tr><td>→ (tab)</td><td>Tab or Right arrow</td></tr>
+              <tr><td>↑ ↓</td><td>Up and Down arrows</td></tr>
+            </table>
+            <p class="hint">Type symbols as you would on a PC: the emulator handles the TRS-80 Shift
+              key, whose layout is different.</p>
+            <p class="hint">On a tablet or phone, tap the screen (or “⌨ Keyboard”) to show the
+              on-screen keyboard; the buttons under the screen give BREAK, CLEAR, the arrows and ENTER.</p>
+          </div>
+        </div>
+
+        <div class="nav-group">
+          <button type="button" class="nav-item" aria-expanded="false" aria-controls="panel-about" data-tip="About">
+            <svg class="chev"><use href="#i-chevron"/></svg>
+            <svg class="icon"><use href="#i-info"/></svg>
+            <span class="label">About</span>
+          </button>
+          <div id="panel-about" class="nav-panel" hidden>
+            <p class="hint">Version 1.0 · Written in Rust and WebAssembly · Apache 2.0 license.</p>
+            <p class="hint"><a href="https://github.com/ve2cuy/trs80-emu">Source code</a> ·
+              <a href="https://ve2cuy.github.io/blog/">VE2CUY's blog</a></p>
+            <p class="hint">TRS-80 ROMs are © Tandy / Microsoft and are not part of this project.</p>
+          </div>
+        </div>
+      </nav>
+
+      <div class="sb-footer">
+        <span class="label">v1.0</span>
+        <button id="theme-toggle" type="button" class="icon-button" data-tip="Light / dark" aria-label="Switch between light and dark themes">
+          <svg class="icon icon-sun"><use href="#i-sun"/></svg>
+          <svg class="icon icon-moon"><use href="#i-moon"/></svg>
+        </button>
       </div>
-      <div id="drives" class="drives"></div>
-      <p class="small">Drive 0 is the boot drive: inserting a disk there restarts the TRS-80 on it.
-        Disk images: JV1, JV3 and DMK, whatever their extension (.DSK, .DMK…), single or
-        double density (Percom and Radio Shack doublers). As on a real Model I, track 0
-        must be single density to boot.</p>
-      <div id="disk-info" class="program-info" hidden></div>
-    </section>
+    </aside>
+    <div id="backdrop" class="backdrop" hidden></div>
 
-    <details class="help">
-      <summary>Keyboard</summary>
-      <table>
-        <tr><th>TRS-80</th><th>PC</th></tr>
-        <tr><td>ENTER</td><td>Enter</td></tr>
-        <tr><td>BREAK</td><td>Esc or End</td></tr>
-        <tr><td>CLEAR</td><td>Home or Delete</td></tr>
-        <tr><td>← (backspace)</td><td>Backspace or Left arrow</td></tr>
-        <tr><td>→ (tab)</td><td>Tab or Right arrow</td></tr>
-        <tr><td>↑ ↓</td><td>Up and Down arrows</td></tr>
-      </table>
-      <p>Type symbols as you would on a PC: the emulator handles the TRS-80 Shift key,
-        whose layout is different.</p>
-      <p>On a tablet or phone, tap the screen (or “⌨ Keyboard”) to show the on-screen
-        keyboard; the buttons under the screen give BREAK, CLEAR, the arrows and ENTER.</p>
-    </details>
+    <main class="content">
+      <header class="toolbar">
+        <button id="menu-button" type="button" class="icon-button menu-button" aria-label="Open the menu" aria-controls="sidebar">
+          <svg class="icon"><use href="#i-menu"/></svg>
+        </button>
+        <h1>TRS-80 Model I</h1>
+        <div class="toolbar-actions">
+          <span id="speed" class="speed" title="Emulated CPU speed"></span>
+          <label class="switch compact" title="Run ten times faster"><input id="turbo" type="checkbox"><span></span>Turbo</label>
+          <button id="reset" type="button" class="secondary with-icon" disabled>
+            <svg class="icon"><use href="#i-reset"/></svg><span>Reset</span></button>
+        </div>
+      </header>
 
-    <p class="footer">
-      Version 1.0 · Written in Rust and WebAssembly ·
-      <a href="https://github.com/ve2cuy/trs80-emu">Source code</a> ·
-      <a href="https://ve2cuy.github.io/blog/">VE2CUY's blog</a>
-    </p>
-  </main>
+      <div class="stage">
+        <div id="monitor" class="monitor">
+          <canvas id="screen" width="1536" height="1152" tabindex="0"
+                  aria-label="TRS-80 screen: click, then type on your keyboard"></canvas>
+          <div id="overlay" class="overlay">
+            <p>To start, choose a <strong>Level II ROM</strong> in the Machine menu,
+              or load your own ROM file (12 KB).</p>
+            <button id="overlay-menu" type="button">Open the Machine menu</button>
+            <p class="small">TRS-80 ROMs are © Tandy / Microsoft and are not part of this project.
+              The ROM stays in your browser and is never uploaded.</p>
+            <p id="error" class="error" role="alert"></p>
+          </div>
+          <div id="drop-hint" class="drop-hint" hidden>Drop a disk, program or BASIC listing</div>
+          <!-- Tablettes : le clavier virtuel n'apparaît que pour un champ de texte. -->
+          <textarea id="touch-input" aria-hidden="true" tabindex="-1" autocomplete="off"
+                    autocorrect="off" autocapitalize="off" spellcheck="false"></textarea>
+        </div>
+
+        <div id="touch-keys" class="touch-keys" aria-label="TRS-80 keys for touch screens">
+          <button type="button" id="touch-keyboard" class="secondary">⌨ Keyboard</button>
+          <button type="button" class="secondary" data-key="Escape">BREAK</button>
+          <button type="button" class="secondary" data-key="Home">CLEAR</button>
+          <button type="button" class="secondary" data-key="ArrowUp">↑</button>
+          <button type="button" class="secondary" data-key="ArrowDown">↓</button>
+          <button type="button" class="secondary" data-key="ArrowLeft">←</button>
+          <button type="button" class="secondary" data-key="ArrowRight">→</button>
+          <button type="button" class="secondary" data-key="Enter">ENTER</button>
+        </div>
+        <!-- Programme ou disquette en cours : nom et description -->
+        <section id="now-info" class="now-info" aria-live="polite" hidden>
+          <svg id="now-icon" class="icon"><use href="#i-file"/></svg>
+          <div class="now-text">
+            <strong id="now-title"></strong>
+            <span id="now-sub" class="now-sub"></span>
+            <div id="now-lines"></div>
+          </div>
+          <button id="now-close" type="button" class="icon-button small" aria-label="Hide" title="Hide">
+            <svg class="icon"><use href="#i-x"/></svg>
+          </button>
+        </section>
+        <p id="status" class="status" role="status"></p>
+      </div>
+    </main>
+  </div>
   <script type="module" src="main.js?v=dev"></script>
 </body>
 </html>

@@ -88,6 +88,16 @@ impl Emulator {
     }
 
     /// La disquette du lecteur a-t-elle été modifiée par le TRS-80 ?
+    /// Pas de la tête des lecteurs depuis le démarrage (compteur cumulatif).
+    pub fn disk_steps(&self) -> u32 {
+        self.machine.disk_activity().0
+    }
+
+    /// Accès aux lecteurs (commandes, sélections) depuis le démarrage : le moteur tourne.
+    pub fn disk_accesses(&self) -> u32 {
+        self.machine.disk_activity().1
+    }
+
     pub fn disk_modified(&self, drive: u32) -> bool {
         self.machine.disk(drive as usize).is_some_and(|d| d.modified())
     }

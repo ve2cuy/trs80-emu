@@ -117,6 +117,10 @@ pub(crate) struct Fdc {
     now: u64,
     /// Commande de type I en cours : fin prévue et état final.
     pending: Option<(u64, u8)>,
+    /// Compteurs cumulatifs (qui reviennent à zéro après u32::MAX) pour le bruit des
+    /// lecteurs : pas de la tête, et accès (commandes, sélections qui démarrent le moteur).
+    pub(crate) steps: u32,
+    pub(crate) accesses: u32,
 }
 
 impl Fdc {
@@ -140,6 +144,8 @@ impl Fdc {
             trace: Vec::new(),
             now: 0,
             pending: None,
+            steps: 0,
+            accesses: 0,
         }
     }
 
@@ -189,6 +195,9 @@ impl Fdc {
     pub(crate) fn select(&mut self, val: u8) {
         if let Some(d) = (0..DRIVES).find(|d| val & (1 << d) != 0) {
             self.selected = d;
+            if self.drives[d].is_some() {
+                self.accesses = self.accesses.wrapping_add(1);
+            }
         }
     }
 
@@ -246,6 +255,9 @@ impl Fdc {
 
     fn command(&mut self, cmd: u8) {
         self.execute(cmd);
+        if self.disk().is_some() {
+            self.accesses = self.accesses.wrapping_add(1);
+        }
         if self.trace.len() == TRACE_LEN {
             self.trace.remove(0);
         }
@@ -338,6 +350,9 @@ impl Fdc {
         }
         // La tête met un certain temps à se déplacer : occupé jusque-là, puis interruption.
         let steps = start.abs_diff(self.head[d]) as u64;
+        if self.drives[d].is_some() {
+            self.steps = self.steps.wrapping_add(steps as u32);
+        }
         let delay = SETTLE + steps * STEP_TIME[(cmd & 3) as usize] * MS;
         self.status = BUSY | (status & HEAD_LOADED);
         self.transfer = Transfer::None;

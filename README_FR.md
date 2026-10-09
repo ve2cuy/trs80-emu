@@ -42,6 +42,51 @@ sont condensées pour la grille étroite de 64 × 16; les semi-graphiques ne cha
 Les polices web viennent de Google Fonts, téléchargées seulement si on les choisit.
 Lien direct : `?font=vt323`.
 
+## Interface
+
+- **Menu latéral** : Machine (ROM, interface d'expansion, son, bruit des lecteurs), Programs,
+  Disks, My library, Repository, Display (police, thème), Keyboard, About. Sur un ordinateur,
+  on peut le réduire à une colonne d'icônes (bouton rond sur son bord); sur un téléphone,
+  c'est un tiroir qu'on ouvre avec ☰.
+- **Thèmes clair et sombre** : celui du système par défaut; au choix dans Display, ou avec le
+  bouton soleil / lune au bas du menu.
+- **Préférences** (thème, menu, sections ouvertes, son, Turbo, dépôt...) conservées dans le
+  fureteur.
+- **Fiche du programme** : sous l'écran, le nom du programme ou de la disquette en cours, avec
+  sa description quand on la connaît (liste intégrée, dépôt, ou les enregistrements de nom et
+  de droit d'auteur d'un fichier `.CMD`).
+- **Bruit des lecteurs** (Machine) : le ronronnement du moteur et les pas de la tête,
+  synthétisés d'après l'activité du contrôleur.
+- **Glisser-déposer** une disquette, un programme ou un listing BASIC sur l'écran pour le lancer.
+
+### Ma bibliothèque
+
+Disquettes, programmes (`.CMD`, `.CAS`) et listings BASIC (`.BAS`, en texte ou tokenisés) se
+conservent dans le fureteur (IndexedDB, sur cet appareil seulement; rien n'est envoyé) :
+« Add files… », le bouton « Keep » d'un lecteur (avec les modifications faites par le DOS) ou
+du panneau « Type text », ou automatiquement pour les fichiers ouverts (« Keep the files I
+open »). Depuis la bibliothèque : démarrer ou insérer une disquette, lancer un programme,
+télécharger ou supprimer.
+
+### Dépôt externe
+
+Les fichiers viennent de l'appareil (Load…, Insert…, My library) ou d'un dépôt sur le Web,
+par défaut `https://ve2cuy.com/trs80`, modifiable dans la section Repository. Il comporte
+quatre dossiers, `rom/`, `disk/`, `cmd/` et `bas/`, chacun avec un `index.json` qui liste ses
+fichiers, dans le même format que [`www/disks/index.json`](www/disks/index.json) :
+
+```json
+[
+  { "file": "invaders.cmd", "title": "VE2CUY Invaders", "year": 2026, "authors": "VE2CUY",
+    "description": "…", "controls": "Flèches et espace", "license": "…" },
+  "autre.cmd"
+]
+```
+
+Seul `file` est obligatoire (un simple nom de fichier est aussi accepté). Le serveur doit
+permettre les requêtes d'une autre origine (en-tête CORS `Access-Control-Allow-Origin: *`),
+puisque la page est servie depuis une autre adresse.
+
 ## Lancer l'émulateur localement (version 1.0)
 
 Rien à compiler : téléchargez l'archive prête à l'emploi; il suffit de **Python 3** et
@@ -91,7 +136,7 @@ répondre à `MEM SIZE?` avec ENTRÉE.
 - **Liste intégrée** : VE2CUY Invaders ([source](asm/invaders.asm)) et des jeux dont
   l'auteur a autorisé la redistribution (Sea Dragon, Armored Patrol). Voir
   [www/programs/README.md](www/programs/README.md) avant d'en ajouter.
-- **« Load program (.CMD, .CAS)… »** : n'importe quel programme de votre disque; rien
+- **« Load program (.CMD, .CAS, .BAS)… »** : n'importe quel programme de votre disque; rien
   n'est envoyé. Une cassette (`.CAS`) est chargée directement en mémoire : un programme
   en langage machine est lancé, un programme BASIC est exécuté.
 - **Collage de texte** : Ctrl+V sur l'écran, ou « Type text… », tape le texte au clavier

@@ -69,6 +69,19 @@ fn ldos_boots_and_lists_directory() {
     eprintln!("Écran LDOS :\n{}", screen(&m));
 }
 
+/// Le bruit des lecteurs suit leur activité : le démarrage déplace la tête et lit la disquette.
+#[test]
+fn disk_activity_counts_steps_and_accesses() {
+    let Some(rom) = load_rom() else { return };
+    let mut m = Trs80::new(&rom).unwrap();
+    assert_eq!(m.disk_activity(), (0, 0));
+    m.insert_disk(0, ldos()).unwrap();
+    assert!(wait_for(&mut m, "DATE", 20), "LDOS n'a pas démarré. Écran :\n{}", screen(&m));
+    let (steps, accesses) = m.disk_activity();
+    eprintln!("démarrage de LDOS : {steps} pas, {accesses} accès");
+    assert!(steps > 0 && accesses > 10, "pas = {steps}, accès = {accesses}");
+}
+
 #[test]
 #[ignore = "diagnostic"]
 fn ldos_keyboard_debug() {

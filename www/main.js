@@ -20,13 +20,163 @@ const speedBox = document.getElementById('speed');
 const resetButton = document.getElementById('reset');
 const turbo = document.getElementById('turbo');
 const programList = document.getElementById('program-list');
-const programInfo = document.getElementById('program-info');
 const cmdFile = document.getElementById('cmd-file');
 const cmdButton = document.getElementById('cmd-button');
 const programsHint = document.getElementById('programs-hint');
 const typeButton = document.getElementById('type-button');
 const expansion = document.getElementById('expansion');
 const soundBox = document.getElementById('sound');
+const driveSound = document.getElementById('drive-sound');
+const app = document.getElementById('app');
+
+// ------------------------------------------------------------------ préférences
+
+// Conservées dans localStorage (petit objet JSON); les fichiers vont dans IndexedDB.
+const PREFS_KEY = 'trs80-prefs';
+const prefs = {
+  theme: 'system',      // 'system', 'light' ou 'dark'
+  sidebar: null,        // 'expanded' ou 'collapsed' (null : selon la largeur de l'écran)
+  open: ['machine'],    // sections ouvertes du menu
+  turbo: false,
+  sound: true,
+  expansion: true,
+  keepFiles: true,      // garder dans la bibliothèque les fichiers ouverts
+  driveSound: false,    // imiter le bruit des lecteurs de disquettes
+  repo: 'https://ve2cuy.com/trs80', // dépôt externe (dossiers rom, disk, cmd, bas)
+  repoKind: 'rom',
+  ...readPrefs(),
+};
+
+function readPrefs() {
+  try {
+    return JSON.parse(localStorage.getItem(PREFS_KEY)) ?? {};
+  } catch {
+    return {};
+  }
+}
+
+function savePrefs() {
+  try { localStorage.setItem(PREFS_KEY, JSON.stringify(prefs)); } catch { /* stockage indisponible */ }
+}
+
+turbo.checked = prefs.turbo;
+soundBox.checked = prefs.sound;
+expansion.checked = prefs.expansion;
+turbo.addEventListener('change', () => { prefs.turbo = turbo.checked; savePrefs(); focusScreen(); });
+
+// ------------------------------------------------------------------ thème
+
+const darkSystem = matchMedia('(prefers-color-scheme: dark)');
+
+function applyTheme(theme) {
+  prefs.theme = theme;
+  if (theme === 'system') delete document.documentElement.dataset.theme;
+  else document.documentElement.dataset.theme = theme;
+  for (const radio of document.querySelectorAll('input[name="theme"]')) radio.checked = radio.value === theme;
+  savePrefs();
+}
+
+for (const radio of document.querySelectorAll('input[name="theme"]')) {
+  radio.addEventListener('change', () => applyTheme(radio.value));
+}
+// Bouton rapide : passe à l'inverse du thème affiché.
+document.getElementById('theme-toggle').addEventListener('click', () => {
+  const dark = prefs.theme === 'dark' || (prefs.theme === 'system' && darkSystem.matches);
+  applyTheme(dark ? 'light' : 'dark');
+});
+applyTheme(prefs.theme);
+
+// ------------------------------------------------------------------ menu latéral
+
+// Ordinateur et tablette : menu fixe, déplié ou réduit à ses icônes. Téléphone : tiroir.
+const phone = matchMedia('(max-width: 760px)');
+const backdrop = document.getElementById('backdrop');
+const navItems = [...document.querySelectorAll('.nav-item')];
+
+function applySidebar() {
+  const collapsed = !phone.matches
+    && (prefs.sidebar ?? (innerWidth < 1100 ? 'collapsed' : 'expanded')) === 'collapsed';
+  app.classList.toggle('collapsed', collapsed);
+  const button = document.getElementById('sb-collapse');
+  button.title = collapsed ? 'Expand the menu' : 'Collapse the menu';
+  button.setAttribute('aria-label', button.title);
+  if (!phone.matches) setDrawer(false);
+}
+
+function setDrawer(open) {
+  app.classList.toggle('drawer-open', open);
+  backdrop.hidden = !open;
+}
+
+function openPanel(item, open) {
+  item.setAttribute('aria-expanded', String(open));
+  document.getElementById(item.getAttribute('aria-controls')).hidden = !open;
+  prefs.open = navItems.filter((i) => i.getAttribute('aria-expanded') === 'true')
+    .map((i) => i.getAttribute('aria-controls').replace('panel-', ''));
+  savePrefs();
+  if (open) item.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  if (open && item.getAttribute('aria-controls') === 'panel-repo') loadRepo(prefs.repoKind);
+}
+
+/** Ouvre une section du menu (et le menu lui-même s'il est réduit ou fermé). */
+function showPanel(name) {
+  const item = navItems.find((i) => i.getAttribute('aria-controls') === `panel-${name}`);
+  if (phone.matches) setDrawer(true);
+  else if (app.classList.contains('collapsed')) { prefs.sidebar = 'expanded'; applySidebar(); }
+  openPanel(item, true);
+}
+
+for (const item of navItems) {
+  const name = item.getAttribute('aria-controls').replace('panel-', '');
+  item.setAttribute('aria-expanded', String(prefs.open.includes(name)));
+  document.getElementById(`panel-${name}`).hidden = !prefs.open.includes(name);
+  item.addEventListener('click', () => {
+    // Menu réduit : un clic sur une icône le déplie sur sa section.
+    if (app.classList.contains('collapsed')) showPanel(name);
+    else openPanel(item, item.getAttribute('aria-expanded') !== 'true');
+  });
+}
+
+// Menu réduit : le nom de la section en infobulle, à droite de l'icône survolée.
+const tooltip = document.createElement('div');
+tooltip.className = 'tooltip';
+tooltip.hidden = true;
+document.body.append(tooltip);
+for (const el of document.querySelectorAll('.sidebar [data-tip]')) {
+  el.addEventListener('mouseenter', () => {
+    if (!app.classList.contains('collapsed') || !matchMedia('(hover: hover)').matches) return;
+    const r = el.getBoundingClientRect();
+    tooltip.textContent = el.dataset.tip;
+    tooltip.style.left = `${r.right + 10}px`;
+    tooltip.style.top = `${r.top + r.height / 2}px`;
+    tooltip.hidden = false;
+  });
+  el.addEventListener('mouseleave', () => { tooltip.hidden = true; });
+  el.addEventListener('click', () => { tooltip.hidden = true; });
+}
+
+document.getElementById('sb-collapse').addEventListener('click', () => {
+  prefs.sidebar = app.classList.contains('collapsed') ? 'expanded' : 'collapsed';
+  savePrefs();
+  applySidebar();
+});
+document.getElementById('menu-button').addEventListener('click', () => setDrawer(true));
+document.getElementById('sb-close').addEventListener('click', () => setDrawer(false));
+backdrop.addEventListener('click', () => setDrawer(false));
+document.getElementById('overlay-menu').addEventListener('click', () => showPanel('machine'));
+phone.addEventListener('change', applySidebar);
+applySidebar();
+
+/** Rend le clavier à l'écran du TRS-80 (pas sur un écran tactile : le clavier virtuel surgirait). */
+function focusScreen() {
+  if (!matchMedia('(pointer: coarse)').matches) canvas.focus({ preventScroll: true });
+}
+
+/** Après une action qui démarre quelque chose : ferme le tiroir pour montrer l'écran. */
+function showScreen() {
+  if (phone.matches) setDrawer(false);
+  focusScreen();
+}
 
 // Toute erreur imprévue est affichée sous l'écran plutôt que de figer la page en silence.
 function showStatus(message, isError = false) {
@@ -45,15 +195,36 @@ let emulator = null;
 
 // ------------------------------------------------------------------ ROM
 
-// La ROM est conservée dans IndexedDB pour les visites suivantes.
+// IndexedDB conserve la ROM (magasin « roms ») et la bibliothèque de l'utilisateur
+// (magasin « files » : disquettes, programmes, listings BASIC). Version 1 : la ROM seulement.
 const DB_NAME = 'trs80-emu';
+let dbPromise = null;
 
 function openDb() {
-  return new Promise((resolve, reject) => {
-    const req = indexedDB.open(DB_NAME, 1);
-    req.onupgradeneeded = () => req.result.createObjectStore('roms');
+  dbPromise ??= new Promise((resolve, reject) => {
+    const req = indexedDB.open(DB_NAME, 2);
+    req.onupgradeneeded = () => {
+      const db = req.result;
+      if (!db.objectStoreNames.contains('roms')) db.createObjectStore('roms');
+      if (!db.objectStoreNames.contains('files')) {
+        db.createObjectStore('files', { keyPath: 'id', autoIncrement: true });
+      }
+    };
     req.onsuccess = () => resolve(req.result);
     req.onerror = () => reject(req.error);
+  });
+  dbPromise.catch(() => { dbPromise = null; });
+  return dbPromise;
+}
+
+/** Une opération sur un magasin; résolue quand la transaction est terminée. */
+async function dbRequest(store, mode, operation) {
+  const db = await openDb();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(store, mode);
+    const req = operation(tx.objectStore(store));
+    tx.oncomplete = () => resolve(req.result);
+    tx.onerror = tx.onabort = () => reject(tx.error);
   });
 }
 
@@ -61,21 +232,15 @@ function openDb() {
 // de l'utilisateur). Les versions précédentes conservaient seulement les octets.
 async function saveRom(id, bytes) {
   try {
-    const db = await openDb();
-    db.transaction('roms', 'readwrite').objectStore('roms').put({ id, bytes }, 'level2');
+    await dbRequest('roms', 'readwrite', (s) => s.put({ id, bytes }, 'level2'));
   } catch { /* stockage indisponible (navigation privée) : on s'en passe */ }
 }
 
 async function loadSavedRom() {
   try {
-    const db = await openDb();
-    const value = await new Promise((resolve) => {
-      const req = db.transaction('roms').objectStore('roms').get('level2');
-      req.onsuccess = () => resolve(req.result ?? null);
-      req.onerror = () => resolve(null);
-    });
+    const value = await dbRequest('roms', 'readonly', (s) => s.get('level2'));
     if (value instanceof Uint8Array) return { id: 'custom', bytes: value };
-    return value;
+    return value ?? null;
   } catch {
     return null;
   }
@@ -196,6 +361,7 @@ function setRunning(running) {
   programsHint.hidden = running;
   diskList.disabled = !running;
   for (const row of driveRows) row.setEnabled(running);
+  renderLibrary();
 }
 
 function start(bytes) {
@@ -214,7 +380,8 @@ function start(bytes) {
   // Nouvelle ROM : les disquettes déjà insérées le restent (images d'origine).
   for (const row of driveRows) row.reinsert();
   setRunning(true);
-  canvas.focus();
+  hideNowInfo();
+  showScreen();
   return true;
 }
 
@@ -230,7 +397,11 @@ document.getElementById('rom-file').addEventListener('change', async (event) => 
     showStatus(`${file.name} loaded.`);
   }
 });
-resetButton.addEventListener('click', () => { emulator?.reset(); canvas.focus(); });
+resetButton.addEventListener('click', () => {
+  emulator?.reset();
+  if (nowKind !== 'disk') hideNowInfo(); // le programme chargé est perdu
+  focusScreen();
+});
 
 // ------------------------------------------------------------------ programmes
 
@@ -251,9 +422,94 @@ async function loadProgramIndex() {
   }
 }
 
-/** Charge un programme selon son extension : cassette .CAS ou exécutable .CMD. */
-function runFile(bytes, name, label = name) {
+// ------------------------------------------------------------------ programme en cours
+
+// Carte sous l'écran : nom du programme (ou de la disquette) chargé et, si on la connaît,
+// sa description. info = { title, sub, lines: [{ text, muted }] }.
+const nowInfo = document.getElementById('now-info');
+let nowKind = null;
+
+function showNowInfo(info, kind = 'program') {
+  nowKind = kind;
+  document.getElementById('now-icon').firstElementChild
+    .setAttribute('href', `#i-${kind === 'disk' ? 'disk' : kind === 'basic' ? 'basic' : 'file'}`);
+  document.getElementById('now-title').textContent = info.title;
+  const sub = document.getElementById('now-sub');
+  sub.textContent = info.sub ?? '';
+  sub.hidden = !info.sub;
+  document.getElementById('now-lines').replaceChildren(...(info.lines ?? []).filter((l) => l?.text)
+    .map((l) => element('p', l.muted ? 'muted' : '', l.text)));
+  nowInfo.hidden = false;
+}
+
+function hideNowInfo() {
+  nowInfo.hidden = true;
+  nowKind = null;
+}
+document.getElementById('now-close').addEventListener('click', hideNowInfo);
+
+/** Description d'une entrée de programs/index.json, de disks/index.json ou d'un dépôt. */
+function entryInfo(e, name = e.file) {
+  return {
+    title: e.title ?? name,
+    sub: [e.title ? name : null, e.year, e.authors].filter(Boolean).join(' · '),
+    lines: [
+      { text: e.description },
+      { text: e.controls && `Controls: ${e.controls}` },
+      { text: e.license, muted: true },
+    ],
+  };
+}
+
+/**
+ * Enregistrements d'un fichier .CMD qui le décrivent : en-tête (05h, nom du module) et
+ * avis de droit d'auteur (1Fh). Les blocs de chargement (01h) sont sautés.
+ */
+function cmdHeader(bytes) {
+  const found = {};
+  const text = (a, b) => new TextDecoder('latin1').decode(bytes.subarray(a, b)).replace(/[\x00-\x1F]+/g, ' ').trim();
+  for (let i = 0; i + 1 < bytes.length;) {
+    const type = bytes[i];
+    let len = bytes[i + 1];
+    if (type === 0x01 && len < 3) len += 256; // 0, 1, 2 : 256, 257, 258 octets
+    if (type === 0x02) break; // adresse de départ : fin du fichier
+    if (type === 0x05) found.name = text(i + 2, i + 2 + len);
+    if (type === 0x1F) found.copyright = text(i + 2, i + 2 + len);
+    i += 2 + len;
+  }
+  return found;
+}
+
+/** Ce qu'on sait d'un fichier : liste intégrée, dépôt déjà parcouru, sinon le fichier lui-même. */
+function describe(name, bytes) {
+  const lower = name.toLowerCase();
+  const known = programs.find((p) => p.file.toLowerCase() === lower);
+  if (known) return entryInfo(known, name);
+  for (const entries of repoCache.values()) {
+    const e = entries.find((x) => x.file.split('/').pop().toLowerCase() === lower);
+    if (e) return entryInfo(e, name);
+  }
+  const info = { title: name, sub: '', lines: [] };
+  if (/\.cmd$/i.test(name)) {
+    const header = cmdHeader(bytes);
+    if (header.name && header.name.toLowerCase() !== lower.replace(/\.cmd$/, '')) info.sub = `Module ${header.name}`;
+    if (header.copyright) info.lines.push({ text: header.copyright, muted: true });
+  }
+  return info;
+}
+
+/**
+ * Charge un programme selon son extension : cassette .CAS, listing .BAS ou exécutable .CMD,
+ * et affiche son nom et sa description (`info`, sinon cherchée par describe).
+ */
+function runFile(bytes, name, info = null) {
   if (!emulator) return;
+  info ??= describe(name, bytes);
+  if (/\.(bas|txt)$/i.test(name)) {
+    runBasic(bytes, info);
+    return;
+  }
+  const label = info.title;
   try {
     if (/\.cas$/i.test(name)) {
       showStatus(`${label}: ${emulator.load_cas(bytes)}`);
@@ -261,40 +517,40 @@ function runFile(bytes, name, label = name) {
       const entry = emulator.load_cmd(bytes);
       showStatus(`${label} loaded, started at ${entry.toString(16).toUpperCase().padStart(4, '0')}h`);
     }
+    showNowInfo(info, /\.cas$/i.test(name) && info.basic ? 'basic' : 'program');
   } catch (e) {
     showStatus(`Cannot run ${label}: ${e.message ?? e}`, true);
   }
-  canvas.focus();
+  showScreen();
 }
 
-function showProgramInfo(p) {
-  programInfo.replaceChildren();
-  if (!p) {
-    programInfo.hidden = true;
+/**
+ * Programme BASIC : un fichier enregistré par le BASIC disque (FFh puis les lignes
+ * tokenisées) devient une cassette BASIC, chargée comme par CLOAD puis lancée; un listing
+ * en texte est tapé au clavier (NEW, les lignes, RUN).
+ */
+function runBasic(bytes, info) {
+  if (bytes[0] === 0xFF) {
+    const cas = new Uint8Array(255 + 5 + bytes.length - 1); // amorce, A5h, D3h × 3, nom
+    cas.set([0xA5, 0xD3, 0xD3, 0xD3, 0x50], 255);
+    cas.set(bytes.subarray(1), 260);
+    runFile(cas, 'basic.cas', { ...info, basic: true });
     return;
   }
-  const lines = [
-    ['strong', `${p.title} (${p.year}) — ${p.authors}`],
-    ['span', p.description],
-    ['span', `Controls: ${p.controls}`],
-    ['span', p.license],
-  ];
-  for (const [tag, text] of lines) {
-    const el = document.createElement(tag);
-    el.textContent = text;
-    programInfo.append(el);
-  }
-  programInfo.hidden = false;
+  const text = new TextDecoder('latin1').decode(bytes).replace(/\r\n?/g, '\n').trim();
+  emulator.type_text(`NEW\n${text}\nRUN\n`);
+  showStatus(`${info.title}: typing the listing, then RUN…`);
+  showNowInfo(info, 'basic');
+  showScreen();
 }
 
 async function runProgram(id) {
   const p = programs.find((x) => x.id === id);
-  showProgramInfo(p);
   if (!p) return;
   try {
     const res = await fetch(`programs/${p.file}${V}`);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    runFile(new Uint8Array(await res.arrayBuffer()), p.file, p.title);
+    runFile(new Uint8Array(await res.arrayBuffer()), p.file, entryInfo(p));
   } catch (e) {
     showStatus(`Cannot download ${p.title}: ${e.message ?? e}`, true);
   }
@@ -306,65 +562,107 @@ cmdFile.addEventListener('change', async (event) => {
   const file = event.target.files[0];
   if (!file) return;
   programList.value = '';
-  showProgramInfo(null);
-  runFile(new Uint8Array(await file.arrayBuffer()), file.name);
+  const bytes = new Uint8Array(await file.arrayBuffer());
+  runFile(bytes, file.name);
   event.target.value = '';
+  if (prefs.keepFiles) keepFile(file.name, bytes);
 });
 
 // ------------------------------------------------------------------ disquettes
 
 const diskList = document.getElementById('disk-list');
-const diskInfo = document.getElementById('disk-info');
 let disks = [];
 
-/** Une rangée de l'interface par lecteur : nom, Insert…, Eject, Save. */
+/** Élément créé avec sa classe et son texte. */
+function element(tag, className, text) {
+  const el = document.createElement(tag);
+  if (className) el.className = className;
+  if (text) el.textContent = text;
+  return el;
+}
+
+/** Icône du sprite de index.html. */
+function icon(name) {
+  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  svg.setAttribute('class', 'icon');
+  const use = document.createElementNS('http://www.w3.org/2000/svg', 'use');
+  use.setAttribute('href', `#i-${name}`);
+  svg.append(use);
+  return svg;
+}
+
+function iconButton(name, title, extra = '') {
+  const button = element('button', `icon-button small ${extra}`);
+  button.type = 'button';
+  button.title = title;
+  button.setAttribute('aria-label', title);
+  button.append(icon(name));
+  return button;
+}
+
+function download(bytes, fileName) {
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(new Blob([bytes], { type: 'application/octet-stream' }));
+  link.download = fileName;
+  link.click();
+  setTimeout(() => URL.revokeObjectURL(link.href), 1000);
+}
+
+/** Une carte par lecteur : nom de l'image, Insert…, Blank, Eject, Keep, Download. */
 function makeDriveRow(drive) {
-  const row = document.createElement('div');
-  row.className = 'drive';
-  const name = document.createElement('span');
-  name.className = 'drive-name';
-  const insertLabel = document.createElement('label');
-  insertLabel.className = 'button secondary';
-  insertLabel.textContent = 'Insert…';
+  const row = element('div', 'drive');
+  const head = element('div', 'drive-head');
+  const name = element('span', 'drive-name');
+  head.append(element('span', 'drive-no', String(drive)), name);
+  const actions = element('div', 'drive-actions');
+  const insertLabel = element('label', 'button secondary', 'Insert…');
   const input = document.createElement('input');
   input.type = 'file';
   input.accept = '.dsk,.dmk,.jv1,.jv3';
   input.hidden = true;
   insertLabel.append(input);
-  const eject = document.createElement('button');
-  eject.type = 'button';
-  eject.className = 'secondary';
-  eject.textContent = 'Eject';
-  const blank = document.createElement('button');
+  const blank = element('button', 'secondary', 'Blank');
   blank.type = 'button';
-  blank.className = 'secondary';
-  blank.textContent = 'Blank';
   blank.title = 'Insert an unformatted disk, to format from the DOS (e.g. FORMAT :1)';
-  const save = document.createElement('button');
-  save.type = 'button';
-  save.className = 'secondary';
-  save.textContent = 'Save';
+  const eject = iconButton('eject', 'Eject');
+  const keep = iconButton('folder-plus', 'Keep in my library (with its changes)');
+  const save = iconButton('download', 'Download the disk image');
   // Erreur d'insertion, affichée sur la ligne du lecteur pour ne pas passer inaperçue.
-  const error = document.createElement('span');
-  error.className = 'drive-error';
+  const error = element('span', 'drive-error');
   error.setAttribute('role', 'alert');
-  row.append(name, insertLabel, blank, eject, save, error);
+  actions.append(insertLabel, blank, eject, keep, save);
+  row.append(head, actions, error);
   document.getElementById('drives').append(row);
 
-  let current = null; // { name, bytes } : image d'origine
+  let current = null; // { name, bytes, libraryId } : image d'origine
 
   function refresh() {
-    name.textContent = `Drive ${drive}: ${current ? current.name : '(empty)'}`;
+    name.textContent = current ? current.name : 'empty';
+    name.title = current ? current.name : '';
+    name.classList.toggle('empty', !current);
     name.classList.toggle('modified', !!(current && emulator?.disk_modified(drive)));
-    eject.disabled = !current || !emulator;
-    save.disabled = !current || !emulator;
+    eject.disabled = keep.disabled = save.disabled = !current || !emulator;
   }
 
-  function insert(fileName, bytes) {
+  /** Image actuelle (avec les écritures du DOS) et son nom de fichier, ou null. */
+  function currentImage() {
+    const image = emulator?.disk_image(drive);
+    if (!image) {
+      if (current?.bytes && !emulator?.disk_modified(drive)) return { bytes: current.bytes, name: current.name };
+      showStatus('Saving is only supported for JV1 and JV3 images.', true);
+      return null;
+    }
+    // Une disquette reformatée ou une image DMK est enregistrée en JV3 : extension .dsk.
+    const format = emulator.disk_image_format(drive);
+    const fileName = format === 'JV3' ? current.name.replace(/\.(dmk|jv1)$/i, '.dsk') : current.name;
+    return { bytes: image, name: fileName };
+  }
+
+  function insert(fileName, bytes, libraryId = null) {
     if (!emulator) return false;
     try {
       const desc = emulator.insert_disk(drive, bytes);
-      current = { name: fileName, bytes };
+      current = { name: fileName, bytes, libraryId };
       error.textContent = '';
       showStatus(`Drive ${drive}: ${fileName} (${desc}).`);
       refresh();
@@ -377,52 +675,62 @@ function makeDriveRow(drive) {
     }
   }
 
+  /** Insère une disquette; au lecteur 0, redémarre aussitôt dessus. */
+  function insertAndBoot(fileName, bytes, libraryId = null, info = null) {
+    // Lecteurs 1 à 3 : des disquettes de données, insérées pendant que le DOS tourne.
+    if (!insert(fileName, bytes, libraryId)) return false;
+    if (drive === 0) {
+      emulator.reset();
+      showStatus(`Booting ${fileName} from drive 0…`);
+      const known = disks.find((d) => d.file.split('/').pop().toLowerCase() === fileName.toLowerCase());
+      showNowInfo(info ?? (known ? entryInfo(known, fileName) : { title: fileName }), 'disk');
+    }
+    return true;
+  }
+
   input.addEventListener('change', async (event) => {
     const file = event.target.files[0];
     event.target.value = '';
-    // Lecteur 0 : on redémarre aussitôt sur la disquette insérée. Lecteurs 1 à 3 : des
-    // disquettes de données, insérées pendant que le DOS tourne.
-    if (file && insert(file.name, new Uint8Array(await file.arrayBuffer())) && drive === 0) {
-      emulator.reset();
-      showStatus(`Booting ${file.name} from drive 0…`);
+    if (!file) return;
+    const bytes = new Uint8Array(await file.arrayBuffer());
+    if (insertAndBoot(file.name, bytes) && prefs.keepFiles) {
+      const id = await keepFile(file.name, bytes);
+      if (current?.bytes === bytes) current.libraryId = id;
     }
-    canvas.focus();
+    showScreen();
   });
   blank.addEventListener('click', () => {
     if (!emulator) return;
     emulator.insert_blank_disk(drive);
-    current = { name: `blank-${drive}.dsk`, bytes: null };
+    current = { name: `blank-${drive}.dsk`, bytes: null, libraryId: null };
     error.textContent = '';
     showStatus(`Drive ${drive}: blank disk. Format it from the DOS (e.g. FORMAT :${drive}).`);
     refresh();
-    canvas.focus();
+    focusScreen();
   });
   eject.addEventListener('click', () => {
     emulator?.eject_disk(drive);
     current = null;
     error.textContent = '';
     refresh();
-    canvas.focus();
+    focusScreen();
+  });
+  keep.addEventListener('click', async () => {
+    const image = currentImage();
+    if (!image) return;
+    // La disquette vient de la bibliothèque : son entrée est mise à jour.
+    current.libraryId = await keepFile(image.name, image.bytes, { id: current.libraryId });
+    if (current.libraryId != null) showStatus(`${image.name} kept in your library.`);
   });
   save.addEventListener('click', () => {
-    const image = emulator?.disk_image(drive);
-    if (!image) {
-      showStatus('Saving is only supported for JV1 and JV3 images.', true);
-      return;
-    }
-    // Une disquette reformatée ou une image DMK est enregistrée en JV3 : extension .dsk.
-    const format = emulator.disk_image_format(drive);
-    const fileName = format === 'JV3' ? current.name.replace(/\.(dmk|jv1)$/i, '.dsk') : current.name;
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(new Blob([image], { type: 'application/octet-stream' }));
-    link.download = fileName;
-    link.click();
-    URL.revokeObjectURL(link.href);
+    const image = currentImage();
+    if (image) download(image.bytes, image.name);
   });
 
   refresh();
   return {
     insert,
+    insertAndBoot,
     refresh,
     setEnabled(on) {
       insertLabel.classList.toggle('disabled', !on);
@@ -431,7 +739,7 @@ function makeDriveRow(drive) {
       refresh();
     },
     reinsert() {
-      if (current?.bytes) insert(current.name, current.bytes);
+      if (current?.bytes) insert(current.name, current.bytes, current.libraryId);
       else if (current) emulator.insert_blank_disk(drive);
       refresh();
     },
@@ -466,29 +774,328 @@ async function loadDiskIndex() {
 
 async function bootDisk(id) {
   const d = disks.find((x) => x.id === id);
-  diskInfo.replaceChildren();
-  diskInfo.hidden = !d;
   if (!d) return;
-  for (const [tag, text] of [['strong', `${d.title} — ${d.authors ?? ''}`], ['span', d.description], ['span', d.license]]) {
-    if (!text) continue;
-    const el = document.createElement(tag);
-    el.textContent = text;
-    diskInfo.append(el);
-  }
   try {
     const res = await fetch(`disks/${d.file}${V}`);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    if (driveRows[0].insert(d.file, new Uint8Array(await res.arrayBuffer()))) {
-      emulator.reset();
-      showStatus(`Booting ${d.title} from drive 0…`);
-    }
+    const name = d.file.split('/').pop();
+    driveRows[0].insertAndBoot(name, new Uint8Array(await res.arrayBuffer()), null, entryInfo(d, name));
   } catch (e) {
     showStatus(`Cannot download ${d.title}: ${e.message ?? e}`, true);
   }
-  canvas.focus();
+  showScreen();
 }
 
 diskList.addEventListener('change', () => bootDisk(diskList.value));
+
+// ------------------------------------------------------------------ bibliothèque
+
+// Fichiers de l'utilisateur, conservés dans IndexedDB (ce fureteur, cet appareil) :
+// { id, name, kind, bytes, size, updated }.
+const KINDS = [
+  { kind: 'disk', pattern: /\.(dsk|dmk|jv1|jv3)$/i, icon: 'disk', label: 'Disk' },
+  { kind: 'program', pattern: /\.(cmd|cas)$/i, icon: 'file', label: 'Program' },
+  { kind: 'basic', pattern: /\.(bas|txt)$/i, icon: 'basic', label: 'BASIC' },
+];
+const libraryList = document.getElementById('library-list');
+const libraryCount = document.getElementById('library-count');
+const keepFiles = document.getElementById('keep-files');
+let library = [];
+
+keepFiles.checked = prefs.keepFiles;
+keepFiles.addEventListener('change', () => { prefs.keepFiles = keepFiles.checked; savePrefs(); });
+
+function kindOf(name) {
+  return KINDS.find((k) => k.pattern.test(name));
+}
+
+function sameBytes(a, b) {
+  return a.length === b.length && a.every((x, i) => x === b[i]);
+}
+
+/**
+ * Garde un fichier dans la bibliothèque; avec `id`, remplace cette entrée. Un fichier
+ * identique déjà présent n'est pas dupliqué. Retourne l'identifiant, ou null.
+ */
+async function keepFile(name, bytes, { id = null } = {}) {
+  const kind = kindOf(name);
+  if (!kind) {
+    showStatus(`${name}: not a disk, program or BASIC file.`, true);
+    return null;
+  }
+  const twin = library.find((f) => f.name === name && sameBytes(f.bytes, bytes));
+  if (twin && (id == null || twin.id === id)) return twin.id;
+  const item = { name, kind: kind.kind, bytes: bytes.slice(), size: bytes.length, updated: Date.now() };
+  if (id != null && library.some((f) => f.id === id)) item.id = id;
+  try {
+    const newId = await dbRequest('files', 'readwrite', (s) => s.put(item));
+    // Demande au fureteur de ne pas effacer ces données quand l'espace manque.
+    navigator.storage?.persist?.().catch(() => {});
+    await refreshLibrary();
+    return newId;
+  } catch (e) {
+    showStatus(`Cannot keep ${name}: ${e.message ?? e}`, true);
+    return null;
+  }
+}
+
+async function refreshLibrary() {
+  try {
+    library = await dbRequest('files', 'readonly', (s) => s.getAll());
+  } catch {
+    library = [];
+  }
+  library.sort((a, b) => b.updated - a.updated);
+  renderLibrary();
+}
+
+function formatSize(n) {
+  return n < 1024 ? `${n} B` : `${(n / 1024).toFixed(n < 10240 ? 1 : 0)} KB`;
+}
+
+function renderLibrary() {
+  libraryCount.hidden = library.length === 0;
+  libraryCount.textContent = library.length;
+  document.getElementById('library-empty').hidden = library.length > 0;
+  libraryList.replaceChildren(...library.map(libraryItem));
+  navigator.storage?.estimate?.().then(({ usage, quota }) => {
+    document.getElementById('library-usage').textContent = library.length
+      ? `${formatSize(usage)} used of ${formatSize(quota)} available in this browser.` : '';
+  }).catch(() => {});
+}
+
+function libraryItem(file) {
+  const kind = KINDS.find((k) => k.kind === file.kind) ?? KINDS[1];
+  const li = element('li', 'lib-item');
+  const meta = element('div', 'lib-meta');
+  const nameEl = element('span', 'lib-name', file.name);
+  nameEl.title = file.name;
+  meta.append(nameEl, element('span', 'lib-sub',
+    `${kind.label} · ${formatSize(file.size)} · ${new Date(file.updated).toLocaleDateString()}`));
+  const actions = element('div', 'lib-actions');
+
+  if (file.kind === 'disk') {
+    const boot = element('button', 'secondary', 'Boot');
+    boot.type = 'button';
+    boot.title = 'Insert in drive 0 and restart';
+    boot.addEventListener('click', () => {
+      if (driveRows[0].insertAndBoot(file.name, file.bytes, file.id)) showScreen();
+    });
+    const into = element('select');
+    into.title = 'Insert in another drive';
+    into.append(new Option('Drive…', ''), ...[1, 2, 3].map((d) => new Option(`Drive ${d}`, d)));
+    into.addEventListener('change', () => {
+      const d = Number(into.value);
+      into.value = '';
+      if (d && driveRows[d].insert(file.name, file.bytes, file.id)) focusScreen();
+    });
+    actions.append(boot, into);
+  } else {
+    const run = element('button', 'secondary', 'Run');
+    run.type = 'button';
+    run.addEventListener('click', () => runFile(file.bytes, file.name));
+    actions.append(run);
+  }
+  for (const b of actions.querySelectorAll('button, select')) b.disabled = !emulator;
+
+  const get = iconButton('download', 'Download');
+  get.addEventListener('click', () => download(file.bytes, file.name));
+  const del = iconButton('trash', 'Delete from the library', 'danger');
+  del.addEventListener('click', async () => {
+    if (!confirm(`Delete ${file.name} from your library?`)) return;
+    await dbRequest('files', 'readwrite', (s) => s.delete(file.id)).catch(() => {});
+    await refreshLibrary();
+  });
+  actions.append(element('span', 'spacer'), get, del);
+  li.append(icon(kind.icon), meta, actions);
+  return li;
+}
+
+document.getElementById('library-file').addEventListener('change', async (event) => {
+  const files = [...event.target.files];
+  event.target.value = '';
+  for (const file of files) await keepFile(file.name, new Uint8Array(await file.arrayBuffer()));
+  if (files.length) showStatus(`${files.length} file${files.length > 1 ? 's' : ''} added to your library.`);
+});
+
+// ------------------------------------------------------------------ dépôt externe
+
+// Un dépôt sur le Web (par défaut ve2cuy.com/trs80) : dossiers rom/, disk/, cmd/ et bas/,
+// chacun avec un index.json qui liste ses fichiers, comme disks/index.json : des objets
+// { file, title, year, authors, description, license } ou simplement des noms de fichiers.
+// Le serveur doit permettre les requêtes d'une autre origine (CORS).
+const DEFAULT_REPO = 'https://ve2cuy.com/trs80';
+const REPO_ICONS = { rom: 'cpu', disk: 'disk', cmd: 'file', bas: 'basic' };
+const repoList = document.getElementById('repo-list');
+const repoStatus = document.getElementById('repo-status');
+const repoInput = document.getElementById('repo-url');
+const repoCache = new Map(); // adresse d'un index.json -> ses entrées
+
+function repoUrl(path) {
+  return `${prefs.repo.replace(/\/+$/, '')}/${path}`;
+}
+
+async function loadRepo(kind) {
+  prefs.repoKind = kind;
+  savePrefs();
+  for (const radio of document.querySelectorAll('input[name="repo-kind"]')) radio.checked = radio.value === kind;
+  const indexUrl = repoUrl(`${kind}/index.json`);
+  repoList.replaceChildren();
+  repoStatus.textContent = 'Loading…';
+  try {
+    let entries = repoCache.get(indexUrl);
+    if (!entries) {
+      const res = await fetch(indexUrl, { cache: 'no-cache' });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const list = await res.json();
+      if (!Array.isArray(list)) throw new Error('index.json is not a list');
+      entries = list.map((e) => (typeof e === 'string' ? { file: e } : e)).filter((e) => e?.file);
+      repoCache.set(indexUrl, entries);
+    }
+    if (prefs.repoKind !== kind) return; // une autre catégorie a été choisie entre-temps
+    repoStatus.textContent = entries.length ? `${prefs.repo}/${kind}/` : 'This folder is empty.';
+    repoList.replaceChildren(...entries.map((e) => repoItem(kind, e)));
+  } catch (e) {
+    if (prefs.repoKind !== kind) return;
+    const reason = e instanceof TypeError
+      ? 'unreachable, or it does not allow cross-origin requests (CORS)' : e.message;
+    repoStatus.textContent = `Repository not available: ${indexUrl} (${reason}).`;
+  }
+}
+
+async function fetchRepoFile(kind, entry) {
+  const url = repoUrl(`${kind}/${entry.file.split('/').map(encodeURIComponent).join('/')}`);
+  showStatus(`Downloading ${entry.file}…`);
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return new Uint8Array(await res.arrayBuffer());
+}
+
+function repoItem(kind, entry) {
+  const name = entry.file.split('/').pop();
+  const li = element('li', 'lib-item');
+  const meta = element('div', 'lib-meta');
+  const title = element('span', 'lib-name', entry.title ?? name);
+  title.title = [entry.title, entry.description, entry.license].filter(Boolean).join('\n\n') || name;
+  meta.append(title, element('span', 'lib-sub', [name, entry.year, entry.authors].filter(Boolean).join(' · ')));
+  const actions = element('div', 'lib-actions');
+
+  /** Télécharge le fichier puis applique `use`; les erreurs vont dans la ligne d'état. */
+  const withFile = (use, needsEmulator = true) => async () => {
+    if (needsEmulator && !emulator) {
+      showStatus('Load the Level II ROM first.', true);
+      return;
+    }
+    try {
+      await use(await fetchRepoFile(kind, entry));
+    } catch (e) {
+      showStatus(`Cannot download ${name}: ${e.message ?? e}`, true);
+    }
+  };
+  const button = (label, handler, tip) => {
+    const b = element('button', 'secondary', label);
+    b.type = 'button';
+    if (tip) b.title = tip;
+    b.addEventListener('click', handler);
+    actions.append(b);
+  };
+
+  if (kind === 'rom') {
+    button('Load', withFile((bytes) => {
+      if (!start(bytes)) return;
+      romTar.hidden = true;
+      selectRomInList('custom');
+      saveRom('custom', bytes);
+      showStatus(`${entry.title ?? name} loaded from the repository.`);
+    }, false));
+  } else if (kind === 'disk') {
+    button('Boot', withFile((bytes) => {
+      if (driveRows[0].insertAndBoot(name, bytes)) showScreen();
+    }), 'Insert in drive 0 and restart');
+    const into = element('select');
+    into.title = 'Insert in another drive';
+    into.append(new Option('Drive…', ''), ...[1, 2, 3].map((d) => new Option(`Drive ${d}`, d)));
+    into.addEventListener('change', () => {
+      const d = Number(into.value);
+      into.value = '';
+      if (d) withFile((bytes) => driveRows[d].insert(name, bytes))();
+    });
+    actions.append(into);
+  } else {
+    button('Run', withFile((bytes) => runFile(bytes, name, entryInfo(entry, name))));
+  }
+  actions.append(element('span', 'spacer'));
+  if (kind !== 'rom') {
+    const keep = iconButton('folder-plus', 'Keep in my library');
+    keep.addEventListener('click', withFile(async (bytes) => {
+      if ((await keepFile(name, bytes)) != null) showStatus(`${name} kept in your library.`);
+    }, false));
+    actions.append(keep);
+  }
+  const get = iconButton('download', 'Download to this device');
+  get.addEventListener('click', withFile((bytes) => { download(bytes, name); showStatus(''); }, false));
+  actions.append(get);
+  li.append(icon(REPO_ICONS[kind]), meta, actions);
+  return li;
+}
+
+for (const radio of document.querySelectorAll('input[name="repo-kind"]')) {
+  radio.addEventListener('change', () => loadRepo(radio.value));
+}
+// Raccourcis des sections Machine, Programs et Disks.
+for (const b of document.querySelectorAll('[data-repo]')) {
+  b.addEventListener('click', () => {
+    prefs.repoKind = b.dataset.repo;
+    showPanel('repo'); // ouvre la section, qui charge la liste
+  });
+}
+
+function useRepo(address) {
+  let url;
+  try {
+    url = new URL(address);
+    if (!/^https?:$/.test(url.protocol)) throw new Error();
+  } catch {
+    repoStatus.textContent = 'Enter a web address, e.g. https://example.com/trs80';
+    return;
+  }
+  prefs.repo = repoInput.value = url.href.replace(/\/+$/, '');
+  repoCache.clear();
+  loadRepo(prefs.repoKind);
+}
+
+repoInput.value = prefs.repo;
+document.getElementById('repo-save').addEventListener('click', () => useRepo(repoInput.value.trim()));
+repoInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') useRepo(repoInput.value.trim()); });
+document.getElementById('repo-default').addEventListener('click', () => useRepo(DEFAULT_REPO));
+
+// Glisser-déposer sur l'écran : disquette au lecteur 0, programme ou listing lancé.
+const monitor = document.getElementById('monitor');
+const dropHint = document.getElementById('drop-hint');
+monitor.addEventListener('dragover', (e) => {
+  if (!emulator || !e.dataTransfer.types.includes('Files')) return;
+  e.preventDefault();
+  dropHint.hidden = false;
+});
+monitor.addEventListener('dragleave', (e) => {
+  if (!monitor.contains(e.relatedTarget)) dropHint.hidden = true;
+});
+monitor.addEventListener('drop', async (e) => {
+  e.preventDefault();
+  dropHint.hidden = true;
+  const file = e.dataTransfer.files[0];
+  if (!file || !emulator) return;
+  const kind = kindOf(file.name);
+  if (!kind) {
+    showStatus(`${file.name}: not a disk, program or BASIC file.`, true);
+    return;
+  }
+  const bytes = new Uint8Array(await file.arrayBuffer());
+  const id = prefs.keepFiles ? await keepFile(file.name, bytes) : null;
+  if (kind.kind === 'disk') driveRows[0].insertAndBoot(file.name, bytes, id);
+  else runFile(bytes, file.name);
+  focusScreen();
+});
 
 // ------------------------------------------------------------------ frappe de texte
 
@@ -500,7 +1107,7 @@ function typeOnTrs80(text) {
   const accepted = emulator.type_text(text);
   const skipped = [...text.replace(/\r/g, '')].length - accepted;
   showStatus(`Typing ${accepted} characters…` + (skipped > 0 ? ` (${skipped} without a TRS-80 key skipped)` : ''));
-  canvas.focus();
+  showScreen();
 }
 
 typeButton.addEventListener('click', () => {
@@ -511,6 +1118,16 @@ document.getElementById('type-send').addEventListener('click', () => {
   let text = typeText.value;
   if (text && !text.endsWith('\n')) text += '\n';
   typeOnTrs80(text);
+});
+document.getElementById('type-keep').addEventListener('click', async () => {
+  const text = typeText.value.trim();
+  if (!text) return;
+  let name = prompt('Name of the BASIC file in your library:', 'program.bas');
+  if (!name?.trim()) return;
+  name = /\.(bas|txt)$/i.test(name.trim()) ? name.trim() : `${name.trim()}.bas`;
+  if ((await keepFile(name, new TextEncoder().encode(`${text}\n`))) != null) {
+    showStatus(`${name} kept in your library.`);
+  }
 });
 document.getElementById('type-stop').addEventListener('click', () => {
   emulator?.cancel_typing();
@@ -526,7 +1143,9 @@ window.addEventListener('paste', (e) => {
 
 expansion.addEventListener('change', () => {
   emulator?.set_expansion_interface(expansion.checked);
-  canvas.focus();
+  prefs.expansion = expansion.checked;
+  savePrefs();
+  focusScreen();
 });
 
 // ------------------------------------------------------------------ clavier
@@ -685,14 +1304,14 @@ let nextAudioTime = 0;
 const AUDIO_LATENCY = 0.06; // secondes d'avance pour éviter les coupures
 
 function ensureAudio() {
-  if (!soundBox.checked) return;
+  if (!soundBox.checked && !driveSound.checked) return;
   if (!audioCtx) {
     try {
       audioCtx = new AudioContext();
     } catch {
       return; // pas de WebAudio : l'émulateur fonctionne sans son
     }
-    emulator?.set_audio_rate(audioCtx.sampleRate);
+    if (soundBox.checked) emulator?.set_audio_rate(audioCtx.sampleRate);
   }
   if (audioCtx.state === 'suspended') audioCtx.resume();
 }
@@ -706,8 +1325,121 @@ soundBox.addEventListener('change', () => {
   } else {
     emulator?.set_audio_rate(0);
   }
-  canvas.focus();
+  prefs.sound = soundBox.checked;
+  savePrefs();
+  focusScreen();
 });
+
+// ------------------------------------------------------------------ bruit des lecteurs
+
+// Le bruit des lecteurs de disquettes est synthétisé : un ronronnement de moteur (bruit
+// filtré, modulé à 5 Hz comme une disquette à 300 tr/min) tant que le DOS accède au lecteur,
+// et un clic par pas de la tête. Rust ne fournit que deux compteurs (pas, accès).
+const MOTOR_TIMEOUT = 2.5; // s : le moteur du Model I s'arrête quelques secondes après le dernier accès
+let motor = null;          // { gain, on }
+let motorUntil = 0;
+let clickTime = 0;
+let lastSteps = 0;
+let lastAccesses = 0;
+let noiseBuffer = null;
+
+driveSound.checked = prefs.driveSound;
+driveSound.addEventListener('change', () => {
+  prefs.driveSound = driveSound.checked;
+  savePrefs();
+  if (driveSound.checked) ensureAudio();
+  else if (motor) setMotor(false);
+  focusScreen();
+});
+
+/** Une seconde de bruit blanc, partagée par le moteur et les clics. */
+function noise() {
+  if (!noiseBuffer) {
+    const n = audioCtx.sampleRate;
+    noiseBuffer = audioCtx.createBuffer(1, n, n);
+    const data = noiseBuffer.getChannelData(0);
+    for (let i = 0; i < n; i++) data[i] = Math.random() * 2 - 1;
+  }
+  return noiseBuffer;
+}
+
+function createMotor() {
+  const source = audioCtx.createBufferSource();
+  source.buffer = noise();
+  source.loop = true;
+  const filter = audioCtx.createBiquadFilter();
+  filter.type = 'lowpass';
+  filter.frequency.value = 220;
+  // Rotation de la disquette : légère modulation à 5 Hz.
+  const wobble = audioCtx.createGain();
+  const lfo = audioCtx.createOscillator();
+  lfo.frequency.value = 5;
+  const depth = audioCtx.createGain();
+  depth.gain.value = 0.3;
+  lfo.connect(depth).connect(wobble.gain);
+  const gain = audioCtx.createGain();
+  gain.gain.value = 0;
+  source.connect(filter).connect(wobble).connect(gain).connect(audioCtx.destination);
+  source.start();
+  lfo.start();
+  return { gain, on: false };
+}
+
+function setMotor(on) {
+  if (motor.on === on) return;
+  motor.on = on;
+  motor.gain.gain.setTargetAtTime(on ? 0.5 : 0, audioCtx.currentTime, on ? 0.08 : 0.25);
+}
+
+/** Un pas de la tête : claquement bref (bruit filtré) et coup sourd. */
+function stepClick(at) {
+  const source = audioCtx.createBufferSource();
+  source.buffer = noise();
+  const filter = audioCtx.createBiquadFilter();
+  filter.type = 'bandpass';
+  filter.frequency.value = 2200;
+  filter.Q.value = 1.5;
+  const gain = audioCtx.createGain();
+  gain.gain.setValueAtTime(0.5, at);
+  gain.gain.exponentialRampToValueAtTime(0.001, at + 0.02);
+  source.connect(filter).connect(gain).connect(audioCtx.destination);
+  source.start(at, Math.random() * 0.9, 0.03);
+  const thump = audioCtx.createOscillator();
+  thump.frequency.setValueAtTime(140, at);
+  thump.frequency.exponentialRampToValueAtTime(60, at + 0.03);
+  const thumpGain = audioCtx.createGain();
+  thumpGain.gain.setValueAtTime(0.35, at);
+  thumpGain.gain.exponentialRampToValueAtTime(0.001, at + 0.035);
+  thump.connect(thumpGain).connect(audioCtx.destination);
+  thump.start(at);
+  thump.stop(at + 0.04);
+}
+
+/** Appelé à chaque image : fait entendre l'activité des lecteurs depuis l'image précédente. */
+function driveNoise() {
+  const steps = emulator.disk_steps();
+  const accesses = emulator.disk_accesses();
+  // Compteurs plus petits : nouvel émulateur (autre ROM), on repart de là.
+  const newSteps = steps >= lastSteps ? steps - lastSteps : 0;
+  const newAccesses = accesses >= lastAccesses ? accesses - lastAccesses : 0;
+  lastSteps = steps;
+  lastAccesses = accesses;
+  if (!driveSound.checked || !audioCtx || audioCtx.state !== 'running') return;
+  const now = audioCtx.currentTime;
+  if (newAccesses > 0 || newSteps > 0) {
+    motor ??= createMotor();
+    setMotor(true);
+    motorUntil = now + MOTOR_TIMEOUT;
+  } else if (motor?.on && now > motorUntil) {
+    setMotor(false);
+  }
+  // Les pas d'une image sont étalés (environ 6 à 20 ms par pas sur un vrai lecteur).
+  clickTime = Math.max(clickTime, now + 0.02);
+  for (let i = 0; i < Math.min(newSteps, 40); i++) {
+    stepClick(clickTime);
+    clickTime += turbo.checked ? 0.004 : 0.012;
+  }
+}
 
 /** Joue les échantillons produits pendant les dernières images. */
 function playAudio(fast) {
@@ -775,7 +1507,7 @@ async function selectFont(id) {
   if (emulator) draw();
 }
 
-fontList.addEventListener('change', () => { selectFont(fontList.value); canvas.focus(); });
+fontList.addEventListener('change', () => { selectFont(fontList.value); focusScreen(); });
 
 // Dernier contenu dessiné : on ne redessine que si l'écran du TRS-80 a changé.
 let lastVideo = null;
@@ -814,6 +1546,7 @@ function loop(now) {
       const emulated = frames * (turbo.checked ? 10 : emulator.typing() ? 4 : 1);
       emulator.run_frames(emulated);
       playAudio(emulated !== frames);
+      driveNoise();
       frameCount += emulated;
       releaseDueKeys();
       if (screenChanged()) draw();
@@ -830,7 +1563,8 @@ function loop(now) {
   requestAnimationFrame(loop);
 }
 
-await Promise.all([loadProgramIndex(), loadRomIndex(), loadDiskIndex()]);
+await Promise.all([loadProgramIndex(), loadRomIndex(), loadDiskIndex(), refreshLibrary()]);
+if (prefs.open.includes('repo')) loadRepo(prefs.repoKind); // section ouverte à la dernière visite
 const params = new URLSearchParams(location.search);
 // Police : ?font=<id>, sinon la dernière choisie.
 let savedFont = null;
