@@ -9,3 +9,6 @@ repository.workspace = true
 
 [dependencies]
 z80 = { path = "../z80" }
+
+[dev-dependencies]
+z80asm = { path = "../z80asm" }

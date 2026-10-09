@@ -1,0 +1,10 @@
+[package]
+name = "z80asm"
+version = "1.1.0"
+description = "Assembleur Z80 (no_std) : syntaxe des assembleurs TRS-80, fichiers .CMD, diagnostics avec solutions"
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]

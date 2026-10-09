@@ -60,6 +60,7 @@ name = "trs80"
 version = "1.1.0"
 dependencies = [
  "z80",
+ "z80asm",
 ]
 
 [[package]]
@@ -68,6 +69,7 @@ version = "1.1.0"
 dependencies = [
  "trs80",
  "wasm-bindgen",
+ "z80asm",
 ]
 
 [[package]]
@@ -123,4 +125,8 @@ dependencies = [
 
 [[package]]
 name = "z80"
+version = "1.1.0"
+
+[[package]]
+name = "z80asm"
 version = "1.1.0"

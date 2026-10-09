@@ -51,6 +51,7 @@
       <symbol id="i-file" viewBox="0 0 24 24"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6"/></symbol>
       <symbol id="i-basic" viewBox="0 0 24 24"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6M8 13h8M8 17h5"/></symbol>
       <symbol id="i-text" viewBox="0 0 24 24"><path d="M4 7V5h16v2M12 5v14M9 19h6"/></symbol>
+      <symbol id="i-code" viewBox="0 0 24 24"><path d="M8 7l-5 5 5 5M16 7l5 5-5 5M14 4l-4 16"/></symbol>
       <symbol id="i-globe" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/></symbol>
       <symbol id="i-cloud" viewBox="0 0 24 24"><path d="M7 18h10.5a4.5 4.5 0 0 0 .6-8.96A6 6 0 0 0 6.3 10.1 4 4 0 0 0 7 18z"/></symbol>
       <symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></symbol>
@@ -301,6 +302,10 @@
           <button id="reset" type="button" class="secondary with-icon" disabled>
             <svg class="icon"><use href="#i-reset"/></svg><span data-i18n="reset">Reset</span></button>
           <span class="toolbar-sep" aria-hidden="true"></span>
+          <button id="ide-toggle" type="button" class="icon-button" title="Z80 assembler" data-i18n-title="ide.toggle"
+                  aria-label="Z80 assembler" data-i18n-aria="ide.toggle" aria-pressed="false">
+            <svg class="icon"><use href="#i-code"/></svg>
+          </button>
           <!-- Langue : liste native du fureteur, cachée sous un bouton compact (globe et code). -->
           <label class="lang-picker" title="Language" data-i18n-title="display.lang">
             <svg class="icon"><use href="#i-globe"/></svg>
@@ -314,6 +319,55 @@
           </button>
         </div>
       </header>
+
+      <div class="workspace">
+      <!-- Atelier d'assemblage Z80 (ide.js), affiché par le bouton </> de la barre du haut. -->
+      <section id="ide" class="ide" hidden aria-labelledby="ide-title">
+        <h2 id="ide-title" class="visually-hidden" data-i18n="ide.toggle">Z80 assembler</h2>
+        <div class="ide-bar">
+          <label class="ide-name" title="File name on the disk" data-i18n-title="ide.nameTip">
+            <input id="ide-name" maxlength="8" spellcheck="false" autocomplete="off" aria-label="Name" data-i18n-aria="ide.name"><span>/ASM</span>
+          </label>
+          <label class="ide-drive" title="Disk where files are opened and saved" data-i18n-title="ide.driveTip">
+            <svg class="icon"><use href="#i-disk"/></svg>
+            <select id="ide-drive" aria-label="Drive" data-i18n-aria="ide.driveTip">
+              <option value="0">:0</option><option value="1">:1</option><option value="2">:2</option><option value="3">:3</option>
+            </select>
+          </label>
+          <button id="ide-open" type="button" class="secondary" data-i18n="ide.open">Open…</button>
+          <button id="ide-save" type="button" class="secondary" data-i18n="ide.save">Save</button>
+          <span class="ide-gap"></span>
+          <button id="ide-asm" type="button" class="secondary" title="F9" data-i18n="ide.assemble">Assemble</button>
+          <button id="ide-run" type="button" title="F5" data-i18n="ide.run">Run</button>
+          <button id="ide-debug" type="button" class="secondary" data-i18n="ide.debug">Debug</button>
+        </div>
+        <div id="ide-files" class="ide-files" hidden></div>
+        <div class="editor">
+          <div class="gutter-wrap"><div id="ide-gutter" class="gutter" title="Breakpoint" data-i18n-title="ide.breakpointTip"></div></div>
+          <div class="code-area">
+            <div id="ide-highlight" class="code-highlight" aria-hidden="true"></div>
+            <textarea id="ide-source" class="code-input" spellcheck="false" wrap="off" autocomplete="off"
+                      autocapitalize="off" aria-label="Z80 source" data-i18n-aria="ide.sourceLabel"></textarea>
+          </div>
+        </div>
+        <div class="ide-output">
+          <p id="ide-summary" class="ide-summary"></p>
+          <ul id="ide-messages" class="ide-messages"></ul>
+        </div>
+        <div class="ide-more">
+          <button id="ide-new" type="button" class="secondary" data-i18n="ide.new">New</button>
+          <label class="button secondary"><span data-i18n="ide.loadLocal">Open from this device…</span>
+            <input id="ide-local" type="file" accept=".asm,.z80,.src,.txt,.mac" hidden>
+          </label>
+          <button id="ide-dl-asm" type="button" class="secondary" data-i18n="ide.downloadAsm">Download source</button>
+          <button id="ide-dl-cmd" type="button" class="secondary" data-i18n="ide.downloadCmd">Download .CMD</button>
+        </div>
+        <details class="ide-help">
+          <summary data-i18n="ide.help">LDOS services and ROM routines</summary>
+          <p class="hint" data-i18n="ide.helpSyntax"></p>
+          <table class="svc-table"><tbody id="ide-svc"></tbody></table>
+        </details>
+      </section>
 
       <div class="stage">
         <div id="monitor" class="monitor">
@@ -375,6 +429,19 @@
           </button>
         </section>
         <p id="status" class="status" role="status"></p>
+        <!-- Débogueur : commandes et registres (mode atelier). -->
+        <section id="ide-regs" class="ide-regs" hidden>
+          <div class="ide-debugbar">
+            <button id="ide-step" type="button" class="secondary" title="F10" disabled><span data-i18n="ide.step">Step</span></button>
+            <button id="ide-continue" type="button" class="secondary" title="F5" disabled><span data-i18n="ide.continue">Continue</span></button>
+            <button id="ide-stop" type="button" class="secondary" disabled><span data-i18n="ide.stop">Stop</span></button>
+          </div>
+          <p id="ide-state" class="ide-state" aria-live="polite"></p>
+          <div id="ide-reg-grid" class="reg-grid"></div>
+          <div id="ide-flags" class="flags"></div>
+          <div id="ide-mem" class="mem"></div>
+        </section>
+      </div>
       </div>
     </main>
   </div>

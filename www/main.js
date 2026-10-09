@@ -9,7 +9,8 @@ const BUILD = new URL(import.meta.url).searchParams.get('v') ?? 'dev';
 const V = `?v=${BUILD === 'dev' ? Date.now() : BUILD}`;
 
 const { LANGUAGES, browserLanguage, getLanguage, setLanguage, t, localized } = await import(`./i18n.js${V}`);
-const { default: init, Emulator } = await import(`./pkg/trs80_web.js${V}`);
+const { default: init, Emulator, assemble, asm_builtins_json } = await import(`./pkg/trs80_web.js${V}`);
+const { createIde } = await import(`./ide.js${V}`);
 const { FONTS, buildAtlas, drawText } = await import(`./fonts.js${V}`);
 
 const canvas = document.getElementById('screen');
@@ -425,6 +426,7 @@ function start(bytes) {
   for (const row of driveRows) row.reinsert();
   setRunning(true);
   hideNowInfo();
+  ideReset();
   showScreen();
   return true;
 }
@@ -854,6 +856,7 @@ function makeDriveRow(drive) {
       else if (current) emulator.insert_blank_disk(drive);
       refresh();
     },
+    hasDisk: () => !!current,
   };
 }
 
@@ -1668,8 +1671,52 @@ function draw() {
   }
 }
 
+// ------------------------------------------------------------------ atelier d'assemblage
+
+/** Nouvel émulateur : fin de la session de débogage. (start ne s'exécute qu'après la création
+ * de l'atelier, plus bas : premier démarrage en fin de module, puis choix de l'utilisateur.) */
+function ideReset() {
+  ide.reset();
+}
+
+const ide = createIde({
+  t,
+  element,
+  textElement,
+  setTip,
+  iconButton,
+  download,
+  showStatus,
+  showScreen,
+  emulator: () => emulator,
+  assemble,
+  builtins: () => JSON.parse(asm_builtins_json()),
+  hasDos: () => driveRows[0].hasDisk(),
+  diskChanged: () => driveRows.forEach((r) => r.refresh()),
+  redraw: () => {
+    lastVideo = null;
+    if (emulator) draw();
+  },
+});
+languageListeners.push(() => ide.onLanguage());
+
+const ideToggle = document.getElementById('ide-toggle');
+function showIde(on) {
+  app.classList.toggle('ide-mode', on);
+  document.getElementById('ide').hidden = !on;
+  document.getElementById('ide-regs').hidden = !on;
+  ideToggle.setAttribute('aria-pressed', String(on));
+  prefs.ide = on;
+  savePrefs();
+  if (on) ide.show();
+}
+ideToggle.addEventListener('click', () => showIde(!app.classList.contains('ide-mode')));
+showIde(!!prefs.ide || new URLSearchParams(location.search).has('ide'));
+
 function loop(now) {
-  if (emulator) {
+  if (emulator && ide.paused()) {
+    frameDebt = 0; // débogueur en pause : la machine attend
+  } else if (emulator) {
     // Rythme réel de 60 images/s, même si l'écran de l'hôte rafraîchit à 120 Hz ou plus.
     frameDebt += (now - lastTime) * 60 / 1000;
     frameDebt = Math.min(frameDebt, 5); // pas de rattrapage après une pause d'onglet
@@ -1682,6 +1729,7 @@ function loop(now) {
       driveNoise();
       frameCount += emulated;
       releaseDueKeys();
+      ide.afterFrames();
       if (screenChanged()) draw();
       fpsFrames += frames;
     }

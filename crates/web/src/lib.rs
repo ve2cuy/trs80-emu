@@ -204,4 +204,214 @@ impl Emulator {
     pub fn clock_hz() -> u32 {
         trs80::CLOCK_HZ
     }
+
+    // ------------------------------------------------------------ débogueur
+
+    /// Exécute une seule instruction (sans tenir compte des points d'arrêt).
+    pub fn step_instruction(&mut self) {
+        self.machine.step_instruction();
+    }
+
+    pub fn set_breakpoints(&mut self, addresses: &[u16]) {
+        self.machine.set_breakpoints(addresses);
+    }
+
+    /// Arrêt dès que PC revient dans `lo..=hi` (pas à pas); `lo > hi` : plus de surveillance.
+    pub fn set_stop_range(&mut self, lo: u16, hi: u16) {
+        self.machine.set_stop_range((lo <= hi).then_some((lo, hi)));
+    }
+
+    pub fn set_exit_points(&mut self, addresses: &[u16]) {
+        self.machine.set_exit_points(addresses);
+    }
+
+    /// Arrêt survenu : 0 aucun, 1 point d'arrêt, 2 retour dans la plage, 3 fin du programme.
+    pub fn take_stop(&mut self) -> u8 {
+        match self.machine.take_stop() {
+            None => 0,
+            Some(trs80::Stop::Breakpoint) => 1,
+            Some(trs80::Stop::Range) => 2,
+            Some(trs80::Stop::Exit) => 3,
+        }
+    }
+
+    pub fn stopped(&self) -> bool {
+        self.machine.stopped()
+    }
+
+    /// Reprend après un arrêt (l'instruction courante s'exécute même sur un point d'arrêt).
+    pub fn resume(&mut self) {
+        self.machine.resume();
+    }
+
+    /// Registres : AF BC DE HL IX IY SP PC AF' BC' DE' HL' I R IFF1 IM, arrêté (HALT).
+    pub fn registers(&self) -> Vec<u16> {
+        let c = self.machine.cpu();
+        let pair = |h: u8, l: u8| u16::from_be_bytes([h, l]);
+        vec![
+            pair(c.a, c.f), pair(c.b, c.c), pair(c.d, c.e), pair(c.h, c.l), c.ix, c.iy, c.sp, c.pc,
+            pair(c.a_, c.f_), pair(c.b_, c.c_), pair(c.d_, c.e_), pair(c.h_, c.l_),
+            c.i as u16, c.r as u16, c.iff1 as u16, c.im as u16, c.halted as u16,
+        ]
+    }
+
+    /// `len` octets de la mémoire à partir de `addr`.
+    pub fn peek_range(&mut self, addr: u16, len: u16) -> Vec<u8> {
+        (0..len).map(|i| self.machine.peek(addr.wrapping_add(i))).collect()
+    }
+
+    pub fn poke(&mut self, addr: u16, bytes: &[u8]) {
+        self.machine.poke(addr, bytes);
+    }
+
+    /// Lance un programme déjà en mémoire (retour à LDOS ou au BASIC); retourne l'adresse
+    /// de retour (402DH ou 1A19H).
+    pub fn launch(&mut self, entry: u16) -> Result<u16, JsError> {
+        self.machine.launch(entry).map_err(|e| JsError::new(&e.to_string()))
+    }
+
+    // ------------------------------------------------------------ fichiers LDOS
+
+    /// Fichiers de la disquette : JSON [{"name","size","system"}]. Erreur : son code.
+    pub fn disk_files(&self, drive: u32) -> Result<String, JsError> {
+        let files = self.machine.disk_files(drive as usize).map_err(|e| JsError::new(e.code()))?;
+        let items: Vec<String> = files
+            .iter()
+            .map(|f| format!("{{\"name\":{},\"size\":{},\"system\":{}}}", json_string(&f.name), f.size, f.system))
+            .collect();
+        Ok(format!("[{}]", items.join(",")))
+    }
+
+    pub fn read_disk_file(&self, drive: u32, name: &str) -> Result<Vec<u8>, JsError> {
+        self.machine.read_disk_file(drive as usize, name).map_err(|e| JsError::new(e.code()))
+    }
+
+    pub fn write_disk_file(&mut self, drive: u32, name: &str, data: &[u8]) -> Result<(), JsError> {
+        self.machine.write_disk_file(drive as usize, name, data).map_err(|e| JsError::new(e.code()))
+    }
+
+    /// Espace libre (octets) de la disquette.
+    pub fn disk_free(&self, drive: u32) -> Result<u32, JsError> {
+        self.machine.disk_free(drive as usize).map(|n| n as u32).map_err(|e| JsError::new(e.code()))
+    }
+}
+
+// ---------------------------------------------------------------- assembleur
+
+/// Chaîne JSON (guillemets et caractères spéciaux échappés).
+fn json_string(s: &str) -> String {
+    let mut out = String::with_capacity(s.len() + 2);
+    out.push('"');
+    for c in s.chars() {
+        match c {
+            '"' => out.push_str("\\\""),
+            '\\' => out.push_str("\\\\"),
+            c if (c as u32) < 0x20 => out.push_str(&format!("\\u{:04x}", c as u32)),
+            c => out.push(c),
+        }
+    }
+    out.push('"');
+    out
+}
+
+/// Résultat de [`assemble`].
+#[wasm_bindgen]
+pub struct Assembled {
+    asm: z80asm::Assembly,
+}
+
+#[wasm_bindgen]
+impl Assembled {
+    pub fn ok(&self) -> bool {
+        self.asm.ok()
+    }
+
+    pub fn entry(&self) -> u16 {
+        self.asm.entry
+    }
+
+    pub fn size(&self) -> u32 {
+        self.asm.size() as u32
+    }
+
+    /// Le programme appelle-t-il des services de LDOS ?
+    pub fn uses_ldos(&self) -> bool {
+        self.asm.uses_ldos()
+    }
+
+    /// Symboles prédéfinis utilisés : JSON ["@DSPLY", ...].
+    pub fn builtins_used_json(&self) -> String {
+        let items: Vec<String> = self.asm.builtins_used.iter().map(|n| json_string(n)).collect();
+        format!("[{}]", items.join(","))
+    }
+
+    /// Fichier .CMD.
+    pub fn cmd(&self) -> Vec<u8> {
+        self.asm.cmd()
+    }
+
+    /// Première et dernière adresse ([] si le programme est vide).
+    pub fn bounds(&self) -> Vec<u16> {
+        self.asm.bounds().map(|(lo, hi)| vec![lo, hi]).unwrap_or_default()
+    }
+
+    /// Blocs : JSON [[adresse, [octets...]], ...].
+    pub fn blocks_json(&self) -> String {
+        let items: Vec<String> = self
+            .asm
+            .blocks
+            .iter()
+            .map(|(a, b)| format!("[{a},[{}]]", b.iter().map(|x| x.to_string()).collect::<Vec<_>>().join(",")))
+            .collect();
+        format!("[{}]", items.join(","))
+    }
+
+    /// Pour chaque ligne : adresse et nombre d'octets, à plat ([a0, n0, a1, n1, ...]).
+    pub fn lines(&self) -> Vec<u16> {
+        self.asm.lines.iter().flat_map(|l| [l.addr, l.len]).collect()
+    }
+
+    /// Diagnostics : JSON [{"line","warning","code","args","fix","insert"}].
+    pub fn diagnostics_json(&self) -> String {
+        let items: Vec<String> = self
+            .asm
+            .diagnostics
+            .iter()
+            .map(|d| {
+                let args: Vec<String> = d.args.iter().map(|a| json_string(a)).collect();
+                format!(
+                    "{{\"line\":{},\"warning\":{},\"code\":{},\"args\":[{}],\"fix\":{},\"insert\":{}}}",
+                    d.line,
+                    d.warning,
+                    json_string(d.code),
+                    args.join(","),
+                    d.fix.as_deref().map(json_string).unwrap_or_else(|| "null".into()),
+                    d.insert
+                )
+            })
+            .collect();
+        format!("[{}]", items.join(","))
+    }
+
+    /// Symboles du programme : JSON [["NOM", valeur], ...].
+    pub fn symbols_json(&self) -> String {
+        let items: Vec<String> = self.asm.symbols.iter().map(|(n, v)| format!("[{},{v}]", json_string(n))).collect();
+        format!("[{}]", items.join(","))
+    }
+}
+
+/// Assemble un source Z80 (syntaxe des assembleurs TRS-80).
+#[wasm_bindgen]
+pub fn assemble(source: &str) -> Assembled {
+    Assembled { asm: z80asm::assemble(source) }
+}
+
+/// Symboles prédéfinis (services de LDOS, routines de la ROM) : JSON [["@DSPLY", 17511, true], ...].
+#[wasm_bindgen]
+pub fn asm_builtins_json() -> String {
+    let items: Vec<String> = z80asm::builtins::BUILTINS
+        .iter()
+        .map(|b| format!("[{},{},{}]", json_string(b.name), b.value, b.ldos))
+        .collect();
+    format!("[{}]", items.join(","))
 }

@@ -16,6 +16,12 @@ départ, si plus de contexte est nécessaire.
   `index.html`, attributs `data-i18n*`; dans `main.js`, `t('clé', { valeurs })`. Les index
   (`programs/index.json`, `disks/index.json`, `roms.json`, dépôt) peuvent traduire leurs
   champs dans `i18n.<langue>`.
+- `crates/z80asm` (assembleur de l'atelier `</>`, `www/ide.js`) : `no_std`, sans dépendance.
+  Tout changement d'encodage doit garder `cargo test -p z80asm` vert : `tests/data/all.asm`
+  et `asm/invaders.asm` y sont comparés octet par octet à zmac. Codes des diagnostics =
+  clés `asm.e.<code>` de `www/i18n.js` (à traduire dans les quatre langues).
+- Services de LDOS prédéfinis (`crates/z80asm/src/builtins.rs`) : adresses du Model I,
+  vérifiées sous LDOS par `crates/trs80/tests/ide.rs`. Fichiers LDOS : `crates/trs80/src/ldosfs.rs`.
 - `crates/z80` reste `no_std` et sans dépendance : il doit pouvoir tourner sur STM32.
   Le processeur ne connaît la machine qu'à travers le trait `Bus`.
 - Toute nouvelle instruction ou correction du Z80 s'accompagne d'un test dans

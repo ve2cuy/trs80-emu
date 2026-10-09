@@ -200,14 +200,40 @@ TRS-80 Shift key, whose layout is different.
 On a tablet or phone, tap the screen (or "⌨ Keyboard") to show the on-screen keyboard;
 buttons under the screen give BREAK, CLEAR, the arrows and ENTER.
 
+### Z80 assembler
+
+The `</>` button at the top right opens a development environment next to the TRS-80 screen:
+
+- **Editor** with syntax colors and line numbers. Syntax of the assemblers of the time
+  (EDTASM, zmac): labels in column 1 or ending with `:`, `ORG`, `EQU`, `DB`/`DEFB`,
+  `DW`/`DEFW`, `DS`/`DEFS`, `END start`; numbers `4467H`, `0x4467`, `$4467`, `%1010`, `'A'`.
+  All documented Z80 instructions; the output is identical to zmac's (tested on every
+  instruction and on VE2CUY Invaders).
+- **Assemble** (F9): each error is explained, and a **Fix** button proposes the corrected
+  line when it can: misspelled instruction or symbol, hexadecimal number without a leading
+  digit (`FFH` → `0FFH`), `JR` too far (→ `JP`), invalid operands (with the valid forms),
+  Model III address of an LDOS service, missing `ORG`...
+- **LDOS services** without definitions: `CALL @DSPLY`, `@TIME`, `@DATE`, `@EXIT`, `@KEY`,
+  file services (`@FSPEC`, `@INIT`, `@OPEN`, `@READ`, `@WRITE`, `@CLOSE`...) and ROM routines
+  are predefined, with the addresses of LDOS 5.3.1 on the Model I (verified by the tests
+  under LDOS). The list is in the environment; a program's own `EQU` takes precedence.
+- **Run** (F5) or **Debug**: the program is loaded and started like a DOS command; its `RET`
+  or `JP @EXIT` returns to LDOS (or to BASIC without a disk). Click a line number to set a
+  **breakpoint**; **Step** (F10) runs one instruction and steps over calls to LDOS and the
+  ROM. The **registers**, flags, the stack and the bytes at PC and (HL) are shown at each step.
+- **Open / Save** on the disk of the chosen drive: `NAME/ASM` (source, also EDTASM format
+  when reading) and `NAME/CMD` (program, runnable from LDOS: `NAME`). The single-density
+  LDOS system disk is full: use the double-density one, or a data disk.
+
 ## Structure
 
 | Folder | Role |
 | --- | --- |
 | `crates/z80` | `no_std` Z80 core: reusable natively, in WebAssembly or on a microcontroller |
-| `crates/trs80` | The machine (`no_std`): memory map, keyboard, video, pixel rendering |
+| `crates/z80asm` | `no_std` Z80 assembler: diagnostics with fixes, `.CMD` output, LDOS symbols |
+| `crates/trs80` | The machine (`no_std`): memory map, keyboard, video, disks, LDOS files, debugger |
 | `crates/web` | WebAssembly binding (`wasm-bindgen`) |
-| `www/` | The web page: `index.html`, `main.js`, `style.css` |
+| `www/` | The web page: `index.html`, `main.js` (emulator), `ide.js` (assembler), `i18n.js`, `style.css` |
 | `www/programs/` | Freely redistributable programs and their list (`index.json`) |
 | `asm/` | Z80 assembly sources (VE2CUY Invaders), built with zmac |
 | `dist/` | Release packaging (`package.py`), launchers and local instructions |

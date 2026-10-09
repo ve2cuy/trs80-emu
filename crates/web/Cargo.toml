@@ -12,6 +12,7 @@ crate-type = ["cdylib", "rlib"]
 
 [dependencies]
 trs80 = { path = "../trs80" }
+z80asm = { path = "../z80asm" }
 wasm-bindgen = "0.2"
 
 [package.metadata.wasm-pack.profile.release]

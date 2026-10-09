@@ -20,6 +20,7 @@ mod fdc;
 mod cmd;
 mod font;
 mod keyboard;
+pub mod ldosfs;
 mod typer;
 mod video;
 
@@ -28,6 +29,7 @@ pub use disk::{Disk, DiskError, Format};
 pub use fdc::{DRIVES, FdcEvent};
 pub use cmd::CmdError;
 pub use keyboard::Key;
+pub use ldosfs::{DirEntry, FsError};
 pub use video::{SCREEN_HEIGHT, SCREEN_WIDTH};
 
 use keyboard::Keyboard;
@@ -157,6 +159,48 @@ pub struct Trs80 {
     next_rtc: u64,
     typer: Typer,
     audio: Audio,
+    debug: Debug,
+}
+
+/// Raison d'un arrêt du débogueur.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Stop {
+    /// Point d'arrêt atteint.
+    Breakpoint,
+    /// Retour dans la plage surveillée (pas à pas : fin d'un appel au système).
+    Range,
+    /// Adresse de sortie atteinte (retour à LDOS ou au BASIC : le programme est terminé).
+    Exit,
+}
+
+/// Arrêts demandés par le débogueur; vérifiés avant chaque instruction quand l'un d'eux
+/// est actif.
+#[derive(Default)]
+struct Debug {
+    breakpoints: alloc::vec::Vec<u16>,
+    range: Option<(u16, u16)>,
+    exits: alloc::vec::Vec<u16>,
+    stop: Option<Stop>,
+    /// Exécuter la prochaine instruction sans vérifier (reprise sur un point d'arrêt).
+    skip: bool,
+}
+
+impl Debug {
+    fn active(&self) -> bool {
+        !self.breakpoints.is_empty() || self.range.is_some() || !self.exits.is_empty()
+    }
+
+    fn check(&self, pc: u16) -> Option<Stop> {
+        if self.exits.contains(&pc) {
+            Some(Stop::Exit)
+        } else if self.breakpoints.contains(&pc) {
+            Some(Stop::Breakpoint)
+        } else if self.range.is_some_and(|(lo, hi)| (lo..=hi).contains(&pc)) {
+            Some(Stop::Range)
+        } else {
+            None
+        }
+    }
 }
 
 /// Programme chargé depuis une cassette.
@@ -187,7 +231,7 @@ impl Trs80 {
             now: 0,
         };
         board.rom.copy_from_slice(rom);
-        Ok(Trs80 { cpu: Cpu::new(), board, overshoot: 0, next_rtc: RTC_PERIOD, typer: Typer::new(), audio: Audio::new() })
+        Ok(Trs80 { cpu: Cpu::new(), board, overshoot: 0, next_rtc: RTC_PERIOD, typer: Typer::new(), audio: Audio::new(), debug: Debug::default() })
     }
 
     /// Bouton RESET : redémarre le processeur (la RAM est conservée, comme sur la vraie machine).
@@ -210,6 +254,28 @@ impl Trs80 {
     pub fn run_cycles(&mut self, cycles: u32) {
         let mut done = self.overshoot;
         while done < cycles {
+            if self.debug.stop.is_some() {
+                self.overshoot = 0;
+                return;
+            }
+            if self.debug.active() {
+                if self.debug.skip {
+                    self.debug.skip = false;
+                } else if let Some(stop) = self.debug.check(self.cpu.pc) {
+                    self.debug.stop = Some(stop);
+                    self.overshoot = 0;
+                    return;
+                }
+            }
+            done += self.instruction();
+        }
+        self.overshoot = done - cycles;
+    }
+
+    /// Une instruction, puis l'interruption en attente s'il y en a une; retourne les T-states.
+    fn instruction(&mut self) -> u32 {
+        let mut done = 0;
+        {
             let level = Audio::level(self.board.sound);
             self.board.now = self.cpu.cycles;
             self.board.fdc.tick(self.cpu.cycles);
@@ -229,7 +295,115 @@ impl Trs80 {
                 done += t;
             }
         }
-        self.overshoot = done - cycles;
+        done
+    }
+
+    // ------------------------------------------------------------ débogueur
+
+    /// Exécute une seule instruction (et l'interruption qui la suit éventuellement), sans
+    /// tenir compte des points d'arrêt.
+    pub fn step_instruction(&mut self) {
+        self.instruction();
+    }
+
+    /// Points d'arrêt (adresses d'instructions).
+    pub fn set_breakpoints(&mut self, addresses: &[u16]) {
+        self.debug.breakpoints = addresses.to_vec();
+    }
+
+    /// Arrêt dès que PC entre dans `lo..=hi` (pas à pas qui passe par-dessus les appels au
+    /// système et les interruptions). `None` : pas de surveillance.
+    pub fn set_stop_range(&mut self, range: Option<(u16, u16)>) {
+        self.debug.range = range;
+    }
+
+    /// Adresses de sortie : le programme est terminé quand PC les atteint.
+    pub fn set_exit_points(&mut self, addresses: &[u16]) {
+        self.debug.exits = addresses.to_vec();
+    }
+
+    /// Arrêt survenu depuis le dernier appel (l'exécution reste suspendue tant qu'il n'est
+    /// pas lu).
+    pub fn take_stop(&mut self) -> Option<Stop> {
+        self.debug.stop.take()
+    }
+
+    /// Un arrêt attend-il d'être lu ?
+    pub fn stopped(&self) -> bool {
+        self.debug.stop.is_some()
+    }
+
+    /// Reprend après un arrêt : l'instruction courante s'exécute même si c'est un point d'arrêt.
+    pub fn resume(&mut self) {
+        self.debug.stop = None;
+        self.debug.skip = true;
+    }
+
+    /// Écrit des octets en mémoire (la ROM n'est pas modifiable).
+    pub fn poke(&mut self, addr: u16, bytes: &[u8]) {
+        for (i, &b) in bytes.iter().enumerate() {
+            self.board.write(addr.wrapping_add(i as u16), b);
+        }
+    }
+
+    /// Lance un programme déjà en mémoire comme le ferait le système : son RET (ou @EXIT)
+    /// ramène à LDOS si une disquette est dans le lecteur 0, sinon au BASIC.
+    ///
+    /// Sous LDOS, on attend un moment où les interruptions sont permises (hors de la routine
+    /// d'interruption). Sans DOS, le BASIC est amené jusqu'à « READY » et les points d'entrée
+    /// de LDOS les plus simples sont remplacés : @DSPLY affiche vraiment son message, @EXIT
+    /// et @ABORT reviennent au BASIC. Retourne l'adresse de retour (402DH ou 1A19H).
+    pub fn launch(&mut self, entry: u16) -> Result<u16, Error> {
+        let dos = self.board.fdc.drives[0].is_some();
+        let back = if dos {
+            for _ in 0..200_000 {
+                if self.cpu.iff1 && !self.cpu.halted {
+                    break;
+                }
+                self.step_instruction();
+            }
+            0x402D
+        } else {
+            self.boot_to_ready()?;
+            self.install_dos_stubs();
+            // @DSPLY : affiche jusqu'à 0DH (inclus) ou 03H, avec la routine de la ROM (0033H).
+            const DSPLY: u16 = 0x4310;
+            self.poke(DSPLY, &[
+                0x7E, 0xFE, 0x03, 0xC8, 0xE5, 0xCD, 0x33, 0x00, 0xE1, 0x7E, 0x23, 0xFE, 0x0D, 0x20, 0xF1, 0xC9,
+            ]);
+            self.poke(0x4467, &[0xC3, DSPLY as u8, (DSPLY >> 8) as u8]);
+            self.poke(0x402D, &[0xC3, 0x19, 0x1A]); // @EXIT  : JP 1A19H (« READY »)
+            self.poke(0x4030, &[0xC3, 0x19, 0x1A]); // @ABORT
+            0x1A19
+        };
+        self.cpu.sp = self.cpu.sp.wrapping_sub(2);
+        let sp = self.cpu.sp;
+        self.write16(sp, back);
+        self.cpu.halted = false;
+        self.cpu.pc = entry;
+        Ok(back)
+    }
+
+    /// Fichiers de la disquette du lecteur `drive` (LDOS).
+    pub fn disk_files(&self, drive: usize) -> Result<alloc::vec::Vec<DirEntry>, FsError> {
+        ldosfs::list(self.disk(drive).ok_or(FsError::NoDisk)?)
+    }
+
+    /// Contenu d'un fichier de la disquette du lecteur `drive`.
+    pub fn read_disk_file(&self, drive: usize, name: &str) -> Result<alloc::vec::Vec<u8>, FsError> {
+        ldosfs::read_file(self.disk(drive).ok_or(FsError::NoDisk)?, name)
+    }
+
+    /// Écrit un fichier sur la disquette du lecteur `drive` (le remplace s'il existe).
+    pub fn write_disk_file(&mut self, drive: usize, name: &str, data: &[u8]) -> Result<(), FsError> {
+        let disk = self.board.fdc.drives[drive % DRIVES].as_mut().ok_or(FsError::NoDisk)?;
+        ldosfs::write_file(disk, name, data)
+    }
+
+    /// Espace libre de la disquette du lecteur `drive`, en octets.
+    pub fn disk_free(&self, drive: usize) -> Result<usize, FsError> {
+        let (granules, size) = ldosfs::free_space(self.disk(drive).ok_or(FsError::NoDisk)?)?;
+        Ok(granules * size)
     }
 
     /// Exécute une image : 1/60 de seconde de temps machine.

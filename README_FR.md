@@ -204,14 +204,42 @@ s'occupe de la touche MAJ du TRS-80, dont la disposition est différente.
 Sur une tablette ou un téléphone, toucher l'écran (ou « ⌨ Keyboard ») fait apparaître le
 clavier virtuel; des boutons sous l'écran donnent BREAK, CLEAR, les flèches et ENTER.
 
+### Assembleur Z80
+
+Le bouton `</>` en haut à droite ouvre un atelier de développement à côté de l'écran du TRS-80 :
+
+- **Éditeur** avec couleurs et numéros de ligne. Syntaxe des assembleurs de l'époque
+  (EDTASM, zmac) : étiquettes en colonne 1 ou terminées par `:`, `ORG`, `EQU`, `DB`/`DEFB`,
+  `DW`/`DEFW`, `DS`/`DEFS`, `END départ`; nombres `4467H`, `0x4467`, `$4467`, `%1010`, `'A'`.
+  Toutes les instructions documentées du Z80; le code produit est identique à celui de zmac
+  (vérifié sur toutes les instructions et sur VE2CUY Invaders).
+- **Assembler** (F9) : chaque erreur est expliquée, et un bouton **Corriger** propose la ligne
+  corrigée quand c'est possible : instruction ou symbole mal orthographié, nombre hexadécimal
+  sans chiffre en tête (`FFH` → `0FFH`), `JR` trop loin (→ `JP`), opérandes invalides (avec les
+  formes valides), adresse Model III d'un service de LDOS, `ORG` manquant...
+- **Services de LDOS** sans définition : `CALL @DSPLY`, `@TIME`, `@DATE`, `@EXIT`, `@KEY`,
+  services de fichiers (`@FSPEC`, `@INIT`, `@OPEN`, `@READ`, `@WRITE`, `@CLOSE`...) et routines
+  de la ROM sont prédéfinis, aux adresses de LDOS 5.3.1 sur le Model I (vérifiées par les tests
+  sous LDOS). La liste est dans l'atelier; un `EQU` du programme a priorité.
+- **Exécuter** (F5) ou **Déboguer** : le programme est chargé et lancé comme une commande du
+  DOS; son `RET` ou `JP @EXIT` ramène à LDOS (ou au BASIC sans disquette). Un clic sur un numéro
+  de ligne pose un **point d'arrêt**; **Pas** (F10) exécute une instruction et passe par-dessus
+  les appels à LDOS et à la ROM. Les **registres**, les indicateurs, la pile et les octets en
+  PC et en (HL) sont affichés à chaque pas.
+- **Ouvrir / Enregistrer** sur la disquette du lecteur choisi : `NOM/ASM` (source, aussi au
+  format EDTASM en lecture) et `NOM/CMD` (programme, lançable depuis LDOS : `NOM`). La disquette
+  système LDOS en simple densité est pleine : utiliser celle en double densité, ou une disquette
+  de données.
+
 ## Structure
 
 | Dossier | Rôle |
 | --- | --- |
 | `crates/z80` | Cœur Z80 `no_std` : réutilisable en natif, en WebAssembly ou sur microcontrôleur |
-| `crates/trs80` | La machine (`no_std`) : carte mémoire, clavier, vidéo, rendu en pixels |
+| `crates/z80asm` | Assembleur Z80 `no_std` : diagnostics avec corrections, fichiers `.CMD`, symboles de LDOS |
+| `crates/trs80` | La machine (`no_std`) : carte mémoire, clavier, vidéo, disquettes, fichiers LDOS, débogueur |
 | `crates/web` | Liaison WebAssembly (`wasm-bindgen`) |
-| `www/` | La page web : `index.html`, `main.js`, `style.css` |
+| `www/` | La page web : `index.html`, `main.js` (émulateur), `ide.js` (assembleur), `i18n.js`, `style.css` |
 | `www/programs/` | Programmes libres de droits et leur liste (`index.json`) |
 | `asm/` | Sources en assembleur Z80 (VE2CUY Invaders), assemblées avec zmac |
 | `dist/` | Empaquetage des versions (`package.py`), lanceurs et instructions locales |
