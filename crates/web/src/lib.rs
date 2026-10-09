@@ -169,6 +169,16 @@ impl Emulator {
         self.machine.eject_hard_disk(unit as usize);
     }
 
+    /// Écritures sur la disquette du lecteur depuis son insertion (pour l'enregistrer).
+    pub fn disk_writes(&self, drive: u32) -> u32 {
+        self.machine.disk(drive as usize).map_or(0, |d| d.writes())
+    }
+
+    /// Écritures sur le disque dur depuis son insertion (pour l'enregistrer).
+    pub fn hard_disk_writes(&self, unit: u32) -> u32 {
+        self.machine.hard_disk(unit as usize).map_or(0, |d| d.writes())
+    }
+
     /// Le DOS a-t-il écrit sur le disque dur ?
     pub fn hard_disk_modified(&self, unit: u32) -> bool {
         self.machine.hard_disk(unit as usize).is_some_and(|d| d.modified())

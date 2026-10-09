@@ -126,8 +126,14 @@ DIR :2
 Essayé avec LDOS 5.3.1 sur le Model I (disquette double densité) et le Model III, et TRSDOS
 6.2.1 sur le Model 4. Enregistrez la configuration avec `SYSTEM (SYSGEN)` (LDOS 5.3 n'a pas de programme
 SYSGEN) ou `SYSGEN` (TRSDOS 6) pour que le pilote se charge au démarrage, puis gardez la
-disquette système et le disque dur dans Ma bibliothèque (ou téléchargez-les) : recharger la
-page ramène les disquettes d'origine. Le disque dur du Model II viendra
+disquette système et le disque dur dans Ma bibliothèque (ou téléchargez-les) pour en garder
+une copie.
+
+**Reprise de session** (interrupteur « Retrouver les disques au rechargement », section
+Machine, actif par défaut) : les disquettes et les disques durs en place, avec leurs
+modifications (SYSGEN, fichiers copiés…), sont enregistrés dans le fureteur pour chaque
+modèle. Au rechargement de la page, ou en revenant à ce modèle, ils sont remis dans les
+lecteurs et le TRS-80 redémarre sur le lecteur 0. Le disque dur du Model II viendra
 plus tard.
 
 ### Dépôt externe

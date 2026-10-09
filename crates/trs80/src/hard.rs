@@ -59,6 +59,7 @@ pub struct HardDisk {
     heads: usize,
     write_protected: bool,
     modified: bool,
+    writes: u32,
 }
 
 impl HardDisk {
@@ -72,7 +73,7 @@ impl HardDisk {
         if per_cyl % SECTORS_PER_TRACK != 0 || heads == 0 || heads > MAX_HEADS {
             return Err(HardError::Geometry);
         }
-        Ok(HardDisk { write_protected: data[7] & 0x80 != 0, data, heads, modified: false })
+        Ok(HardDisk { write_protected: data[7] & 0x80 != 0, data, heads, modified: false, writes: 0 })
     }
 
     /// Image vierge (non formatée) : `cylinders` cylindres de `heads` têtes. L'en-tête seul
@@ -117,6 +118,11 @@ impl HardDisk {
         self.modified
     }
 
+    /// Nombre d'écritures depuis l'insertion (revient à zéro après `u32::MAX`).
+    pub fn writes(&self) -> u32 {
+        self.writes
+    }
+
     /// L'image, avec les écritures du DOS.
     pub fn image(&self) -> &[u8] {
         &self.data
@@ -139,6 +145,7 @@ impl HardDisk {
         }
         self.data[at..at + data.len()].copy_from_slice(data);
         self.modified = true;
+        self.writes = self.writes.wrapping_add(1);
     }
 }
 

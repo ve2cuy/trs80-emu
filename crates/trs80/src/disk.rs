@@ -80,6 +80,9 @@ pub struct Disk {
     pub(crate) sectors: Vec<Sector>,
     pub(crate) write_protected: bool,
     pub(crate) modified: bool,
+    /// Écritures depuis l'ouverture (compteur qui revient à zéro après u32::MAX) : la page
+    /// sait ainsi quand réenregistrer l'image.
+    pub(crate) writes: u32,
     /// Pistes reformatées (ou image DMK) : `data` ne suit plus la disposition du fichier
     /// d'origine; l'image à enregistrer est alors produite au format JV3.
     pub(crate) rebuilt: bool,
@@ -143,7 +146,7 @@ impl Disk {
                 }
             })
             .collect();
-        Disk { format: Format::Jv1, data: image, sectors, write_protected: false, modified: false, rebuilt: false }
+        Disk { format: Format::Jv1, data: image, sectors, write_protected: false, modified: false, writes: 0, rebuilt: false }
     }
 
     /// JV3 : vérifie que les descripteurs sont plausibles et que les tailles concordent.
@@ -204,7 +207,7 @@ impl Disk {
                 break;
             }
         }
-        Some(Disk { format: Format::Jv3, data: Vec::new(), sectors, write_protected, modified: false, rebuilt: false })
+        Some(Disk { format: Format::Jv3, data: Vec::new(), sectors, write_protected, modified: false, writes: 0, rebuilt: false })
     }
 
     /// DMK : en-tête de 16 octets, puis les pistes (table IDAM de 128 octets + données brutes).
@@ -289,6 +292,7 @@ impl Disk {
             sectors,
             write_protected: image[0] == 0xFF,
             modified: false,
+            writes: 0,
             rebuilt: true,
         }))
     }
@@ -373,7 +377,7 @@ impl Disk {
                 _ => 3,
             };
         }
-        Ok(Disk { format: Format::Imd, data, sectors, write_protected: false, modified: false, rebuilt: true })
+        Ok(Disk { format: Format::Imd, data, sectors, write_protected: false, modified: false, writes: 0, rebuilt: true })
     }
 
     /// Disquette vierge (non formatée), à formater par le DOS. Enregistrée en JV3.
@@ -384,6 +388,7 @@ impl Disk {
             sectors: Vec::new(),
             write_protected: false,
             modified: false,
+            writes: 0,
             rebuilt: true,
         }
     }
@@ -403,6 +408,11 @@ impl Disk {
     /// La disquette a-t-elle été modifiée depuis son ouverture ?
     pub fn modified(&self) -> bool {
         self.modified
+    }
+
+    /// Nombre d'écritures depuis l'ouverture (revient à zéro après `u32::MAX`).
+    pub fn writes(&self) -> u32 {
+        self.writes
     }
 
     /// Image à enregistrer : le fichier d'origine (JV1, JV3) avec les secteurs écrits, ou,
@@ -467,6 +477,7 @@ impl Disk {
         }
         self.rebuilt = true;
         self.modified = true;
+        self.writes = self.writes.wrapping_add(1);
     }
 
     /// Indice du secteur `sector` sur la piste `track`, dans la densité demandée.
@@ -511,6 +522,7 @@ impl Disk {
             *flags = (*flags & !0x60) | (code << 5);
         }
         self.modified = true;
+        self.writes = self.writes.wrapping_add(1);
     }
 }
 

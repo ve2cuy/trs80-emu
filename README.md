@@ -121,7 +121,12 @@ DIR :2
 Tested with LDOS 5.3.1 on the Model I (double-density disk) and Model III, and TRSDOS 6.2.1
 on the Model 4. Save the configuration with `SYSTEM (SYSGEN)` (LDOS 5.3 has no SYSGEN program) or
 `SYSGEN` (TRSDOS 6) so that the driver loads at boot, then keep the system disk and the hard
-disk in My library (or download them): reloading the page brings back the original disks. The Model II hard disk will come later.
+disk in My library (or download them) to keep a copy.
+
+**Session restore** (switch "Keep disks after reload", Machine section, on by default): the
+disks and hard disks in the drives, with their changes (SYSGEN, copied files…), are saved in
+the browser for each model. When the page is reloaded, or when you come back to that model,
+they are put back in the drives and the TRS-80 restarts on drive 0. The Model II hard disk will come later.
 
 ### External repository
 

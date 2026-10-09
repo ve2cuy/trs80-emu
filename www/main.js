@@ -43,6 +43,7 @@ const prefs = {
   sound: true,
   expansion: true,
   keepFiles: true,      // garder dans la bibliothèque les fichiers ouverts
+  keepSession: true,    // retrouver les disques (avec leurs écritures) au rechargement
   driveSound: false,    // imiter le bruit des lecteurs de disquettes
   repo: 'https://ve2cuy.com/trs80', // dépôt externe (dossiers rom, disk, cmd, bas)
   repoKind: 'rom',
@@ -238,13 +239,15 @@ let dbPromise = null;
 
 function openDb() {
   dbPromise ??= new Promise((resolve, reject) => {
-    const req = indexedDB.open(DB_NAME, 2);
+    const req = indexedDB.open(DB_NAME, 3);
     req.onupgradeneeded = () => {
       const db = req.result;
       if (!db.objectStoreNames.contains('roms')) db.createObjectStore('roms');
       if (!db.objectStoreNames.contains('files')) {
         db.createObjectStore('files', { keyPath: 'id', autoIncrement: true });
       }
+      // Reprise de session : disques en place, par modèle.
+      if (!db.objectStoreNames.contains('session')) db.createObjectStore('session');
     };
     req.onsuccess = () => resolve(req.result);
     req.onerror = () => reject(req.error);
@@ -427,6 +430,9 @@ languageListeners.push(() => {
 
 /** Autre modèle : la ROM de sa famille (conservée, sinon celle de la liste) le démarre. */
 async function changeModel(model) {
+  // Les disques du modèle quitté sont enregistrés; ceux du nouveau modèle seront remis.
+  await saveSession(true);
+  sessionReady = false;
   prefs.model = model;
   savePrefs();
   applyModel();
@@ -449,6 +455,7 @@ async function changeModel(model) {
     selectRomInList(defaultRom());
     await chooseListedRom(defaultRom());
   }
+  await restoreSession();
 }
 modelList.addEventListener('change', () => changeModel(Number(modelList.value)));
 
@@ -825,6 +832,7 @@ function makeDriveRow(drive) {
   document.getElementById('drives').append(row);
 
   let current = null; // { name, bytes, libraryId } : image d'origine
+  let version = 0; // change à chaque insertion ou éjection (reprise de session)
 
   function refresh() {
     name.textContent = current ? current.name : t('drive.empty');
@@ -854,6 +862,7 @@ function makeDriveRow(drive) {
     try {
       const desc = emulator.insert_disk(drive, bytes);
       current = { name: fileName, bytes, libraryId };
+      version++;
       error.textContent = '';
       showStatus(t('drive.inserted', { n: drive, name: fileName, desc: diskMessage(desc) }));
       refresh();
@@ -894,6 +903,7 @@ function makeDriveRow(drive) {
     if (!emulator) return;
     emulator.insert_blank_disk(drive);
     current = { name: `blank-${drive}.dsk`, bytes: null, libraryId: null };
+    version++;
     error.textContent = '';
     showStatus(t('drive.blankStatus', { n: drive }));
     refresh();
@@ -902,6 +912,7 @@ function makeDriveRow(drive) {
   eject.addEventListener('click', () => {
     emulator?.eject_disk(drive);
     current = null;
+    version++;
     error.textContent = '';
     refresh();
     focusScreen();
@@ -938,8 +949,18 @@ function makeDriveRow(drive) {
     /** Vide le lecteur (autre modèle : ses disquettes ne conviennent plus). */
     clear() {
       current = null;
+      version++;
       error.textContent = '';
       refresh();
+    },
+    /** Reprise de session : ce qui identifie le contenu actuel (nom, insertion, écritures). */
+    signature: () => (current ? `${current.name}#${version}#${emulator?.disk_writes(drive) ?? 0}` : '-'),
+    /** Reprise de session : l'image actuelle, avec les écritures du DOS. */
+    snapshot() {
+      if (!current || !emulator) return null;
+      const modified = emulator.disk_modified(drive) || !current.bytes;
+      const bytes = modified ? emulator.disk_image(drive) : current.bytes;
+      return bytes ? { name: current.name, bytes } : null;
     },
   };
 }
@@ -987,6 +1008,7 @@ function makeHardRow(unit) {
   document.getElementById('hard-drives').append(row);
 
   let current = null; // { name, bytes, libraryId } : image d'origine (null pour un disque neuf)
+  let version = 0; // change à chaque insertion ou éjection (reprise de session)
 
   function refresh() {
     name.textContent = current ? current.name : t('drive.empty');
@@ -1002,6 +1024,7 @@ function makeHardRow(unit) {
     try {
       const desc = emulator.insert_hard_disk(unit, bytes);
       current = { name: fileName, bytes, libraryId };
+      version++;
       error.textContent = '';
       showStatus(t('hd.inserted', { n: unit + 1, name: fileName, desc }));
       refresh();
@@ -1037,6 +1060,7 @@ function makeHardRow(unit) {
   eject.addEventListener('click', () => {
     emulator?.eject_hard_disk(unit);
     current = null;
+    version++;
     error.textContent = '';
     refresh();
     focusScreen();
@@ -1069,16 +1093,76 @@ function makeHardRow(unit) {
         try { emulator.insert_hard_disk(unit, image); } catch { current = null; }
       } else if (prefs.model === 2) {
         current = null;
+        version++;
       }
       refresh();
     },
     image: () => (current ? emulator?.hard_disk_image(unit) : null),
+    signature: () => (current ? `${current.name}#${version}#${emulator?.hard_disk_writes(unit) ?? 0}` : '-'),
+    snapshot() {
+      const bytes = current ? emulator?.hard_disk_image(unit) : null;
+      return bytes ? { name: current.name, bytes } : null;
+    },
   };
 }
 
 const hardRows = [0, 1].map(makeHardRow);
 languageListeners.push(() => hardRows.forEach((r) => r.refresh()));
 setInterval(() => hardRows.forEach((r) => r.refresh()), 1000);
+
+// ------------------------------------------------------------------ reprise de session
+
+// Les disquettes et les disques durs en place, avec les écritures du DOS (SYSGEN, fichiers
+// copiés...), sont enregistrés dans IndexedDB pour chaque modèle (clé « model-<n> ») au fil
+// de l'utilisation. Au rechargement de la page (ou au retour sur ce modèle), ils sont remis
+// dans les lecteurs et le TRS-80 redémarre sur le lecteur 0.
+const sessionBox = document.getElementById('keep-session');
+sessionBox.checked = prefs.keepSession;
+sessionBox.addEventListener('change', () => {
+  prefs.keepSession = sessionBox.checked;
+  savePrefs();
+});
+let sessionReady = false; // faux pendant un changement de modèle ou une restauration
+let savedSignature = null;
+
+function sessionSignature() {
+  return [...driveRows, ...hardRows].map((r) => r.signature()).join('|');
+}
+
+async function saveSession(force = false) {
+  if (!sessionReady || !emulator || !prefs.keepSession) return;
+  const signature = sessionSignature();
+  if (!force && signature === savedSignature) return;
+  savedSignature = signature;
+  const value = { drives: driveRows.map((r) => r.snapshot()), hard: hardRows.map((r) => r.snapshot()), saved: Date.now() };
+  try {
+    await dbRequest('session', 'readwrite', (s) => s.put(value, `model-${prefs.model}`));
+  } catch { /* stockage indisponible (navigation privée) : on s'en passe */ }
+}
+setInterval(saveSession, 3000);
+document.addEventListener('visibilitychange', () => { if (document.hidden) saveSession(); });
+addEventListener('pagehide', () => saveSession());
+
+/** Remet les disques de la session précédente de ce modèle; vrai s'il y en avait. */
+async function restoreSession() {
+  let value = null;
+  if (emulator && prefs.keepSession) {
+    try {
+      value = await dbRequest('session', 'readonly', (s) => s.get(`model-${prefs.model}`));
+    } catch { value = null; }
+  }
+  const any = !!value && [...(value.drives ?? []), ...(value.hard ?? [])].some(Boolean);
+  if (any) {
+    value.hard?.forEach((h, i) => { if (h && hardRows[i]) hardRows[i].insert(h.name, h.bytes); });
+    value.drives?.forEach((d, i) => { if (d && i > 0) driveRows[i].insert(d.name, d.bytes); });
+    const boot = value.drives?.[0];
+    if (boot) driveRows[0].insertAndBoot(boot.name, boot.bytes);
+    showStatus(t('session.restored'));
+  }
+  savedSignature = sessionSignature();
+  sessionReady = true;
+  return any;
+}
 languageListeners.push(() => driveRows.forEach((r) => r.refresh()));
 // Le DOS peut écrire sur la disquette : on met à jour l'indication « modified ».
 setInterval(() => driveRows.forEach((r) => r.refresh()), 1000);
@@ -2128,6 +2212,8 @@ if (emulator) {
     diskList.value = diskParam;
     await bootDisk(diskParam);
   }
+  // Sinon, les disques de la session précédente (avec leurs écritures).
+  if (!diskParam && !params.get('program')) await restoreSession();
   // Lien direct vers un programme : ?program=seadragon
   const program = params.get('program');
   if (program) {
@@ -2141,4 +2227,5 @@ if (emulator) {
     draw();
   }
 }
+sessionReady ||= !emulator || !!params.get('disk') || !!params.get('program');
 requestAnimationFrame(loop);

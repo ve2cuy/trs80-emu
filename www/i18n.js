@@ -1249,6 +1249,9 @@ Object.assign(STRINGS.zh, {
 
 // ---------------------------------------------------------------- modèles
 Object.assign(STRINGS.en, {
+  'opt.session': 'Keep disks after reload',
+  'opt.session.tip': 'Keep the disks and hard disks in the drives, with their changes (SYSGEN, copied files…), when the page is reloaded; the TRS-80 then restarts on drive 0',
+  'session.restored': 'Disks of the previous session restored (with their changes).',
   'more': 'More information',
   'clip.paste': 'Paste text (Ctrl+V): it is typed on the TRS-80',
   'clip.copy': 'Copy the screen text (Ctrl+C)',
@@ -1265,7 +1268,7 @@ Object.assign(STRINGS.en, {
   'hd.modified': 'modified',
   'hd.inserted': 'Hard disk {n}: {name} ({desc}).',
   'hd.newStatus': 'Hard disk {n}: new 10 MB disk. Install the RSHARD driver, then format it with RSFORM.',
-  'hd.hint': 'Radio Shack hard disk (WD1010 controller, ports C0h-CFh), Model I, III and 4; Reed images (<code>.hdv</code>), as with xtrs, trs80gp and FreHD. The DOS needs the <strong>RSHARD</strong> driver (disk <em>RSHARD drivers</em>, Disks list): with LDOS 5.3, <code>SYSTEM (DRIVE=2,DISABLE,DRIVER="RSHARD5")</code> (accept the proposed values: 306 tracks, 4 heads), then <code>RSFORM5 :2</code>; with LS-DOS / TRSDOS 6, <code>RSHARD6</code> and <code>RSFORM6</code>. To load the driver at boot, save the configuration: <code>SYSTEM (SYSGEN)</code> under LDOS 5.3 (there is no SYSGEN program), <code>SYSGEN</code> under TRSDOS 6. Then keep the system disk and the hard disk in My library (or download them): reloading the page brings back the original disks.',
+  'hd.hint': 'Radio Shack hard disk (WD1010 controller, ports C0h-CFh), Model I, III and 4; Reed images (<code>.hdv</code>), as with xtrs, trs80gp and FreHD. The DOS needs the <strong>RSHARD</strong> driver (disk <em>RSHARD drivers</em>, Disks list): with LDOS 5.3, <code>SYSTEM (DRIVE=2,DISABLE,DRIVER="RSHARD5")</code> (accept the proposed values: 306 tracks, 4 heads), then <code>RSFORM5 :2</code>; with LS-DOS / TRSDOS 6, <code>RSHARD6</code> and <code>RSFORM6</code>. To load the driver at boot, save the configuration: <code>SYSTEM (SYSGEN)</code> under LDOS 5.3 (there is no SYSGEN program), <code>SYSGEN</code> under TRSDOS 6. They stay in the drives after a reload (Machine: “Keep disks after reload”); keep them in My library or download them for a copy.',
   'kind.hard': 'Hard disk',
   'repo.pick': 'File',
   'repo.helpModels': 'Files are sorted by model in subfolders (<code>disk/model3/</code>…); each <code>index.json</code> entry gives its <code>model</code> (1, 2, 3, 4 or a list). Only the files of the chosen model are shown, unless <em>All models</em> is checked.',
@@ -1276,6 +1279,9 @@ Object.assign(STRINGS.en, {
 Object.assign(STRINGS.en, { 'model.label': 'Model', 'model.1': 'TRS-80 Model I', 'model.2': 'TRS-80 Model II',
   'rom.ownM2': 'Model II: load your own 2 KB boot ROM (ROM menu), then a TRSDOS-II disk (.imd, .dmk).', 'model.3': 'TRS-80 Model III', 'model.4': 'TRS-80 Model 4' });
 Object.assign(STRINGS.fr, {
+  'opt.session': 'Retrouver les disques au rechargement',
+  'opt.session.tip': 'Garder les disquettes et les disques durs dans les lecteurs, avec leurs modifications (SYSGEN, fichiers copiés…), quand la page est rechargée; le TRS-80 redémarre alors sur le lecteur 0',
+  'session.restored': 'Disques de la session précédente remis en place (avec leurs modifications).',
   'more': 'Plus d’information',
   'clip.paste': 'Coller du texte (Ctrl+V) : il est tapé sur le TRS-80',
   'clip.copy': 'Copier le texte de l’écran (Ctrl+C)',
@@ -1292,7 +1298,7 @@ Object.assign(STRINGS.fr, {
   'hd.modified': 'modifié',
   'hd.inserted': 'Disque dur {n} : {name} ({desc}).',
   'hd.newStatus': 'Disque dur {n} : nouveau disque de 10 Mo. Installez le pilote RSHARD, puis formatez-le avec RSFORM.',
-  'hd.hint': 'Disque dur Radio Shack (contrôleur WD1010, ports C0h-CFh), Model I, III et 4; images Reed (<code>.hdv</code>), comme xtrs, trs80gp et FreHD. Le DOS a besoin du pilote <strong>RSHARD</strong> (disquette <em>Pilotes RSHARD</em> de la liste Disquettes) : avec LDOS 5.3, <code>SYSTEM (DRIVE=2,DISABLE,DRIVER="RSHARD5")</code> (acceptez les valeurs proposées : 306 pistes, 4 têtes), puis <code>RSFORM5 :2</code>; avec LS-DOS / TRSDOS 6, <code>RSHARD6</code> et <code>RSFORM6</code>. Pour charger le pilote au démarrage, enregistrez la configuration : <code>SYSTEM (SYSGEN)</code> sous LDOS 5.3 (il n’y a pas de programme SYSGEN), <code>SYSGEN</code> sous TRSDOS 6. Gardez ensuite la disquette système et le disque dur dans Ma bibliothèque (ou téléchargez-les) : recharger la page ramène les disquettes d’origine.',
+  'hd.hint': 'Disque dur Radio Shack (contrôleur WD1010, ports C0h-CFh), Model I, III et 4; images Reed (<code>.hdv</code>), comme xtrs, trs80gp et FreHD. Le DOS a besoin du pilote <strong>RSHARD</strong> (disquette <em>Pilotes RSHARD</em> de la liste Disquettes) : avec LDOS 5.3, <code>SYSTEM (DRIVE=2,DISABLE,DRIVER="RSHARD5")</code> (acceptez les valeurs proposées : 306 pistes, 4 têtes), puis <code>RSFORM5 :2</code>; avec LS-DOS / TRSDOS 6, <code>RSHARD6</code> et <code>RSFORM6</code>. Pour charger le pilote au démarrage, enregistrez la configuration : <code>SYSTEM (SYSGEN)</code> sous LDOS 5.3 (il n’y a pas de programme SYSGEN), <code>SYSGEN</code> sous TRSDOS 6. Ils restent dans les lecteurs après un rechargement (Machine : « Retrouver les disques au rechargement »); gardez-les dans Ma bibliothèque ou téléchargez-les pour en avoir une copie.',
   'kind.hard': 'Disque dur',
   'repo.pick': 'Fichier',
   'repo.helpModels': 'Les fichiers sont rangés par modèle dans des sous-dossiers (<code>disk/model3/</code>…); chaque entrée de <code>index.json</code> indique son <code>model</code> (1, 2, 3, 4 ou une liste). Seuls les fichiers du modèle choisi sont affichés, sauf si <em>Tous les modèles</em> est coché.',
@@ -1303,6 +1309,9 @@ Object.assign(STRINGS.fr, {
 Object.assign(STRINGS.fr, { 'model.label': 'Modèle', 'model.1': 'TRS-80 Model I', 'model.2': 'TRS-80 Model II',
   'rom.ownM2': 'Model II : chargez votre ROM d’amorçage de 2 Ko (menu ROM), puis une disquette TRSDOS-II (.imd, .dmk).', 'model.3': 'TRS-80 Model III', 'model.4': 'TRS-80 Model 4' });
 Object.assign(STRINGS.es, {
+  'opt.session': 'Conservar los discos al recargar',
+  'opt.session.tip': 'Conservar los disquetes y los discos duros en las unidades, con sus cambios (SYSGEN, archivos copiados…), al recargar la página; el TRS-80 arranca entonces desde la unidad 0',
+  'session.restored': 'Discos de la sesión anterior restaurados (con sus cambios).',
   'more': 'Más información',
   'clip.paste': 'Pegar texto (Ctrl+V): se teclea en el TRS-80',
   'clip.copy': 'Copiar el texto de la pantalla (Ctrl+C)',
@@ -1319,7 +1328,7 @@ Object.assign(STRINGS.es, {
   'hd.modified': 'modificado',
   'hd.inserted': 'Disco duro {n}: {name} ({desc}).',
   'hd.newStatus': 'Disco duro {n}: nuevo disco de 10 MB. Instale el controlador RSHARD y luego formatéelo con RSFORM.',
-  'hd.hint': 'Disco duro Radio Shack (controlador WD1010, puertos C0h-CFh), Model I, III y 4; imágenes Reed (<code>.hdv</code>), como xtrs, trs80gp y FreHD. El DOS necesita el controlador <strong>RSHARD</strong> (disquete <em>Controladores RSHARD</em> de la lista de discos): con LDOS 5.3, <code>SYSTEM (DRIVE=2,DISABLE,DRIVER="RSHARD5")</code> (acepte los valores propuestos: 306 pistas, 4 cabezas) y luego <code>RSFORM5 :2</code>; con LS-DOS / TRSDOS 6, <code>RSHARD6</code> y <code>RSFORM6</code>. Para cargar el controlador al arrancar, guarde la configuración: <code>SYSTEM (SYSGEN)</code> en LDOS 5.3 (no existe un programa SYSGEN), <code>SYSGEN</code> en TRSDOS 6. Luego guarde el disquete de sistema y el disco duro en Mi biblioteca (o descárguelos): al recargar la página vuelven los discos originales.',
+  'hd.hint': 'Disco duro Radio Shack (controlador WD1010, puertos C0h-CFh), Model I, III y 4; imágenes Reed (<code>.hdv</code>), como xtrs, trs80gp y FreHD. El DOS necesita el controlador <strong>RSHARD</strong> (disquete <em>Controladores RSHARD</em> de la lista de discos): con LDOS 5.3, <code>SYSTEM (DRIVE=2,DISABLE,DRIVER="RSHARD5")</code> (acepte los valores propuestos: 306 pistas, 4 cabezas) y luego <code>RSFORM5 :2</code>; con LS-DOS / TRSDOS 6, <code>RSHARD6</code> y <code>RSFORM6</code>. Para cargar el controlador al arrancar, guarde la configuración: <code>SYSTEM (SYSGEN)</code> en LDOS 5.3 (no existe un programa SYSGEN), <code>SYSGEN</code> en TRSDOS 6. Permanecen en las unidades tras recargar (Máquina: «Conservar los discos al recargar»); guárdelos en Mi biblioteca o descárguelos para tener una copia.',
   'kind.hard': 'Disco duro',
   'repo.pick': 'Archivo',
   'repo.helpModels': 'Los archivos se ordenan por modelo en subcarpetas (<code>disk/model3/</code>…); cada entrada de <code>index.json</code> indica su <code>model</code> (1, 2, 3, 4 o una lista). Solo se muestran los archivos del modelo elegido, salvo si <em>Todos los modelos</em> está marcado.',
@@ -1330,6 +1339,9 @@ Object.assign(STRINGS.es, {
 Object.assign(STRINGS.es, { 'model.label': 'Modelo', 'model.1': 'TRS-80 Model I', 'model.2': 'TRS-80 Model II',
   'rom.ownM2': 'Model II: cargue su propia ROM de arranque de 2 KB (menú ROM) y luego un disco TRSDOS-II (.imd, .dmk).', 'model.3': 'TRS-80 Model III', 'model.4': 'TRS-80 Model 4' });
 Object.assign(STRINGS.zh, {
+  'opt.session': '重新加载后保留磁盘',
+  'opt.session.tip': '重新加载页面时，保留驱动器中的软盘和硬盘及其修改（SYSGEN、复制的文件……）；TRS-80 随后从 0 号驱动器重新启动',
+  'session.restored': '已恢复上次会话的磁盘（包括修改）。',
   'more': '更多信息',
   'clip.paste': '粘贴文本（Ctrl+V）：在 TRS-80 上键入',
   'clip.copy': '复制屏幕文本（Ctrl+C）',
@@ -1346,7 +1358,7 @@ Object.assign(STRINGS.zh, {
   'hd.modified': '已修改',
   'hd.inserted': '硬盘 {n}：{name}（{desc}）。',
   'hd.newStatus': '硬盘 {n}：新的 10 MB 硬盘。请安装 RSHARD 驱动程序，然后用 RSFORM 格式化。',
-  'hd.hint': 'Radio Shack 硬盘（WD1010 控制器，端口 C0h-CFh），适用于 Model I、III 和 4；Reed 映像（<code>.hdv</code>），与 xtrs、trs80gp 和 FreHD 相同。DOS 需要 <strong>RSHARD</strong> 驱动程序（磁盘列表中的 <em>RSHARD 驱动程序</em>）：LDOS 5.3 下输入 <code>SYSTEM (DRIVE=2,DISABLE,DRIVER="RSHARD5")</code>（接受建议值：306 磁道、4 磁头），然后 <code>RSFORM5 :2</code>；LS-DOS / TRSDOS 6 下使用 <code>RSHARD6</code> 和 <code>RSFORM6</code>。要在启动时自动加载驱动程序，请保存配置：LDOS 5.3 下输入 <code>SYSTEM (SYSGEN)</code>（没有 SYSGEN 程序），TRSDOS 6 下输入 <code>SYSGEN</code>。然后把系统盘和硬盘保存到“我的文件库”（或下载）：重新加载页面会恢复原始磁盘。',
+  'hd.hint': 'Radio Shack 硬盘（WD1010 控制器，端口 C0h-CFh），适用于 Model I、III 和 4；Reed 映像（<code>.hdv</code>），与 xtrs、trs80gp 和 FreHD 相同。DOS 需要 <strong>RSHARD</strong> 驱动程序（磁盘列表中的 <em>RSHARD 驱动程序</em>）：LDOS 5.3 下输入 <code>SYSTEM (DRIVE=2,DISABLE,DRIVER="RSHARD5")</code>（接受建议值：306 磁道、4 磁头），然后 <code>RSFORM5 :2</code>；LS-DOS / TRSDOS 6 下使用 <code>RSHARD6</code> 和 <code>RSFORM6</code>。要在启动时自动加载驱动程序，请保存配置：LDOS 5.3 下输入 <code>SYSTEM (SYSGEN)</code>（没有 SYSGEN 程序），TRSDOS 6 下输入 <code>SYSGEN</code>。重新加载后它们仍留在驱动器中（机器：“重新加载后保留磁盘”）；如需副本，请保存到“我的文件库”或下载。',
   'kind.hard': '硬盘',
   'repo.pick': '文件',
   'repo.helpModels': '文件按型号存放在子文件夹中（<code>disk/model3/</code>…）；<code>index.json</code> 的每个条目注明其 <code>model</code>（1、2、3、4 或列表）。只显示所选型号的文件，除非勾选“所有型号”。',
