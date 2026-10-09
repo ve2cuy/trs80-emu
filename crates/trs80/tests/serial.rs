@@ -1,7 +1,8 @@
 //! Port série RS-232 (UART, ports E8h-EBh) avec le programme de communication LCOMM de LDOS :
 //! ce qu'on tape part sur la ligne, ce qui arrive de la ligne s'affiche.
 //!
-//! Exige la ROM du modèle dans `crates/trs80/tests/roms/` (non fournie : test ignoré sinon).
+//! Exige la ROM du modèle dans `crates/trs80/tests/roms/` (non fournie : test ignoré sinon);
+//! Model 4 : TRSDOS 6.2.1 `m4-trsdos621.dsk` en plus.
 
 use trs80::{Model, Trs80};
 
@@ -92,4 +93,25 @@ fn model3_lcomm_over_rs232() {
     m.insert_disk(0, published("ldos-531-m3.dsk")).unwrap();
     // RS232T : réception par interruption (bit 5 du port E0h).
     lcomm_talks(&mut m, "SET *CL RS232T (BAUD=2400,WORD=8,PARITY=OFF)");
+}
+
+#[test]
+fn model4_comm_over_rs232() {
+    // TRSDOS 6.2.1 (80 colonnes) : pilote COM/DVR, paramètres par SETCOM, terminal COMM.
+    let (Some(rom), Some(dos)) = (local("M3_REVC.bin"), local("m4-trsdos621.dsk")) else { return };
+    let mut m = Trs80::with_model(&rom, Model::IV).unwrap();
+    m.insert_disk(0, dos).unwrap();
+    assert!(wait_for(&mut m, "TRSDOS Ready", 15), "Écran :\n{}", screen(&m));
+    type_line(&mut m, "SET *CL COM/DVR\nSETCOM (BAUD=2400,WORD=8,PARITY=OFF)\nCOMM *CL");
+    assert!(wait_for(&mut m, "CLEAR-8", 10), "COMM ne démarre pas. Écran :\n{}", screen(&m));
+    assert_eq!(m.text_mode().cols, 80);
+    m.serial_take();
+    type_line(&mut m, "ATDT BBS");
+    (0..120).for_each(|_| m.run_frame());
+    let sent = m.serial_take();
+    assert!(sent.windows(8).any(|w| w.eq_ignore_ascii_case(b"ATDT BBS")), "émis : {sent:02X?}");
+    m.serial_send(b"\r\nCONNECT 2400\r\nWELCOME TO THE BBS\r\n");
+    (0..300).for_each(|_| m.run_frame());
+    let s = screen(&m);
+    assert!(s.contains("CONNECT 2400") && s.contains("WELCOME TO THE BBS"), "Écran :\n{s}");
 }

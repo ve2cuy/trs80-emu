@@ -151,11 +151,21 @@ LCOMM *CL
 ATDT bbs.electrodrome.net                                   dans LCOMM : CONNECT, puis le BBS
 ```
 
+TRSDOS 6.2.1 (Model 4, 80 colonnes) :
+
+```
+SET *CL COM/DVR
+SETCOM (BAUD=2400,WORD=8,PARITY=OFF)
+COMM *CL
+ATDT bbs.electrodrome.net
+```
+
+
 `+++` (avec une pause avant et après) revient au mode commande du modem, `ATO` retourne en
 ligne, `ATH` ou le bouton Raccrocher (section Modem) termine l'appel. Le modem retire les
 séquences ANSI (couleurs, curseur) que le TRS-80 ne peut pas afficher (interrupteur dans la
 section Modem). Sur le Model I, `BREAK=255` contourne un défaut du pilote RS232R de LDOS
-5.3.1, qui sinon perd chaque caractère reçu. Essayé avec LDOS 5.3.1 (Model I et III); le
+5.3.1, qui sinon perd chaque caractère reçu. Essayé avec LDOS 5.3.1 (Model I et III) et TRSDOS 6.2.1 (Model 4); le
 Model II viendra plus tard.
 
 ### Dépôt externe

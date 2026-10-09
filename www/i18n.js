@@ -1250,7 +1250,7 @@ Object.assign(STRINGS.zh, {
 // ---------------------------------------------------------------- modèles
 Object.assign(STRINGS.en, {
   'nav.modem': 'Modem',
-  'modem.idle': 'No connection. In LCOMM, type ATDT bbs.electrodrome.net',
+  'modem.idle': 'No connection. In LCOMM or COMM, type ATDT bbs.electrodrome.net',
   'modem.dialing': 'Dialing {host}…',
   'modem.online': 'Online: {host}',
   'modem.command': 'Connected to {host} (command mode: ATO to go back online)',
@@ -1261,7 +1261,7 @@ Object.assign(STRINGS.en, {
   'modem.relaySet': 'Telnet relay: {url}',
   'modem.badRelay': 'Enter a WebSocket address, e.g. wss://example.com/trs80/relay',
   'modem.relayHelp': 'The browser cannot open telnet connections: a relay (<code>server/telnet-relay</code> in the source code) makes the link. Only <code>bbs.electrodrome.net</code> is allowed for now.',
-  'modem.help': 'The RS-232 port (Model I, III and 4) is connected to a virtual Hayes modem that reaches BBSes over telnet. Under LDOS 5.3.1: <code>SET *KI KI</code>, then <code>SET *CL RS232R (BAUD=2400,WORD=8,PARITY=OFF,BREAK=255)</code> on the Model I (<code>RS232T</code> on the Model III), then <code>LCOMM *CL</code>. In LCOMM, type <code>ATDT bbs.electrodrome.net</code>: CONNECT means online. <code>+++</code> (with a pause before and after) returns to command mode; <code>ATH</code> or the Hang up button ends the call. BREAK=255 works around a flaw of the Model I RS232R driver, which otherwise loses every received character.',
+  'modem.help': 'The RS-232 port (Model I, III and 4) is connected to a virtual Hayes modem that reaches BBSes over telnet. Under LDOS 5.3.1: <code>SET *KI KI</code>, then <code>SET *CL RS232R (BAUD=2400,WORD=8,PARITY=OFF,BREAK=255)</code> on the Model I (<code>RS232T</code> on the Model III), then <code>LCOMM *CL</code>. On the Model 4 under TRSDOS 6.2.1: <code>SET *CL COM/DVR</code>, <code>SETCOM (BAUD=2400,WORD=8,PARITY=OFF)</code>, <code>COMM *CL</code>. In LCOMM, type <code>ATDT bbs.electrodrome.net</code>: CONNECT means online. <code>+++</code> (with a pause before and after) returns to command mode; <code>ATH</code> or the Hang up button ends the call. BREAK=255 works around a flaw of the Model I RS232R driver, which otherwise loses every received character.',
   'opt.session': 'Keep disks after reload',
   'opt.session.tip': 'Keep the disks and hard disks in the drives, with their changes (SYSGEN, copied files…), when the page is reloaded; the TRS-80 then restarts on drive 0',
   'session.restored': 'Disks of the previous session restored (with their changes).',
@@ -1293,7 +1293,7 @@ Object.assign(STRINGS.en, { 'model.label': 'Model', 'model.1': 'TRS-80 Model I',
   'rom.ownM2': 'Model II: load your own 2 KB boot ROM (ROM menu), then a TRSDOS-II disk (.imd, .dmk).', 'model.3': 'TRS-80 Model III', 'model.4': 'TRS-80 Model 4' });
 Object.assign(STRINGS.fr, {
   'nav.modem': 'Modem',
-  'modem.idle': 'Aucune connexion. Dans LCOMM, tapez ATDT bbs.electrodrome.net',
+  'modem.idle': 'Aucune connexion. Dans LCOMM ou COMM, tapez ATDT bbs.electrodrome.net',
   'modem.dialing': 'Composition : {host}…',
   'modem.online': 'En ligne : {host}',
   'modem.command': 'Connecté à {host} (mode commande : ATO pour revenir en ligne)',
@@ -1304,7 +1304,7 @@ Object.assign(STRINGS.fr, {
   'modem.relaySet': 'Relais telnet : {url}',
   'modem.badRelay': 'Entrez une adresse WebSocket, ex. wss://exemple.com/trs80/relay',
   'modem.relayHelp': 'Le fureteur ne peut pas ouvrir de connexion telnet : un relais (<code>server/telnet-relay</code> dans le code source) fait le lien. Seul <code>bbs.electrodrome.net</code> est permis pour l’instant.',
-  'modem.help': 'Le port RS-232 (Model I, III et 4) est relié à un modem Hayes virtuel qui joint les BBS par telnet. Sous LDOS 5.3.1 : <code>SET *KI KI</code>, puis <code>SET *CL RS232R (BAUD=2400,WORD=8,PARITY=OFF,BREAK=255)</code> sur le Model I (<code>RS232T</code> sur le Model III), puis <code>LCOMM *CL</code>. Dans LCOMM, tapez <code>ATDT bbs.electrodrome.net</code> : CONNECT indique que vous êtes en ligne. <code>+++</code> (avec une pause avant et après) revient au mode commande; <code>ATH</code> ou le bouton Raccrocher termine l’appel. BREAK=255 contourne un défaut du pilote RS232R du Model I, qui sinon perd chaque caractère reçu.',
+  'modem.help': 'Le port RS-232 (Model I, III et 4) est relié à un modem Hayes virtuel qui joint les BBS par telnet. Sous LDOS 5.3.1 : <code>SET *KI KI</code>, puis <code>SET *CL RS232R (BAUD=2400,WORD=8,PARITY=OFF,BREAK=255)</code> sur le Model I (<code>RS232T</code> sur le Model III), puis <code>LCOMM *CL</code>. Sur le Model 4 sous TRSDOS 6.2.1 : <code>SET *CL COM/DVR</code>, <code>SETCOM (BAUD=2400,WORD=8,PARITY=OFF)</code>, <code>COMM *CL</code>. Dans LCOMM, tapez <code>ATDT bbs.electrodrome.net</code> : CONNECT indique que vous êtes en ligne. <code>+++</code> (avec une pause avant et après) revient au mode commande; <code>ATH</code> ou le bouton Raccrocher termine l’appel. BREAK=255 contourne un défaut du pilote RS232R du Model I, qui sinon perd chaque caractère reçu.',
   'opt.session': 'Retrouver les disques au rechargement',
   'opt.session.tip': 'Garder les disquettes et les disques durs dans les lecteurs, avec leurs modifications (SYSGEN, fichiers copiés…), quand la page est rechargée; le TRS-80 redémarre alors sur le lecteur 0',
   'session.restored': 'Disques de la session précédente remis en place (avec leurs modifications).',
@@ -1336,7 +1336,7 @@ Object.assign(STRINGS.fr, { 'model.label': 'Modèle', 'model.1': 'TRS-80 Model I
   'rom.ownM2': 'Model II : chargez votre ROM d’amorçage de 2 Ko (menu ROM), puis une disquette TRSDOS-II (.imd, .dmk).', 'model.3': 'TRS-80 Model III', 'model.4': 'TRS-80 Model 4' });
 Object.assign(STRINGS.es, {
   'nav.modem': 'Módem',
-  'modem.idle': 'Sin conexión. En LCOMM, escriba ATDT bbs.electrodrome.net',
+  'modem.idle': 'Sin conexión. En LCOMM o COMM, escriba ATDT bbs.electrodrome.net',
   'modem.dialing': 'Marcando {host}…',
   'modem.online': 'En línea: {host}',
   'modem.command': 'Conectado a {host} (modo comando: ATO para volver en línea)',
@@ -1347,7 +1347,7 @@ Object.assign(STRINGS.es, {
   'modem.relaySet': 'Relé telnet: {url}',
   'modem.badRelay': 'Introduzca una dirección WebSocket, p. ej. wss://ejemplo.com/trs80/relay',
   'modem.relayHelp': 'El navegador no puede abrir conexiones telnet: un relé (<code>server/telnet-relay</code> en el código fuente) hace el enlace. Por ahora solo se permite <code>bbs.electrodrome.net</code>.',
-  'modem.help': 'El puerto RS-232 (Model I, III y 4) está conectado a un módem Hayes virtual que llega a los BBS por telnet. En LDOS 5.3.1: <code>SET *KI KI</code>, luego <code>SET *CL RS232R (BAUD=2400,WORD=8,PARITY=OFF,BREAK=255)</code> en el Model I (<code>RS232T</code> en el Model III), luego <code>LCOMM *CL</code>. En LCOMM, escriba <code>ATDT bbs.electrodrome.net</code>: CONNECT indica que está en línea. <code>+++</code> (con una pausa antes y después) vuelve al modo comando; <code>ATH</code> o el botón Colgar termina la llamada. BREAK=255 evita un defecto del controlador RS232R del Model I, que si no pierde cada carácter recibido.',
+  'modem.help': 'El puerto RS-232 (Model I, III y 4) está conectado a un módem Hayes virtual que llega a los BBS por telnet. En LDOS 5.3.1: <code>SET *KI KI</code>, luego <code>SET *CL RS232R (BAUD=2400,WORD=8,PARITY=OFF,BREAK=255)</code> en el Model I (<code>RS232T</code> en el Model III), luego <code>LCOMM *CL</code>. En el Model 4 con TRSDOS 6.2.1: <code>SET *CL COM/DVR</code>, <code>SETCOM (BAUD=2400,WORD=8,PARITY=OFF)</code>, <code>COMM *CL</code>. En LCOMM, escriba <code>ATDT bbs.electrodrome.net</code>: CONNECT indica que está en línea. <code>+++</code> (con una pausa antes y después) vuelve al modo comando; <code>ATH</code> o el botón Colgar termina la llamada. BREAK=255 evita un defecto del controlador RS232R del Model I, que si no pierde cada carácter recibido.',
   'opt.session': 'Conservar los discos al recargar',
   'opt.session.tip': 'Conservar los disquetes y los discos duros en las unidades, con sus cambios (SYSGEN, archivos copiados…), al recargar la página; el TRS-80 arranca entonces desde la unidad 0',
   'session.restored': 'Discos de la sesión anterior restaurados (con sus cambios).',
@@ -1379,7 +1379,7 @@ Object.assign(STRINGS.es, { 'model.label': 'Modelo', 'model.1': 'TRS-80 Model I'
   'rom.ownM2': 'Model II: cargue su propia ROM de arranque de 2 KB (menú ROM) y luego un disco TRSDOS-II (.imd, .dmk).', 'model.3': 'TRS-80 Model III', 'model.4': 'TRS-80 Model 4' });
 Object.assign(STRINGS.zh, {
   'nav.modem': '调制解调器',
-  'modem.idle': '未连接。在 LCOMM 中输入 ATDT bbs.electrodrome.net',
+  'modem.idle': '未连接。在 LCOMM 或 COMM 中输入 ATDT bbs.electrodrome.net',
   'modem.dialing': '正在拨号 {host}…',
   'modem.online': '在线：{host}',
   'modem.command': '已连接到 {host}（命令模式：输入 ATO 返回在线）',
@@ -1390,7 +1390,7 @@ Object.assign(STRINGS.zh, {
   'modem.relaySet': 'Telnet 中继：{url}',
   'modem.badRelay': '请输入 WebSocket 地址，例如 wss://example.com/trs80/relay',
   'modem.relayHelp': '浏览器无法打开 telnet 连接：由中继（源代码中的 <code>server/telnet-relay</code>）建立连接。目前只允许 <code>bbs.electrodrome.net</code>。',
-  'modem.help': 'RS-232 端口（Model I、III 和 4）连接到一个虚拟 Hayes 调制解调器，通过 telnet 连接 BBS。在 LDOS 5.3.1 下：先 <code>SET *KI KI</code>，然后在 Model I 上 <code>SET *CL RS232R (BAUD=2400,WORD=8,PARITY=OFF,BREAK=255)</code>（Model III 用 <code>RS232T</code>），再 <code>LCOMM *CL</code>。在 LCOMM 中输入 <code>ATDT bbs.electrodrome.net</code>：出现 CONNECT 即表示在线。<code>+++</code>（前后各停顿一下）返回命令模式；<code>ATH</code> 或“挂断”按钮结束通话。BREAK=255 用于绕过 Model I 的 RS232R 驱动程序的一个缺陷，否则它会丢失收到的每个字符。',
+  'modem.help': 'RS-232 端口（Model I、III 和 4）连接到一个虚拟 Hayes 调制解调器，通过 telnet 连接 BBS。在 LDOS 5.3.1 下：先 <code>SET *KI KI</code>，然后在 Model I 上 <code>SET *CL RS232R (BAUD=2400,WORD=8,PARITY=OFF,BREAK=255)</code>（Model III 用 <code>RS232T</code>），再 <code>LCOMM *CL</code>。在 Model 4 的 TRSDOS 6.2.1 下：<code>SET *CL COM/DVR</code>, <code>SETCOM (BAUD=2400,WORD=8,PARITY=OFF)</code>, <code>COMM *CL</code>。在 LCOMM 中输入 <code>ATDT bbs.electrodrome.net</code>：出现 CONNECT 即表示在线。<code>+++</code>（前后各停顿一下）返回命令模式；<code>ATH</code> 或“挂断”按钮结束通话。BREAK=255 用于绕过 Model I 的 RS232R 驱动程序的一个缺陷，否则它会丢失收到的每个字符。',
   'opt.session': '重新加载后保留磁盘',
   'opt.session.tip': '重新加载页面时，保留驱动器中的软盘和硬盘及其修改（SYSGEN、复制的文件……）；TRS-80 随后从 0 号驱动器重新启动',
   'session.restored': '已恢复上次会话的磁盘（包括修改）。',
