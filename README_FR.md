@@ -13,8 +13,8 @@ web (WebAssembly).
 **▶️ Essayer en ligne : <https://ve2cuy.github.io/trs80-emu/>**
 
 <p align="center">
-  <img src="docs/TRSDOS2_7.png" alt="L'émulateur faisant tourner TRSDOS 2.7DD (double densité) sur un Model I" width="500">
-  <br><em>TRSDOS 2.7DD, le DOS double densité de Tandy, démarré depuis une image de disquette.</em>
+  <img src="docs/interface.png" alt="L'émulateur en thème sombre : menu latéral (Machine, Disks), LDOS 5.3.1 double densité démarré sur l'écran du TRS-80, et la fiche de la disquette" width="700">
+  <br><em>LDOS 5.3.1 double densité démarré depuis le lecteur 0, avec le menu latéral et la fiche de la disquette.</em>
 </p>
 
 ## ROM

@@ -14,8 +14,8 @@ browser (WebAssembly).
 **▶️ Try it online: <https://ve2cuy.github.io/trs80-emu/>**
 
 <p align="center">
-  <img src="docs/TRSDOS2_7.png" alt="The emulator running TRSDOS 2.7DD (double density) on a Model I" width="500">
-  <br><em>TRSDOS 2.7DD, Tandy's double-density DOS, booted from a disk image.</em>
+  <img src="docs/interface.png" alt="The emulator in its dark theme: side menu (Machine, Disks), LDOS 5.3.1 double density booted on the TRS-80 screen, and the card describing the disk" width="700">
+  <br><em>LDOS 5.3.1 double density booted from drive 0, with the side menu and the disk's card.</em>
 </p>
 
 ## ROMs
