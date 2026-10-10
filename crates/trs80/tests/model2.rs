@@ -79,6 +79,16 @@ fn model2_boots_trsdos42() {
     run(&mut m, 10);
     let s = screen(&m);
     assert!(s.contains("Files Displayed") && s.contains("TRSDOS-II Ready"), "Écran :\n{s}");
+    // HELP : trois pages, puis retour au DOS, qui range ses tables dans la page 15 de la
+    // mémoire (port FFh); confondue avec la page 1, HELP les écrasait et le DOS bouclait.
+    m.type_text("HELP\n");
+    run(&mut m, 8);
+    for _ in 0..2 {
+        m.type_text(" ");
+        run(&mut m, 5);
+    }
+    let s = screen(&m);
+    assert!(s.lines().any(|l| l.starts_with("TRSDOS-II Ready")) && s.contains("For usage help"), "Écran :\n{s}");
     m.toggle_caps();
     m.type_text("dir\n");
     run(&mut m, 5);

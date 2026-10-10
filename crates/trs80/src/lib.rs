@@ -247,7 +247,7 @@ impl Board {
         match addr {
             0x0000..=0x0FFF if self.rom_enabled => self.rom[(addr & 0x7FF) as usize],
             0xF800..=0xFFFF if self.ff_reg & 0x80 != 0 => self.video[(addr - 0xF800) as usize],
-            _ => self.ram4[addr as usize],
+            _ => self.page2(addr).map_or(0xFF, |i| self.ram4[i]),
         }
     }
 
@@ -255,7 +255,24 @@ impl Board {
         match addr {
             0xF800..=0xFFFF if self.ff_reg & 0x80 != 0 => self.video[(addr - 0xF800) as usize] = val,
             // Sous la ROM d'amorçage, l'écriture va à la RAM (le secteur d'amorce y est lu).
-            _ => self.ram4[addr as usize] = val,
+            _ => {
+                if let Some(i) = self.page2(addr) {
+                    self.ram4[i] = val;
+                }
+            }
+        }
+    }
+
+    /// Model II : position dans la RAM d'une adresse, selon la page de 32 Ko vue en
+    /// 8000h-FFFFh (port FFh, bits 0-3). Page 1 (et 0, au démarrage) : la moitié haute des
+    /// 64 Ko de base. Page 15 : 32 Ko d'extension, où TRSDOS-II 4.x range ses tables (sans
+    /// elle, il sonde d'autres cartes, non émulées; s'il la confondait avec la page 1, un
+    /// programme assez long, comme HELP, les écraserait). Les autres pages sont absentes.
+    fn page2(&self, addr: u16) -> Option<usize> {
+        match (addr, self.ff_reg & 0x0F) {
+            (0x0000..=0x7FFF, _) | (_, 0 | 1) => Some(addr as usize),
+            (_, 0x0F) => Some(0x8000 + addr as usize),
+            _ => None,
         }
     }
 
@@ -643,7 +660,8 @@ impl Trs80 {
             video: [0x20; 2048],
             ram4: match model {
                 Model::IV => alloc::vec![0; 0x20000],
-                Model::II => alloc::vec![0; 0x10000],
+                // 64 Ko, plus la page 15 (32 Ko d'extension).
+                Model::II => alloc::vec![0; 0x18000],
                 _ => alloc::vec::Vec::new(),
             },
             rom_enabled: true,
