@@ -22,6 +22,23 @@ web browser (WebAssembly).
   <br><em>LDOS 5.3.1 double density booted from drive 0, with the side menu and the disk's card.</em>
 </p>
 
+### Screenshots
+
+<table>
+  <tr>
+    <td width="50%"><img src="docs/screenshots/model1-invaders.png" alt="VE2CUY Invaders running on the Model I"><br><sub><b>Model I</b> — VE2CUY Invaders, a game written in Z80 assembly for this project.</sub></td>
+    <td width="50%"><img src="docs/screenshots/model1-bbs.png" alt="LDOS LCOMM connected to a telnet BBS, with the Modem panel showing Online"><br><sub><b>Modem and BBS</b> — LDOS 5.3.1 and LCOMM call a telnet BBS (<code>ATDT bbs.electrodrome.net</code>).</sub></td>
+  </tr>
+  <tr>
+    <td width="50%"><img src="docs/screenshots/model3-graphics.png" alt="Lissajous curve and circle drawn on the 640 × 240 graphics board of the Model III"><br><sub><b>Model III</b> — the Radio Shack high-resolution graphics board (640 × 240), drawn from BASIC.</sub></td>
+    <td width="50%"><img src="docs/screenshots/model2-trsdos.png" alt="TRSDOS-II 2.0a booting on the Model II, light theme, drive bar with the disk geometry"><br><sub><b>Model II</b> — TRSDOS-II 2.0a boots; the drive bar shows each disk and its geometry.</sub></td>
+  </tr>
+  <tr>
+    <td width="50%"><img src="docs/screenshots/workshop.png" alt="Assembler workshop: Z80 source, debugger paused with registers and flags"><br><sub><b>Assembler workshop</b> — edit, assemble and debug Z80 code step by step under LDOS.</sub></td>
+    <td width="50%"><img src="docs/screenshots/tape-level1.png" alt="Level I tape loading from the repository, with the CAS progress chip"><br><sub><b>Tape recorder</b> — a Level I tape from the repository loads at 250 baud; the CAS chip shows the progress.</sub></td>
+  </tr>
+</table>
+
 ## ROMs
 
 No ROM is hosted in this repository: they are © Tandy / Microsoft. The drop-down
@@ -32,6 +49,7 @@ one, from the third-party repository
 | ROM | Download |
 | --- | --- |
 | Level II 1.3 and 1.2 (Tandy, official) | Direct, from a pinned commit, SHA-256 checksum verified |
+| Level I (Tandy, official, 4 KB) | Direct, same way; also downloaded by itself when you run a Level I tape |
 | Level II 1.3 with bug fixes, Enhanced Level II 1.4 (kiwisincebirth) | From their release `.tar` archive, which you download and then open in the page (GitHub does not let the browser download it by itself) |
 
 On the first visit, the emulator starts with Level II 1.3. You can also load your
@@ -51,7 +69,9 @@ Web fonts are downloaded from Google Fonts only when chosen. Direct link:
 
 The "Model" list (Machine section) chooses the computer; direct link `?model=3`:
 
-- **Model I**: Level II ROM (12 KB), expansion interface (40 Hz clock, floppy disks).
+- **Model I**: Level II ROM (12 KB), expansion interface (40 Hz clock, floppy disks); or
+  the **Level I** BASIC ROM (4 KB), chosen in the ROM list or switched to by itself when a
+  Level I tape is run (and back to Level II for a Level II tape).
 - **Model III**: 14 KB ROM (Model III rev. C, downloaded from kiwisincebirth/TRS-80-ROMS),
   lowercase, WD1793 floppy controller on ports F0h-F4h with NMI, 30 Hz clock. Tested with
   TRSDOS 1.3.

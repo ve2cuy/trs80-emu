@@ -1524,7 +1524,7 @@ impl Trs80 {
     /// marche) : RESET avec BREAK enfoncée (la ROM saute alors le démarrage sur disquette),
     /// puis ENTRÉE aux questions de la ROM (« Memory Size? » sur le Model I, « Cass? » et
     /// « Memory Size? » sur les Model III et 4) jusqu'à « READY ».
-    fn restart_basic(&mut self) -> Result<(), Error> {
+    pub fn restart_basic(&mut self) -> Result<(), Error> {
         let brk = Key::from_name("Escape").expect("touche BREAK");
         self.cancel_typing();
         self.board.kbd_queue.clear();

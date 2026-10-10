@@ -22,6 +22,23 @@ fureteur web (WebAssembly).
   <br><em>LDOS 5.3.1 double densité démarré depuis le lecteur 0, avec le menu latéral et la fiche de la disquette.</em>
 </p>
 
+### Captures d'écran
+
+<table>
+  <tr>
+    <td width="50%"><img src="docs/screenshots/model1-invaders.png" alt="VE2CUY Invaders sur le Model I"><br><sub><b>Model I</b> — VE2CUY Invaders, un jeu écrit en assembleur Z80 pour ce projet.</sub></td>
+    <td width="50%"><img src="docs/screenshots/model1-bbs.png" alt="LCOMM de LDOS connecté à un BBS telnet, le panneau Modem indique Online"><br><sub><b>Modem et BBS</b> — LDOS 5.3.1 et LCOMM joignent un BBS telnet (<code>ATDT bbs.electrodrome.net</code>).</sub></td>
+  </tr>
+  <tr>
+    <td width="50%"><img src="docs/screenshots/model3-graphics.png" alt="Courbe de Lissajous et cercle dessinés sur la carte graphique 640 × 240 du Model III"><br><sub><b>Model III</b> — la carte graphique haute résolution Radio Shack (640 × 240), dessinée en BASIC.</sub></td>
+    <td width="50%"><img src="docs/screenshots/model2-trsdos.png" alt="TRSDOS-II 2.0a démarre sur le Model II, thème clair, barre des lecteurs avec la géométrie"><br><sub><b>Model II</b> — TRSDOS-II 2.0a démarre; la barre des lecteurs montre chaque disque et sa géométrie.</sub></td>
+  </tr>
+  <tr>
+    <td width="50%"><img src="docs/screenshots/workshop.png" alt="Atelier d'assemblage : source Z80, débogueur arrêté avec les registres et les indicateurs"><br><sub><b>Atelier d'assemblage</b> — écrire, assembler et déboguer du Z80 pas à pas sous LDOS.</sub></td>
+    <td width="50%"><img src="docs/screenshots/tape-level1.png" alt="Cassette Level I du dépôt en cours de chargement, avec la case CAS"><br><sub><b>Magnétophone</b> — une cassette Level I du dépôt se charge à 250 bauds; la case CAS montre l'avancement.</sub></td>
+  </tr>
+</table>
+
 ## ROM
 
 Aucune ROM n'est hébergée dans ce dépôt : elles sont © Tandy / Microsoft. La liste
@@ -32,6 +49,7 @@ on les choisit, depuis le dépôt tiers
 | ROM | Téléchargement |
 | --- | --- |
 | Level II 1.3 et 1.2 (Tandy, officielles) | Direct, à un commit épinglé, empreinte SHA-256 vérifiée |
+| Level I (Tandy, officielle, 4 Ko) | Direct, de la même façon; aussi téléchargée d'elle-même quand on lance une cassette Level I |
 | Level II 1.3 avec correctifs, Enhanced Level II 1.4 (kiwisincebirth) | Depuis l'archive `.tar` de leur release, que l'utilisateur télécharge puis ouvre dans la page (GitHub n'autorise pas le fureteur à la télécharger lui-même) |
 
 À la première visite, l'émulateur démarre avec la Level II 1.3. On peut aussi charger
@@ -51,7 +69,9 @@ Lien direct : `?font=vt323`.
 
 La liste « Modèle » (section Machine) choisit l'ordinateur; lien direct `?model=3` :
 
-- **Model I** : ROM Level II (12 Ko), interface d'expansion (horloge à 40 Hz, disquettes).
+- **Model I** : ROM Level II (12 Ko), interface d'expansion (horloge à 40 Hz, disquettes); ou
+  la ROM du BASIC **Level I** (4 Ko), choisie dans la liste des ROM ou prise d'elle-même
+  quand on lance une cassette Level I (retour au Level II pour une cassette Level II).
 - **Model III** : ROM de 14 Ko (Model III rév. C, téléchargée chez kiwisincebirth/TRS-80-ROMS),
   minuscules, contrôleur de disquettes WD1793 sur les ports F0h-F4h avec NMI, horloge à 30 Hz.
   Essayé avec TRSDOS 1.3.

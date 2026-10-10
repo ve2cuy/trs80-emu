@@ -847,6 +847,13 @@ function runBasic(bytes, info) {
     return;
   }
   const text = new TextDecoder('latin1').decode(bytes).replace(/\r\n?/g, '\n').trim();
+  // Comme un .CMD ou une cassette : redémarrage en BASIC (même à « Cass? » ou sous un DOS).
+  try {
+    emulator.restart_basic();
+  } catch (e) {
+    showStatus(t('run.fail', { name: describeSource(info).title, msg: e.message ?? e }), true);
+    return;
+  }
   emulator.type_text(`NEW\n${text}\nRUN\n`);
   showStatus(t('run.basText', { name: describeSource(info).title }));
   showNowInfo(info, 'basic');

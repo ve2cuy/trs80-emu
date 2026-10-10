@@ -61,6 +61,12 @@ impl Emulator {
         self.machine.reset();
     }
 
+    /// Redémarre en BASIC (RESET avec BREAK, ENTRÉE aux questions de la ROM), même avec un
+    /// DOS en marche : avant de taper un listing BASIC.
+    pub fn restart_basic(&mut self) -> Result<(), JsError> {
+        self.machine.restart_basic().map_err(|e| JsError::new(&e.to_string()))
+    }
+
     /// Charge et lance un programme `.CMD`; retourne son adresse de lancement.
     pub fn load_cmd(&mut self, data: &[u8]) -> Result<u16, JsError> {
         self.machine.load_cmd(data).map_err(|e| JsError::new(&e.to_string()))
