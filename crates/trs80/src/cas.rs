@@ -63,7 +63,7 @@ pub fn parse(data: &[u8]) -> Result<Tape<'_>, CasError> {
     match body {
         [0x55, ..] => {
             let name: [u8; 6] = body.get(1..7).ok_or(CasError::Truncated)?.try_into().unwrap();
-            let entry = walk_system(&body[7..], |_, _| {})?;
+            let (entry, _) = walk_system(&body[7..], |_, _| {})?;
             Ok(Tape::System { name, entry })
         }
         [0xD3, 0xD3, 0xD3, name, rest @ ..] => {
@@ -84,25 +84,13 @@ pub fn system_blocks(data: &[u8], load: impl FnMut(u16, &[u8])) -> Result<(), Ca
 /// suite de la cassette, que certains chargeurs lisent eux-mêmes.
 pub fn system_end(data: &[u8]) -> Result<usize, CasError> {
     let start = after_sync(data)? + 7;
-    let body = &data[start..];
-    let mut i = 0;
-    loop {
-        match body.get(i) {
-            Some(0x3C) => {
-                let n = match body.get(i + 1) {
-                    Some(0) => 256,
-                    Some(&n) => n as usize,
-                    None => return Err(CasError::Truncated),
-                };
-                i += 5 + n;
-            }
-            Some(0x78) => return Ok(start + i + 3),
-            _ => return Err(CasError::Truncated),
-        }
-    }
+    walk_system(&data[start..], |_, _| {}).map(|(_, end)| start + end)
 }
 
-fn walk_system(data: &[u8], mut load: impl FnMut(u16, &[u8])) -> Result<u16, CasError> {
+/// Parcourt les blocs; retourne l'adresse de lancement et la position qui suit son
+/// enregistrement. Comme la ROM, saute les octets qui ne commencent pas un bloc (certaines
+/// cassettes ont un nom de 7 caractères, par exemple).
+fn walk_system(data: &[u8], mut load: impl FnMut(u16, &[u8])) -> Result<(u16, usize), CasError> {
     let mut i = 0;
     loop {
         match data.get(i) {
@@ -123,9 +111,10 @@ fn walk_system(data: &[u8], mut load: impl FnMut(u16, &[u8])) -> Result<u16, Cas
             }
             Some(0x78) => {
                 let addr = data.get(i + 1..i + 3).ok_or(CasError::Truncated)?;
-                return Ok(u16::from_le_bytes([addr[0], addr[1]]));
+                return Ok((u16::from_le_bytes([addr[0], addr[1]]), i + 3));
             }
-            _ => return Err(CasError::Truncated),
+            Some(_) => i += 1,
+            None => return Err(CasError::Truncated),
         }
     }
 }
@@ -169,6 +158,16 @@ mod tests {
         let mut seen = (0, 0);
         system_blocks(&t, |addr, bytes| seen = (addr, bytes.len())).unwrap();
         assert_eq!(seen, (0x7000, 3));
+    }
+
+    #[test]
+    fn stray_bytes_between_records_are_skipped() {
+        // Nom de 7 caractères (MICROCHESS 1.5), puis la suite de la cassette.
+        let mut t = alloc::vec![0x00, 0xA5, 0x55];
+        t.extend(b"CHESS  ");
+        t.extend([0x3C, 1, 0x00, 0x70, 0xC9, 0x39, 0x78, 0x00, 0x70, 0x00, 0xA5, 0x12]);
+        assert_eq!(parse(&t), Ok(Tape::System { name: *b"CHESS ", entry: 0x7000 }));
+        assert_eq!(system_end(&t), Ok(t.len() - 3));
     }
 
     #[test]
