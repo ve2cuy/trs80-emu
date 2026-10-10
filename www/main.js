@@ -30,6 +30,7 @@ const typeButton = document.getElementById('type-button');
 const expansion = document.getElementById('expansion');
 const hiresBoard = document.getElementById('hires');
 const soundBox = document.getElementById('sound');
+const fastTapeBox = document.getElementById('fast-tape');
 const driveSound = document.getElementById('drive-sound');
 const app = document.getElementById('app');
 
@@ -45,6 +46,7 @@ const prefs = {
   sound: true,
   expansion: true,
   hires: true,          // carte graphique haute résolution (Model III et 4)
+  fastTape: true,       // magnétophone en marche : émuler aussi vite que possible
   keepFiles: true,      // garder dans la bibliothèque les fichiers ouverts
   keepSession: true,    // retrouver les disques (avec leurs écritures) au rechargement
   modemRelay: null,     // adresse du relais telnet (null : celle par défaut)
@@ -98,6 +100,8 @@ soundBox.checked = prefs.sound;
 expansion.checked = prefs.expansion;
 hiresBoard.checked = prefs.hires;
 turbo.addEventListener('change', () => { prefs.turbo = turbo.checked; savePrefs(); focusScreen(); });
+fastTapeBox.checked = prefs.fastTape;
+fastTapeBox.addEventListener('change', () => { prefs.fastTape = fastTapeBox.checked; savePrefs(); focusScreen(); });
 
 // ------------------------------------------------------------------ thème
 
@@ -2579,8 +2583,18 @@ function loop(now) {
     const frames = Math.floor(frameDebt);
     if (frames > 0) {
       frameDebt -= frames;
-      const emulated = frames * (turbo.checked ? 10 : emulator.typing() ? 4 : 1);
+      let emulated = frames * (turbo.checked ? 10 : emulator.typing() ? 4 : 1);
       emulator.run_frames(emulated);
+      // Cassette rapide : tant que le moteur tourne, toute la machine va aussi vite que le
+      // permet le fureteur (environ 12 ms de calcul par image). Les impulsions gardent leur
+      // durée en temps émulé : les chargeurs qui les mesurent ne voient pas la différence.
+      if (fastTapeBox.checked && emulator.tape_progress()[2] === 1) {
+        const until = performance.now() + 12;
+        while (performance.now() < until && emulator.tape_progress()[2] === 1) {
+          emulator.run_frames(10);
+          emulated += 10;
+        }
+      }
       // RS-232 : ce que le TRS-80 a émis va au modem.
       const serialOut = emulator.serial_take();
       if (serialOut.length) modem.write(serialOut);
@@ -2590,10 +2604,10 @@ function loop(now) {
       releaseDueKeys();
       ide.afterFrames();
       if (screenChanged()) draw();
-      fpsFrames += frames;
+      fpsFrames += emulated;
     }
     if (now - fpsTime >= 1000) {
-      const mhz = fpsFrames * (turbo.checked ? 10 : 1) * emulator.current_hz() / 60 / 1e6;
+      const mhz = fpsFrames * emulator.current_hz() / 60 / 1e6;
       speedBox.textContent = `${mhz.toFixed(2)} MHz`;
       fpsFrames = 0;
       fpsTime = now;

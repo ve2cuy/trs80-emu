@@ -327,7 +327,9 @@ répondre à `MEM SIZE?` avec ENTRÉE.
   en langage machine est lancé, un programme BASIC est exécuté. La suite d'une cassette en
   langage machine reste au magnétophone, lue à 500 bauds par l'entrée cassette, pour les
   chargeurs à plusieurs étapes (comme FROGGER) : une case CAS sous l'écran montre
-  l'avancement et le temps qui reste.
+  l'avancement et le temps qui reste. Avec « Cassettes rapides » (activé par défaut), toute
+  la machine va aussi vite que le permet le fureteur pendant que le moteur tourne : une
+  cassette de 3 minutes se charge en quelques secondes.
 - **Copier-coller** : Ctrl+V sur l'écran, le bouton Coller de la barre d'outils, ou « Type
   text… », tape le texte au clavier du TRS-80 (par exemple un programme BASIC ou des
   commandes du DOS). Ctrl+C sur l'écran (rien de sélectionné dans la page), ou le bouton

@@ -312,7 +312,9 @@ answer `MEM SIZE?` with ENTER.
   A cassette (`.CAS`) is loaded directly into memory: a machine-language tape is
   started, a BASIC tape is run. The rest of a machine-language tape stays in the tape
   recorder, read at 500 baud through the cassette port, for multi-stage loaders (such as
-  FROGGER): a CAS chip under the screen shows the progress and the time left.
+  FROGGER): a CAS chip under the screen shows the progress and the time left. With
+  "Fast tape loading" (on by default), the whole machine runs as fast as the browser allows
+  while the tape motor turns: a 3-minute tape loads in a few seconds.
 - **Copy and paste**: Ctrl+V on the screen, the Paste button of the toolbar, or "Type
   text…", types the text on the TRS-80 keyboard (for example a BASIC program or DOS
   commands). Ctrl+C on the screen (nothing selected in the page), or the Copy button,
