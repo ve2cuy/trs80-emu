@@ -672,25 +672,33 @@ function showNowInfo(source, kind = 'program') {
   sub.hidden = !info.sub;
   document.getElementById('now-lines').replaceChildren(...info.lines.filter((l) => l?.text)
     .map((l) => element('p', l.muted ? 'muted' : '', l.text)));
-  // Fichier du dépôt : comment l'ayant droit peut en demander le retrait.
+  // Fichier du dépôt : signaler qu'il ne fonctionne pas, ou (ayant droit) demander son
+  // retrait. Les liens ouvrent les formulaires de .github/ISSUE_TEMPLATE, avec le programme,
+  // le fichier (et le modèle) déjà remplis.
   if (source.repo) {
-    const [before, after = ''] = t('now.rights').split('{link}');
-    // Le lien ouvre le formulaire « Demande de retrait » (.github/ISSUE_TEMPLATE), avec le
-    // programme et le fichier déjà remplis.
     const title = localized(source.entry, 'title') ?? source.name;
-    const form = new URLSearchParams({
-      template: 'removal-request.yml',
-      title: `Demande de retrait / Removal request: ${title}`,
-      program: title,
-      file: `${source.repo.kind}/${source.repo.file}`,
-    });
-    const link = element('a', '', ISSUES_URL);
-    link.href = `${ISSUES_URL}/new?${form}`;
-    link.target = '_blank';
-    link.rel = 'noopener';
-    const p = element('p', 'muted rights');
-    p.append(before, link, after);
-    document.getElementById('now-lines').append(p);
+    const file = `${source.repo.kind}/${source.repo.file}`;
+    const issueLink = (key, linkText, fields) => {
+      const [before, after = ''] = t(key).split('{link}');
+      const link = element('a', '', linkText);
+      link.href = `${ISSUES_URL}/new?${new URLSearchParams({ ...fields, program: title, file })}`;
+      link.target = '_blank';
+      link.rel = 'noopener';
+      const p = element('p', 'muted rights');
+      p.append(before, link, after);
+      return p;
+    };
+    document.getElementById('now-lines').append(
+      issueLink('now.broken', t('now.brokenLink'), {
+        template: 'broken-program.yml',
+        title: `Ne fonctionne pas / Does not work: ${title}`,
+        model: { 1: 'Model I', 2: 'Model II', 3: 'Model III', 4: 'Model 4' }[prefs.model],
+      }),
+      issueLink('now.rights', ISSUES_URL, {
+        template: 'removal-request.yml',
+        title: `Demande de retrait / Removal request: ${title}`,
+      }),
+    );
   }
   nowInfo.hidden = false;
   renderNowAdmin();

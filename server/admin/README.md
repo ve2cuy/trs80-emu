@@ -43,3 +43,15 @@ déjà remplis, et l'étiquette `removal-request`.
 
 Traitement : lancer le fichier depuis le dépôt (en admin), **Retirer de la liste**
 (il passe dans « À valider »), répondre dans l'issue, puis la fermer.
+
+## Programmes qui ne fonctionnent pas
+
+La fiche offre aussi « Ce programme ne fonctionne pas ? Signalez-le sur GitHub » : le
+formulaire « Programme qui ne fonctionne pas / Program does not work »
+(`.github/ISSUE_TEMPLATE/broken-program.yml`, étiquette `broken-program`) arrive avec le
+programme, le fichier et le modèle remplis; l'utilisateur décrit ce qui se passe (capture
+d'écran bienvenue).
+
+Traitement : lancer le fichier (en admin), **Tester sur M1, M3 et M4**; s'il ne
+fonctionne nulle part, **Retirer de la liste** (ou corriger l'émulateur, ou les modèles de
+son entrée), répondre dans l'issue, puis la fermer.
