@@ -651,7 +651,9 @@ canvas:focus-visible { box-shadow: 0 0 0 3px var(--accent); }
 #now-lines p.muted { color: var(--muted); font-size: 0.82rem; }
 
 /* Barre des lecteurs, sous l'écran. */
-.drive-bar { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+/* Une seule ligne : les lecteurs garnis se partagent la largeur, les vides restent étroits;
+   les textes trop longs sont coupés (l'infobulle les donne en entier). */
+.drive-bar { display: flex; flex-wrap: nowrap; gap: 6px; margin-top: 10px; }
 .drive-chip {
   display: inline-flex;
   align-items: flex-start;
@@ -663,6 +665,8 @@ canvas:focus-visible { box-shadow: 0 0 0 3px var(--accent); }
   color: var(--text);
   font: 0.8rem ui-monospace, Consolas, monospace;
 }
+.drive-chip { flex: 1 1 0; min-width: 0; }
+.drive-chip.empty { flex: 0 0 auto; }
 .drive-chip:hover { border-color: var(--accent); }
 .drive-chip .chip-main {
   display: inline-flex;
@@ -678,15 +682,18 @@ canvas:focus-visible { box-shadow: 0 0 0 3px var(--accent); }
   text-align: left;
   cursor: pointer;
 }
+.drive-chip .chip-main { flex: 1 1 auto; overflow: hidden; }
+.drive-chip .chip-main > span { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .drive-chip .chip-main:last-child { padding-right: 10px; }
+.drive-chip .icon-button { flex: none; }
 .drive-chip .icon-button { margin: 3px 3px 0 0; }
 /* Disquette d'un autre format que celui du DOS du lecteur 0. */
 .drive-chip.clash, .drive-chip.clash.active { border-color: var(--error); background: color-mix(in srgb, var(--error) 14%, var(--surface)); }
 .drive-chip .clash-text { color: var(--error); font: 600 0.72rem system-ui, sans-serif; }
 .drive-chip .no { color: var(--accent-ink); font-weight: 600; }
-.drive-chip .file { overflow: hidden; max-width: 24ch; text-overflow: ellipsis; white-space: nowrap; }
+.drive-chip .file { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .drive-chip.empty .file { color: var(--muted); }
-.drive-chip .chip-head { display: inline-flex; align-items: center; gap: 6px; max-width: 100%; }
+.drive-chip .chip-head { display: flex; align-items: center; gap: 6px; }
 .drive-chip.modified .chip-head::after { content: "●"; color: var(--accent); font-size: 0.7rem; }
 .drive-chip .geo { color: var(--muted); font: 0.72rem system-ui, sans-serif; }
 .drive-chip .access { color: var(--accent-ink); font: 600 0.72rem system-ui, sans-serif; }
