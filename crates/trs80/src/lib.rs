@@ -1386,6 +1386,29 @@ impl Trs80 {
         Err(Error::NotReady)
     }
 
+    /// Redémarre la machine en BASIC, même avec une disquette au lecteur 0 (un DOS en
+    /// marche) : RESET avec BREAK enfoncée (la ROM saute alors le démarrage sur disquette),
+    /// puis ENTRÉE aux questions de la ROM (« Memory Size? » sur le Model I, « Cass? » et
+    /// « Memory Size? » sur les Model III et 4) jusqu'à « READY ».
+    fn restart_basic(&mut self) -> Result<(), Error> {
+        let brk = Key::from_name("Escape").expect("touche BREAK");
+        self.cancel_typing();
+        self.board.kbd_queue.clear();
+        self.reset();
+        self.board.keyboard.release_all();
+        // L'écran garde son contenu au RESET : un ancien « READY » tromperait l'attente.
+        self.board.video.fill(0x20);
+        self.key_down(brk);
+        for _ in 0..300 {
+            self.run_frame();
+            if self.screen_contains("SIZE?") || self.screen_contains("Size?") || self.screen_contains("Cass?") || self.screen_contains("READY") {
+                break;
+            }
+        }
+        self.key_up(brk);
+        self.boot_to_ready()
+    }
+
     /// Remplace les points d'entrée des fichiers de TRSDOS (absent : pas de disquette) par
     /// des routines minimales. Beaucoup de programmes `.CMD` lisent ou écrivent un fichier
     /// (ex. : meilleurs scores) et prévoient l'échec : ouvrir et lire répondent « erreur »,
@@ -1424,12 +1447,12 @@ impl Trs80 {
 
     /// Charge un programme `.CMD` en mémoire et le lance; retourne son adresse de lancement.
     ///
-    /// Si la machine vient de démarrer, le BASIC est d'abord amené jusqu'à « READY »
-    /// pour que la ROM ait initialisé le système. Le fichier est validé avant tout
-    /// chargement : en cas d'erreur, la mémoire n'est pas modifiée.
+    /// La machine redémarre d'abord en BASIC jusqu'à « READY » (sans DOS, même avec une
+    /// disquette au lecteur 0), comme on le ferait à la main. Le fichier est validé avant :
+    /// en cas d'erreur, rien ne change.
     pub fn load_cmd(&mut self, data: &[u8]) -> Result<u16, Error> {
         cmd::parse(data, |_, _| {}).map_err(Error::Cmd)?;
-        self.boot_to_ready()?;
+        self.restart_basic()?;
         self.install_dos_stubs();
         let board = &mut self.board;
         let entry = cmd::parse(data, |addr, bytes| {
@@ -1459,10 +1482,11 @@ impl Trs80 {
     }
 
     /// Charge une image cassette `.CAS` : un programme en langage machine est lancé; un
-    /// programme BASIC est placé en mémoire, prêt pour RUN (comme après CLOAD).
+    /// programme BASIC est placé en mémoire, prêt pour RUN (comme après CLOAD). La machine
+    /// redémarre d'abord en BASIC (voir [`Trs80::load_cmd`]).
     pub fn load_cas(&mut self, data: &[u8]) -> Result<Loaded, Error> {
         let tape = cas::parse(data).map_err(Error::Cas)?;
-        self.boot_to_ready()?;
+        self.restart_basic()?;
         match tape {
             Tape::System { entry, .. } => {
                 let board = &mut self.board;

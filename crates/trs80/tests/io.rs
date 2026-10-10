@@ -2,7 +2,7 @@
 //!
 //! Exige la ROM Level II dans `crates/trs80/tests/roms/` (non fournie); sinon les tests sont ignorés.
 
-use trs80::{Loaded, Trs80};
+use trs80::{Loaded, Model, Trs80};
 
 fn load_rom() -> Option<Vec<u8>> {
     let dir = format!("{}/tests/roms", env!("CARGO_MANIFEST_DIR"));
@@ -166,4 +166,31 @@ fn clock_interrupts_at_40_hz() {
     let ticks = rtc_ticks(&rom, true);
     assert!((39..=41).contains(&ticks), "{ticks} interruptions en une seconde");
     assert_eq!(rtc_ticks(&rom, false), 0, "sans interface d'expansion, pas d'horloge");
+}
+
+#[test]
+fn run_restarts_in_basic_even_with_a_dos_running() {
+    // « Lancer » un .CMD avec LDOS en marche (disquette au lecteur 0) : RESET avec BREAK,
+    // ENTRÉE aux questions de la ROM, puis le programme. Model I et Model III.
+    let published = |name: &str| std::fs::read(format!("{}/../../www/disks/{name}", env!("CARGO_MANIFEST_DIR"))).unwrap();
+    let cases: [(&str, Model, &str); 2] = [("M1L2_1.3.bin", Model::I, "ldos-531.dsk"), ("M3_REVC.bin", Model::III, "ldos-531-m3.dsk")];
+    for (rom, model, dos) in cases {
+        let Ok(rom) = std::fs::read(format!("{}/tests/roms/{rom}", env!("CARGO_MANIFEST_DIR"))) else { continue };
+        let mut m = Trs80::with_model(&rom, model).unwrap();
+        m.insert_disk(0, published(dos)).unwrap();
+        (0..600).for_each(|_| m.run_frame());
+        assert!(m.screen_contains("LDOS") || m.screen_contains("DATE") || m.screen_contains("Date"), "{model:?} : LDOS ne démarre pas");
+        // Programme minimal : écrit « OK » en haut de l'écran puis boucle.
+        let code = [0x3E, b'O', 0x32, 0x00, 0x3C, 0x3E, b'K', 0x32, 0x01, 0x3C, 0x18, 0xFE];
+        let mut file = vec![0x01, code.len() as u8 + 2, 0x00, 0x70];
+        file.extend(code);
+        file.extend([0x02, 0x02, 0x00, 0x70]);
+        let entry = m.load_cmd(&file).unwrap();
+        assert_eq!(entry, 0x7000);
+        (0..30).for_each(|_| m.run_frame());
+        assert_eq!((m.peek(0x3C00), m.peek(0x3C01)), (b'O', b'K'), "{model:?}");
+        // Lancé depuis le BASIC (READY à l'écran), pas par-dessus LDOS.
+        assert!(m.screen_contains("READY"), "{model:?} : pas de READY");
+        assert!(!m.screen_contains("LDOS Ready"), "{model:?} : LDOS toujours en marche");
+    }
 }
