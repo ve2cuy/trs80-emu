@@ -170,7 +170,9 @@ automatique, mode), plus les registres de défilement 8Ch-8Dh du Model 4, comme 
 Quand un programme affiche le graphique, l'écran montre l'image de 640 × 240 avec le texte
 par-dessus (ou exclusif). Essayé avec BASICG 01.01.00 sous TRSDOS 6.2.1 (non fourni) : la
 disquette de BASICG au lecteur 1, `BASICG`, puis `SCREEN 0`, `CLR`, `CIRCLE (320,120),100`,
-`LINE (0,0)-(639,239)`.
+`LINE (0,0)-(639,239)`. Essayé aussi avec BASICG 1.0 sous TRSDOS 1.3 sur le Model III, qui
+montre le graphique pendant un programme et revient au texte dès qu'il écrit (READY) :
+`10 SCREEN 0:CLR:CIRCLE (320,120),100`, `20 GOTO 20`, `RUN`.
 
 ### Modem et BBS (RS-232)
 

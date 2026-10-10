@@ -159,7 +159,10 @@ Model 4) is connected by default (switch "Graphics board (640 × 240)", Machine 
 plus the Model 4 scroll registers 8Ch-8Dh, as in xtrs. When a program turns the graphics on,
 the screen shows the 640 × 240 image with the text over it (exclusive or). Tested with BASICG
 01.01.00 under TRSDOS 6.2.1 (not provided): put the BASICG disk in drive 1, `BASICG`, then
-`SCREEN 0`, `CLR`, `CIRCLE (320,120),100`, `LINE (0,0)-(639,239)`.
+`SCREEN 0`, `CLR`, `CIRCLE (320,120),100`, `LINE (0,0)-(639,239)`. Also tested with BASICG 1.0
+under TRSDOS 1.3 on the Model III, which shows the graphics while a program runs and goes back
+to the text as soon as it prints (READY): `10 SCREEN 0:CLR:CIRCLE (320,120),100`,
+`20 GOTO 20`, `RUN`.
 
 ### Modem and BBS (RS-232)
 
