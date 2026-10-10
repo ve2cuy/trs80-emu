@@ -59,6 +59,11 @@ fn model3_rom_boots_basic() {
     type_line(&mut m, "PRINT CHR$(97);CHR$(98)");
     (0..30).for_each(|_| m.run_frame());
     assert!(screen(&m).contains("ab"), "Écran :\n{}", screen(&m));
+    // C0h-FFh : les caractères spéciaux (pas des blocs graphiques comme sur le Model I).
+    type_line(&mut m, "CLS:FOR I=0 TO 63:POKE 15616+I,192+I:NEXT");
+    (0..120).for_each(|_| m.run_frame());
+    let line: String = (0..64).map(|c| m.char_at(4, c)).collect();
+    assert!(line.starts_with("♠♥♦♣☺☹≥≤αβγ") && line.contains("πρσ") && line.contains("♂♀"), "{line}");
 }
 
 /// Démarre `disk` sur le Model III et rend l'écran après `seconds` secondes.

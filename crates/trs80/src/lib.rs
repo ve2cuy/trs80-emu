@@ -1266,6 +1266,11 @@ impl Trs80 {
         (0..m.cols * m.rows).map(|i| self.board.video[(start + i) & 0x7FF]).collect()
     }
 
+    /// C0h-FFh : caractères spéciaux (Model III et 4), sinon blocs graphiques.
+    fn specials(&self) -> bool {
+        self.board.model.ports()
+    }
+
     fn lowercase(&self) -> bool {
         self.board.model != Model::I
     }
@@ -1316,7 +1321,7 @@ impl Trs80 {
         if self.board.model == Model::II && code & 0x7C == 0 {
             return ['◢', '◣', '◤', '◥'][code as usize & 3];
         }
-        video::display_char(code, self.lowercase(), self.inverse())
+        video::display_char(code, self.lowercase(), self.inverse(), self.specials())
     }
 
     /// Le texte `text` est-il affiché quelque part à l'écran ?
@@ -1324,10 +1329,10 @@ impl Trs80 {
         let text = text.as_bytes();
         let m = self.text_mode();
         let shown = self.display();
-        let (lower, inverse) = (self.lowercase(), self.inverse());
+        let (lower, inverse, specials) = (self.lowercase(), self.inverse(), self.specials());
         shown.chunks(m.cols).any(|line| {
             line.windows(text.len()).any(|w| {
-                w.iter().zip(text).all(|(&b, &t)| video::display_char(b, lower, inverse) as u8 == t)
+                w.iter().zip(text).all(|(&b, &t)| video::display_char(b, lower, inverse, specials) == t as char)
             })
         })
     }
@@ -1480,7 +1485,7 @@ impl Trs80 {
         if self.hires_active() {
             return self.render_hires(&m, out);
         }
-        video::render(&self.display(), &m, self.board.wide, true, self.lowercase(), self.inverse(), out);
+        video::render(&self.display(), &m, self.board.wide, true, self.lowercase(), self.inverse(), self.specials(), out);
     }
 
     /// Graphique haute résolution (640 × 240) et texte superposé (ou exclusif, comme xtrs) :
@@ -1488,7 +1493,7 @@ impl Trs80 {
     fn render_hires(&self, m: &video::Mode, out: &mut [u8]) {
         let (tw, th) = (m.width(), m.height());
         let mut text = alloc::vec![0u8; tw * th * 4];
-        video::render(&self.display(), m, self.board.wide, true, self.lowercase(), self.inverse(), &mut text);
+        video::render(&self.display(), m, self.board.wide, true, self.lowercase(), self.inverse(), self.specials(), &mut text);
         let (w, h) = (hires::HIRES_WIDTH, hires::HIRES_HEIGHT);
         for y in 0..h {
             let ty = y * th / h;
@@ -1510,6 +1515,6 @@ impl Trs80 {
             // L'hôte ne peut pas placer son texte sur l'image de 640 × 240 : texte compris.
             return self.render_hires(&m, out);
         }
-        video::render(&self.display(), &m, self.board.wide, false, self.lowercase(), self.inverse(), out);
+        video::render(&self.display(), &m, self.board.wide, false, self.lowercase(), self.inverse(), self.specials(), out);
     }
 }

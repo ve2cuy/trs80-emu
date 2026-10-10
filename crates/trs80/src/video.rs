@@ -11,7 +11,7 @@
 //!   cellule coupées en diagonale) qui dessinent notamment le logo de TRSDOS-II.
 //! - Mode 32 caractères : seules les colonnes paires s'affichent, en double largeur.
 
-use crate::font::{ASCII_5B, FONT, LOWER};
+use crate::font::{ASCII_5B, FONT, LOWER, SPECIAL, SPECIAL_CHARS};
 
 /// Taille de l'image en 64 × 16 (et taille maximale : voir `MAX_WIDTH`).
 pub const SCREEN_WIDTH: usize = 64 * 6;
@@ -68,9 +68,16 @@ fn ascii(code: u8, lowercase: bool) -> u8 {
     }
 }
 
-/// Caractère affiché pour un octet de la mémoire vidéo (blocs graphiques : espace).
-pub(crate) fn display_char(code: u8, lowercase: bool, inverse: bool) -> char {
-    if code & 0x80 != 0 && !inverse { ' ' } else { ascii(code, lowercase) as char }
+/// Caractère affiché pour un octet de la mémoire vidéo (blocs graphiques : espace;
+/// caractères spéciaux du Model III et 4 : leur équivalent Unicode).
+pub(crate) fn display_char(code: u8, lowercase: bool, inverse: bool, specials: bool) -> char {
+    if specials && code >= 0xC0 && !inverse {
+        SPECIAL_CHARS[(code - 0xC0) as usize]
+    } else if code & 0x80 != 0 && !inverse {
+        ' '
+    } else {
+        ascii(code, lowercase) as char
+    }
 }
 
 /// Le pixel (x, y) du caractère `c` (20h-7Fh), relatif au coin de son dessin de 5 × 8.
@@ -90,8 +97,16 @@ fn glyph_pixel(c: u8, x: usize, y: usize, ascii: bool) -> bool {
 }
 
 /// Le pixel (x, y) d'une cellule est-il allumé ? Avec `text` faux, les caractères ne sont
-/// pas dessinés (seulement les blocs graphiques et le fond des caractères inversés).
-fn cell_pixel(code: u8, x: usize, y: usize, m: &Mode, text: bool, lowercase: bool, inverse: bool) -> bool {
+/// pas dessinés (seulement les blocs graphiques, les caractères spéciaux et le fond des
+/// caractères inversés). `specials` : C0h-FFh sont les caractères spéciaux (Model III et 4)
+/// au lieu d'une copie des blocs 80h-BFh (Model I).
+#[allow(clippy::too_many_arguments)]
+fn cell_pixel(code: u8, x: usize, y: usize, m: &Mode, text: bool, lowercase: bool, inverse: bool, specials: bool) -> bool {
+    if specials && code >= 0xC0 && !inverse {
+        let (gx, gy) = (x.wrapping_sub(m.glyph_x), y.wrapping_sub(m.glyph_y));
+        let row = SPECIAL[(code - 0xC0) as usize].get(gy).copied().unwrap_or(0);
+        return gx < 5 && row & (0x10 >> gx) != 0;
+    }
     if code & 0x80 != 0 && !inverse {
         let bit = m.block_row(y) * 2 + x * 2 / m.cell_w;
         return code & (1 << bit) != 0;
@@ -120,7 +135,8 @@ fn cell_pixel(code: u8, x: usize, y: usize, m: &Mode, text: bool, lowercase: boo
 
 /// Dessine l'écran dans `out` (RGBA, `m.width()` × `m.height()`). `video` contient les
 /// `m.cols × m.rows` caractères affichés, ligne par ligne.
-pub(crate) fn render(video: &[u8], m: &Mode, wide: bool, text: bool, lowercase: bool, inverse: bool, out: &mut [u8]) {
+#[allow(clippy::too_many_arguments)]
+pub(crate) fn render(video: &[u8], m: &Mode, wide: bool, text: bool, lowercase: bool, inverse: bool, specials: bool, out: &mut [u8]) {
     let (w, h) = (m.width(), m.height());
     assert!(out.len() >= w * h * 4, "tampon d'affichage trop petit");
     for y in 0..h {
@@ -134,7 +150,7 @@ pub(crate) fn render(video: &[u8], m: &Mode, wide: bool, text: bool, lowercase: 
                 (x / m.cell_w, x % m.cell_w)
             };
             let code = video.get(row * m.cols + col).copied().unwrap_or(0x20);
-            let on = cell_pixel(code, cx, cy, m, text, lowercase, inverse);
+            let on = cell_pixel(code, cx, cy, m, text, lowercase, inverse, specials);
             let i = (y * w + x) * 4;
             out[i..i + 4].copy_from_slice(if on { &FG } else { &BG });
         }
@@ -157,5 +173,21 @@ mod tests {
         assert_eq!(rows(0x5D, true), [0x0E, 0x02, 0x02, 0x02, 0x02, 0x02, 0x0E]);
         // Les autres caractères ne changent pas.
         assert_eq!(rows(b'A', true), rows(b'A', false));
+    }
+
+    #[test]
+    fn model3_shows_special_characters_in_c0_ff() {
+        // Model III et 4 : C0h est ♠; Model I : une copie du bloc graphique 80h (vide).
+        assert_eq!(display_char(0xC0, true, false, true), '♠');
+        assert_eq!(display_char(0xDF, true, false, true), 'ω');
+        assert_eq!(display_char(0xC0, false, false, false), ' ');
+        // En vidéo inversée (Model 4), C0h est un « @ » inversé.
+        assert_eq!(display_char(0xC0, true, true, true), '@');
+        let m = MODE64;
+        let lit = (0..m.cell_h)
+            .flat_map(|y| (0..m.cell_w).map(move |x| (x, y)))
+            .filter(|&(x, y)| cell_pixel(0xC0, x, y, &m, false, true, false, true))
+            .count();
+        assert!(lit > 10, "le pique est dessiné même sans le texte (police de la page)");
     }
 }
