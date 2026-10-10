@@ -2,14 +2,17 @@
 
 🇫🇷 [Version française](README_FR.md)
 
-An emulator of the **TRS-80 Model I**, written in Rust, that runs in a web
-browser (WebAssembly).
+An emulator of the **TRS-80 Model I, II, III and 4**, written in Rust, that runs in a
+web browser (WebAssembly).
 
-> Version 1.1: Level II ROM, BASIC, text and semigraphics, `.CMD` programs and
-> `.CAS` cassettes, **floppy disks** (LDOS, TRSDOS, NEWDOS...), **sound**, pasting
-> text, 40 Hz clock, and **VE2CUY Invaders**, a game written in Z80 assembly for
-> this project. New in 1.1: side menu, light and dark themes, four languages, file
-> library, external repository, disk drive sounds, tablet keyboard.
+> Version 1.2: Level I and Level II BASIC, `.CMD` programs and `.CAS` cassettes,
+> **floppy disks** (LDOS, TRSDOS, NEWDOS...), **sound**, pasting text, and
+> **VE2CUY Invaders**, a game written in Z80 assembly for this project. New in 1.2:
+> **Model II, III and 4**, Radio Shack **hard disk**, **RS-232 and modem** (telnet BBS),
+> high-resolution **graphics board**, **Orchestra-85/90** sound, a **tape recorder**
+> (multi-stage loaders, Level I, 1500 baud, fast loading), a Z80 **assembler workshop**
+> with debugger, a categorized and searchable **repository**, and an **Admin** panel to
+> curate it.
 > See [docs/conception.md](docs/conception.md) (in French).
 
 **▶️ Try it online: <https://ve2cuy.github.io/trs80-emu/>**
@@ -260,12 +263,12 @@ what to do, in four languages: in **Brave**, click the lion icon in the address 
 turn Shields down for the site (or turn off "Block scripts"), then reload. A download
 stopped by a content blocker (the ROM, a repository file) is also reported as such.
 
-## Running the emulator locally (release 1.1)
+## Running the emulator locally (release 1.2)
 
 No compilation needed: download the ready-to-run archive and you only need
 **Python 3** and a web browser.
 
-1. Download `trs80-emu-1.1.0.zip` from the
+1. Download `trs80-emu-1.2.0.zip` from the
    [releases page](https://github.com/ve2cuy/trs80-emu/releases/latest) and unzip it.
 2. Start it:
    - **Windows**: double-click `start.bat`;
@@ -322,6 +325,12 @@ answer `MEM SIZE?` with ENTER.
     converted; a block with a bad checksum is loaded anyway, as the ROM does.
   - An **EDTASM source** tape opens in the assembler workshop; a **data tape** is put in
     the tape recorder, for the program that reads it.
+- **Admin** (Settings): with the repository's password, checked by the server, the card
+  under the screen offers to test the current file on the Model I, III and 4 (a
+  thumbnail of each screen after 5 s), to remove it from the list shown to users (it goes
+  to a "To validate" list) or put it back, and to change its category. Server side:
+  [server/admin/README.md](server/admin/README.md) (in French). The card also tells a
+  rights holder how to ask for a program's removal (GitHub issues).
 - **Copy and paste**: Ctrl+V on the screen, the Paste button of the toolbar, or "Type
   text…", types the text on the TRS-80 keyboard (for example a BASIC program or DOS
   commands). Ctrl+C on the screen (nothing selected in the page), or the Copy button,

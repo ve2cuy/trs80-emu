@@ -650,6 +650,19 @@ canvas:focus-visible { box-shadow: 0 0 0 3px var(--accent); }
 .now-sub { color: var(--muted); font-size: 0.85rem; }
 #now-lines p { margin: 4px 0 0; font-size: 0.9rem; }
 #now-lines p.muted { color: var(--muted); font-size: 0.82rem; }
+#now-lines p.rights a { color: var(--accent-ink); overflow-wrap: anywhere; }
+/* Administration : actions sous la description, vignettes du test sur M1, M3 et M4. */
+.now-admin { display: flex; flex-direction: column; gap: 6px; margin-top: 8px; padding-top: 8px; border-top: 1px dashed var(--border); }
+.now-admin .admin-row { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.now-admin button.secondary, .now-admin select { padding: 4px 10px; font-size: 0.85rem; }
+.now-admin select { width: auto; max-width: 100%; }
+.now-admin .admin-badge { color: var(--accent-ink); font: 600 0.75rem system-ui, sans-serif; }
+.test-shots { display: flex; flex-wrap: wrap; gap: 8px; }
+.test-shots figure { margin: 0; text-align: center; font-size: 0.78rem; color: var(--muted); }
+.test-shots img { display: block; width: 192px; max-width: 28vw; border: 1px solid var(--border); border-radius: 4px; image-rendering: pixelated; }
+.admin-login { display: flex; flex-direction: column; gap: 6px; }
+.admin-tools { display: flex; flex-direction: column; gap: 6px; }
+.admin-heading { margin: 6px 0 0; font-weight: 600; font-size: 0.88rem; }
 
 /* Barre des lecteurs, sous l'écran. */
 /* Une seule ligne : les lecteurs garnis se partagent la largeur, les vides restent étroits;

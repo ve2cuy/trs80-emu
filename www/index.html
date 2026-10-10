@@ -39,6 +39,7 @@
       <symbol id="i-folder-plus" viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M12 10v6M9 13h6"/></symbol>
       <symbol id="i-monitor" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="13" rx="2"/><path d="M8 21h8M12 17v4"/></symbol>
       <symbol id="i-keyboard" viewBox="0 0 24 24"><rect x="2" y="6" width="20" height="12" rx="2"/><path d="M6 10h.01M10 10h.01M14 10h.01M18 10h.01M7 14h10"/></symbol>
+      <symbol id="i-lock" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></symbol>
       <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></symbol>
       <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></symbol>
       <symbol id="i-moon" viewBox="0 0 24 24"><path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"/></symbol>
@@ -348,13 +349,44 @@
         </div>
 
         <div class="nav-group">
+          <button type="button" class="nav-item" aria-expanded="false" aria-controls="panel-admin" data-tip="Admin" data-i18n-tip="nav.admin">
+            <svg class="chev"><use href="#i-chevron"/></svg>
+            <svg class="icon"><use href="#i-lock"/></svg>
+            <span class="label" data-i18n="nav.admin">Admin</span>
+          </button>
+          <div id="panel-admin" class="nav-panel" hidden>
+            <form id="admin-login" class="admin-login">
+              <input type="text" name="username" value="admin" autocomplete="username" hidden>
+              <label class="field"><span data-i18n="admin.password">Password</span>
+                <input id="admin-password" type="password" autocomplete="current-password" spellcheck="false"></label>
+              <button type="submit" class="secondary"><span data-i18n="admin.login">Log in</span></button>
+            </form>
+            <div id="admin-tools" class="admin-tools" hidden>
+              <p class="hint" data-i18n="admin.connected">Admin mode: the description under the screen shows the actions for the file you run from the repository.</p>
+              <div class="lib-actions">
+                <button id="admin-test" type="button" class="secondary"><span data-i18n="admin.test">Test on M1, M3 and M4</span></button>
+                <span class="spacer"></span>
+                <button id="admin-logout" type="button" class="secondary"><span data-i18n="admin.logout">Log out</span></button>
+              </div>
+              <p id="admin-pending-title" class="admin-heading"></p>
+              <select id="admin-pending" aria-label="To validate" data-i18n-aria="admin.pendingList"></select>
+              <div class="lib-actions">
+                <button id="admin-pending-run" type="button" class="secondary"><span data-i18n="admin.run">Run</span></button>
+                <button id="admin-pending-restore" type="button" class="secondary"><span data-i18n="admin.restore">Put back in the list</span></button>
+              </div>
+            </div>
+            <p id="admin-status" class="hint" role="status"></p>
+          </div>
+        </div>
+
+        <div class="nav-group">
           <button type="button" class="nav-item" aria-expanded="false" aria-controls="panel-about" data-tip="About" data-i18n-tip="nav.about">
             <svg class="chev"><use href="#i-chevron"/></svg>
             <svg class="icon"><use href="#i-info"/></svg>
             <span class="label" data-i18n="nav.about">About</span>
           </button>
           <div id="panel-about" class="nav-panel" hidden>
-            <p class="hint" data-i18n="about.version">Version 1.1 · Written in Rust and WebAssembly · Apache 2.0 license.</p>
+            <p class="hint" data-i18n="about.version">Version 1.2 · Written in Rust and WebAssembly · Apache 2.0 license.</p>
             <p class="hint"><a href="https://github.com/ve2cuy/trs80-emu" data-i18n="about.source">Source code</a> ·
               <a href="https://ve2cuy.github.io/blog/" data-i18n="about.blog">VE2CUY's blog</a></p>
             <p class="hint" data-i18n="about.roms">TRS-80 ROMs are © Tandy / Microsoft and are not part of this project.</p>
@@ -363,7 +395,7 @@
       </nav>
 
       <div class="sb-footer">
-        <span class="label">v1.1</span>
+        <span class="label">v1.2</span>
       </div>
     </aside>
     <div id="backdrop" class="backdrop" hidden></div>
@@ -510,6 +542,7 @@
             <strong id="now-title"></strong>
             <span id="now-sub" class="now-sub"></span>
             <div id="now-lines"></div>
+            <div id="now-admin" class="now-admin" hidden></div>
           </div>
           <button id="now-close" type="button" class="icon-button small" aria-label="Hide" title="Hide"
                   data-i18n-aria="now.hide" data-i18n-title="now.hide">

@@ -400,6 +400,8 @@ async function downloadListedRom(rom) {
  * ROM Level II est celle de l'utilisateur, sinon celle par défaut. La ROM choisie dans la
  * liste ne change pas.
  */
+let levelSwitch = null; // bascule Level I / Level II en cours (promesse)
+
 async function switchLevel(level) {
   const wanted = roms.find((r) => r.id === (level === 1 ? 'level1' : DEFAULT_ROMS[1]));
   let bytes = null;
@@ -620,8 +622,19 @@ languageListeners.push(relabelProgramList);
 // sa description. Une « source » ({ name, entry } d'un index, ou { name, header } d'un .CMD)
 // est conservée : la carte se recompose dans la langue choisie.
 const nowInfo = document.getElementById('now-info');
+const ISSUES_URL = 'https://github.com/ve2cuy/trs80-emu/issues';
 let nowKind = null;
 let nowSource = null;
+// Administration (voir plus bas) : état lu par showNowInfo et runFile dès le démarrage.
+const ADMIN_CATEGORIES = ['games', 'education', 'finance', 'office', 'programming', 'utilities', 'graphics',
+  'music', 'communications', 'science', 'systems', 'demo', 'other'];
+const nowAdmin = document.getElementById('now-admin');
+let adminPassword = null;
+try { adminPassword = sessionStorage.getItem('trs80-admin'); } catch { /* stockage indisponible */ }
+let adminPending = [];
+let lastRun = null; // dernier programme lancé : { bytes, name, info, disk }
+let testing = false;
+const testShots = new Map(); // fichier -> [{ model, url }]
 
 /** Textes d'une source : { title, sub, lines: [{ text, muted }] }. */
 function describeSource(source) {
@@ -659,7 +672,19 @@ function showNowInfo(source, kind = 'program') {
   sub.hidden = !info.sub;
   document.getElementById('now-lines').replaceChildren(...info.lines.filter((l) => l?.text)
     .map((l) => element('p', l.muted ? 'muted' : '', l.text)));
+  // Fichier du dépôt : comment l'ayant droit peut en demander le retrait.
+  if (source.repo) {
+    const [before, after = ''] = t('now.rights').split('{link}');
+    const link = element('a', '', ISSUES_URL);
+    link.href = ISSUES_URL;
+    link.target = '_blank';
+    link.rel = 'noopener';
+    const p = element('p', 'muted rights');
+    p.append(before, link, after);
+    document.getElementById('now-lines').append(p);
+  }
   nowInfo.hidden = false;
+  renderNowAdmin();
 }
 languageListeners.push(() => { if (nowKind) showNowInfo(nowSource, nowKind); });
 
@@ -672,6 +697,11 @@ document.getElementById('now-close').addEventListener('click', hideNowInfo);
 /** Source d'une entrée de programs/index.json, de disks/index.json ou d'un dépôt. */
 function entryInfo(e, name = e.file) {
   return { name, entry: e };
+}
+
+/** Source d'un fichier du dépôt, avec son genre et son chemin (actions de l'admin). */
+function repoInfo(kind, e, name = e.file.split('/').pop()) {
+  return { name, entry: e, repo: { kind, file: e.file } };
 }
 
 /**
@@ -748,6 +778,7 @@ function edtasmTape(bytes) {
 function runFile(bytes, name, info = null) {
   if (!emulator) return;
   info ??= describe(name, bytes);
+  lastRun = { bytes, name, info };
   if (/\.(bas|txt)$/i.test(name)) {
     runBasic(bytes, info);
     return;
@@ -775,7 +806,9 @@ function runFile(bytes, name, info = null) {
     // recommence.
     const level = /^Level I tape/.test(e.message) ? 1 : /^Level II tape/.test(e.message) ? 2 : 0;
     if (level && prefs.model === 1 && !info.levelSwitched) {
-      switchLevel(level).then((ok) => ok && runFile(bytes, name, { ...info, levelSwitched: true }));
+      levelSwitch = switchLevel(level)
+        .then((ok) => ok && runFile(bytes, name, { ...info, levelSwitched: true }))
+        .finally(() => { levelSwitch = null; });
       return;
     }
     showStatus(t('run.fail', { name: label, msg: e.message ?? e }), true);
@@ -905,7 +938,10 @@ function placeSelect(name, getBytes, { libraryId = null, info = null } = {}) {
     if (target[0] === 'h') {
       if (hardRows[n].insert(name, bytes, libraryId)) focusScreen();
     } else if (n === 0) {
-      if (driveRows[0].insertAndBoot(name, bytes, libraryId, info)) showScreen();
+      if (driveRows[0].insertAndBoot(name, bytes, libraryId, info)) {
+        lastRun = { bytes, name, info, disk: true };
+        showScreen();
+      }
     } else if (driveRows[n].insert(name, bytes, libraryId)) {
       focusScreen();
     }
@@ -1862,7 +1898,7 @@ function repoItem(kind, entry) {
         showStatus(t('download.fail', { name, msg: failure(e) }), true);
         return null;
       }
-    }, { info: entryInfo(entry, name) }));
+    }, { info: repoInfo(kind, entry, name) }));
   } else if (kind === 'asm') {
     // Source assembleur : ouverte dans l'atelier.
     button('repo.openIde', withFile((bytes) => {
@@ -1871,7 +1907,7 @@ function repoItem(kind, entry) {
       showStatus(t('repo.opened', { name }));
     }, false));
   } else {
-    button('lib.run', withFile((bytes) => runFile(bytes, name, entryInfo(entry, name))));
+    button('lib.run', withFile((bytes) => runFile(bytes, name, repoInfo(kind, entry, name))));
   }
   actions.append(element('span', 'spacer'));
   if (kind !== 'rom') {
@@ -2679,6 +2715,299 @@ function loop(now) {
   lastTime = now;
   requestAnimationFrame(loop);
 }
+
+// ------------------------------------------------------------------ administration
+
+// Panneau Admin (Settings) : avec le mot de passe, vérifié par le serveur du dépôt
+// (admin.php, voir server/admin/), on peut retirer un fichier de la liste présentée aux
+// utilisateurs (il passe dans « À valider »), l'y remettre, changer sa catégorie, et tester
+// le programme en cours sur les Model I, III et 4. Le mot de passe reste dans l'onglet
+// (sessionStorage) et part avec chaque action.
+const TEST_MODELS = [1, 3, 4];
+const TEST_WAIT_MS = 5000;
+const adminLogin = document.getElementById('admin-login');
+const adminPasswordInput = document.getElementById('admin-password');
+const adminTools = document.getElementById('admin-tools');
+const adminStatus = document.getElementById('admin-status');
+const adminPendingSelect = document.getElementById('admin-pending');
+const adminPendingTitle = document.getElementById('admin-pending-title');
+const adminTestButton = document.getElementById('admin-test');
+
+async function adminCall(action, extra = {}) {
+  // text/plain : requête « simple », sans demande préalable CORS.
+  const res = await fetch(repoUrl('admin.php'), {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain' },
+    body: JSON.stringify({ password: adminPassword, action, ...extra }),
+  });
+  let data = null;
+  try { data = await res.json(); } catch { /* réponse qui n'est pas du JSON */ }
+  if (!data?.ok) throw new Error(data?.error ?? `HTTP ${res.status}`);
+  return data;
+}
+
+function adminMessage(text, error = false) {
+  adminStatus.textContent = text;
+  adminStatus.classList.toggle('error', error);
+  if (text) showStatus(text, error);
+}
+
+function applyAdmin() {
+  adminLogin.hidden = !!adminPassword;
+  adminTools.hidden = !adminPassword;
+  renderNowAdmin();
+}
+
+adminLogin.addEventListener('submit', async (event) => {
+  event.preventDefault();
+  adminPassword = adminPasswordInput.value;
+  try {
+    await adminCall('login');
+    try { sessionStorage.setItem('trs80-admin', adminPassword); } catch { /* stockage indisponible */ }
+    adminPasswordInput.value = '';
+    adminMessage(t('admin.welcome'));
+    applyAdmin();
+    await refreshPending();
+  } catch (e) {
+    adminPassword = null;
+    adminMessage(e.message === 'bad password' ? t('admin.bad') : t('admin.fail', { msg: failure(e) }), true);
+    applyAdmin();
+  }
+});
+
+document.getElementById('admin-logout').addEventListener('click', () => {
+  adminPassword = null;
+  try { sessionStorage.removeItem('trs80-admin'); } catch { /* stockage indisponible */ }
+  adminPending = [];
+  adminMessage('');
+  applyAdmin();
+});
+
+/** Liste « À valider » (fichiers retirés), lue sur le serveur. */
+async function refreshPending() {
+  if (!adminPassword) return;
+  try {
+    adminPending = (await adminCall('pending')).pending ?? [];
+  } catch (e) {
+    adminMessage(t('admin.fail', { msg: failure(e) }), true);
+  }
+  fillPending();
+  renderNowAdmin();
+}
+
+function fillPending() {
+  adminPendingTitle.textContent = t('admin.pending', { n: adminPending.length });
+  adminPendingSelect.replaceChildren(...adminPending.map((p, i) => new Option(
+    `${p.kind.toUpperCase()} · ${localized(p.entry, 'title') ?? p.entry.file}`, String(i))));
+  if (!adminPending.length) adminPendingSelect.append(new Option(t('admin.pendingEmpty'), ''));
+  adminPendingSelect.disabled = !adminPending.length;
+  for (const id of ['admin-pending-run', 'admin-pending-restore']) {
+    document.getElementById(id).disabled = !adminPending.length;
+  }
+}
+languageListeners.push(fillPending);
+
+const pickedPending = () => adminPending[Number(adminPendingSelect.value)];
+
+/** Lance un fichier du dépôt (une disquette démarre au lecteur 0). */
+async function runRepoFile(kind, entry) {
+  if (!emulator) {
+    showStatus(t('prog.hint'), true);
+    return;
+  }
+  const name = entry.file.split('/').pop();
+  try {
+    const bytes = await fetchRepoFile(kind, entry);
+    const info = repoInfo(kind, entry, name);
+    if (kind === 'disk') {
+      if (driveRows[0].insertAndBoot(name, bytes, null, info)) {
+        lastRun = { bytes, name, info, disk: true };
+        showScreen();
+      }
+    } else if (kind === 'asm') {
+      showIde(true);
+      ide.open(bytes, name);
+    } else if (kind !== 'rom') {
+      runFile(bytes, name, info);
+    }
+  } catch (e) {
+    showStatus(t('download.fail', { name, msg: failure(e) }), true);
+  }
+}
+
+document.getElementById('admin-pending-run').addEventListener('click', () => {
+  const p = pickedPending();
+  if (p) runRepoFile(p.kind, p.entry);
+});
+document.getElementById('admin-pending-restore').addEventListener('click', () => {
+  const p = pickedPending();
+  if (p) restoreFile({ kind: p.kind, file: p.entry.file }, localized(p.entry, 'title') ?? p.entry.file);
+});
+
+/** Après une modification de l'index : listes du dépôt relues, « À valider » aussi. */
+async function afterAdminChange() {
+  repoCache.clear();
+  if (prefs.open.includes('repo')) loadRepo(prefs.repoKind);
+  await refreshPending();
+}
+
+async function hideFile(repo, label) {
+  if (!confirm(t('admin.hideConfirm', { name: label }))) return;
+  try {
+    await adminCall('hide', repo);
+    adminMessage(t('admin.hidden', { name: label }));
+    await afterAdminChange();
+  } catch (e) {
+    adminMessage(t('admin.fail', { msg: failure(e) }), true);
+  }
+}
+
+async function restoreFile(repo, label) {
+  try {
+    await adminCall('restore', repo);
+    adminMessage(t('admin.restored', { name: label }));
+    await afterAdminChange();
+  } catch (e) {
+    adminMessage(t('admin.fail', { msg: failure(e) }), true);
+  }
+}
+
+async function setCategory(repo, entry, category, label) {
+  try {
+    await adminCall('category', { ...repo, category });
+    entry.category = category;
+    adminMessage(t('admin.categoryChanged', { name: label, cat: t(`cat.${category}`) }));
+    await afterAdminChange();
+  } catch (e) {
+    adminMessage(t('admin.fail', { msg: failure(e) }), true);
+  }
+}
+
+const isPending = (repo) => adminPending.some((p) => p.kind === repo.kind && p.entry.file === repo.file);
+const testKey = (run) => run.info?.repo?.file ?? run.name;
+
+/** Actions de l'admin sous la description du programme en cours (fichier du dépôt). */
+function renderNowAdmin() {
+  const repo = nowSource?.repo;
+  nowAdmin.hidden = !adminPassword || !repo || nowInfo.hidden;
+  if (nowAdmin.hidden) return;
+  const entry = nowSource.entry;
+  const label = localized(entry, 'title') ?? nowSource.name;
+  const row = element('div', 'admin-row');
+  const button = (key, handler, disabled = false) => {
+    const b = textElement('button', 'secondary', key);
+    b.type = 'button';
+    b.disabled = disabled;
+    b.addEventListener('click', handler);
+    row.append(b);
+  };
+  const testable = lastRun && testKey(lastRun) === repo.file && ['cmd', 'cas', 'bas', 'disk'].includes(repo.kind);
+  button(testing ? 'admin.testRunning' : 'admin.test', testAllModels, testing || !testable);
+  if (isPending(repo)) {
+    row.append(element('span', 'admin-badge', t('admin.isPending')));
+    button('admin.restore', () => restoreFile(repo, label));
+  } else {
+    button('admin.hide', () => hideFile(repo, label));
+  }
+  const cat = element('select');
+  setTip(cat, 'admin.category');
+  cat.setAttribute('aria-label', t('admin.category'));
+  cat.append(...(entry.category ? [] : [new Option('—', '')]),
+    ...ADMIN_CATEGORIES.map((c) => new Option(t(`cat.${c}`), c)));
+  cat.value = entry.category ?? '';
+  cat.addEventListener('change', () => cat.value && setCategory(repo, entry, cat.value, label));
+  row.append(cat);
+  const parts = [row];
+  const shots = testShots.get(repo.file);
+  if (shots?.length) {
+    const strip = element('div', 'test-shots');
+    for (const s of shots) {
+      const fig = element('figure');
+      if (s.url) {
+        const img = element('img');
+        img.src = s.url;
+        img.alt = t(`model.${s.model}`);
+        fig.append(img);
+      }
+      fig.append(element('figcaption', '', s.url ? t(`model.${s.model}`) : t('admin.testNoRom', { model: t(`model.${s.model}`) })));
+      strip.append(fig);
+    }
+    parts.push(strip);
+  }
+  nowAdmin.replaceChildren(...parts);
+}
+languageListeners.push(renderNowAdmin);
+
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+/** Vignette de l'écran. */
+function snapshot() {
+  const c = document.createElement('canvas');
+  c.width = 384;
+  c.height = 288;
+  c.getContext('2d').drawImage(canvas, 0, 0, c.width, c.height);
+  return c.toDataURL('image/png');
+}
+
+/** Attend la fin du chargement (bascule Level I, magnétophone, frappe), puis 5 s. */
+async function settle() {
+  const until = performance.now() + 240_000;
+  await sleep(1000);
+  while (performance.now() < until) {
+    if (levelSwitch) await levelSwitch;
+    const tape = emulator?.tape_progress() ?? [];
+    if (!(tape[2] === 1 || emulator?.typing())) break;
+    await sleep(250);
+  }
+  await sleep(TEST_WAIT_MS);
+}
+
+/** Lance le dernier programme sur les Model I, III et 4, avec une vignette de chaque écran. */
+async function testAllModels() {
+  const run = lastRun;
+  if (testing || !run) {
+    if (!run) adminMessage(t('admin.noRun'), true);
+    return;
+  }
+  testing = true;
+  const key = testKey(run);
+  const shots = [];
+  testShots.set(key, shots);
+  adminTestButton.disabled = true;
+  renderNowAdmin();
+  try {
+    for (const model of TEST_MODELS) {
+      showStatus(t('admin.testing', { model: t(`model.${model}`) }));
+      if (prefs.model !== model) {
+        modelList.value = String(model);
+        await changeModel(model);
+      }
+      if (!emulator) {
+        shots.push({ model, url: null });
+        continue;
+      }
+      if (run.disk) {
+        if (driveRows[0].insertAndBoot(run.name, run.bytes, null, run.info)) showScreen();
+      } else {
+        runFile(run.bytes, run.name, run.info);
+      }
+      await settle();
+      shots.push({ model, url: snapshot() });
+      renderNowAdmin();
+    }
+    lastRun = run;
+    showStatus(t('admin.tested'));
+  } finally {
+    testing = false;
+    adminTestButton.disabled = false;
+    if (!nowSource?.repo && run.info) showNowInfo(run.info, run.disk ? 'disk' : 'program');
+    renderNowAdmin();
+  }
+}
+adminTestButton.addEventListener('click', testAllModels);
+
+applyAdmin();
+if (adminPassword) refreshPending();
 
 await Promise.all([loadProgramIndex(), loadRomIndex(), loadDiskIndex(), refreshLibrary()]);
 const params = new URLSearchParams(location.search);

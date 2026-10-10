@@ -44,6 +44,9 @@ fn main() {
                     println!("cassette BASIC chargée ({n} octets), RUN");
                     m.type_text("RUN\n");
                 }
+                Ok(trs80::Loaded::Level1) => println!("cassette Level I : CLOAD tapé"),
+                Ok(trs80::Loaded::Blocks) => println!("blocs chargés, sans adresse de lancement"),
+                Ok(trs80::Loaded::Inserted) => println!("cassette de données mise au magnétophone"),
                 Err(e) => println!("erreur : {e}"),
             }
         } else {

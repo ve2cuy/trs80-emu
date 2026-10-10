@@ -1,6 +1,6 @@
 [package]
 name = "trs80"
-version = "1.1.0"
+version = "1.2.0"
 description = "Machine TRS-80 Model 1 (no_std) : mémoire, clavier, vidéo"
 edition.workspace = true
 authors.workspace = true

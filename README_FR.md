@@ -2,14 +2,17 @@
 
 🇬🇧 [English version](README.md)
 
-Émulateur du **TRS-80 Model 1**, écrit en Rust, qui s'exécute dans un fureteur
-web (WebAssembly).
+Émulateur des **TRS-80 Model 1, 2, 3 et 4**, écrit en Rust, qui s'exécute dans un
+fureteur web (WebAssembly).
 
-> Version 1.1 : ROM Level II, BASIC, texte et semi-graphiques, programmes `.CMD` et
-> cassettes `.CAS`, **disquettes** (LDOS, TRSDOS, NEWDOS...), **son**, collage de texte,
-> horloge à 40 Hz, et **VE2CUY Invaders**, un jeu écrit en assembleur Z80 pour ce projet.
-> Nouveau en 1.1 : menu latéral, thèmes clair et sombre, quatre langues, bibliothèque de
-> fichiers, dépôt externe, bruit des lecteurs, clavier sur tablette.
+> Version 1.2 : BASIC Level I et Level II, programmes `.CMD` et cassettes `.CAS`,
+> **disquettes** (LDOS, TRSDOS, NEWDOS...), **son**, collage de texte, et **VE2CUY
+> Invaders**, un jeu écrit en assembleur Z80 pour ce projet. Nouveau en 1.2 : **Model II,
+> III et 4**, **disque dur** Radio Shack, **RS-232 et modem** (BBS telnet), **carte
+> graphique** haute résolution, son **Orchestra-85/90**, **magnétophone** (chargeurs à
+> plusieurs étapes, Level I, 1500 bauds, chargement rapide), **atelier d'assemblage** Z80
+> avec débogueur, **dépôt** classé par catégorie avec recherche, et panneau **Admin**
+> pour l'épurer.
 > Voir [docs/conception.md](docs/conception.md).
 
 **▶️ Essayer en ligne : <https://ve2cuy.github.io/trs80-emu/>**
@@ -273,12 +276,12 @@ dans la barre d'adresse et désactiver les boucliers pour le site (ou « Bloquer
 scripts »), puis recharger. Un téléchargement arrêté par un bloqueur (la ROM, un fichier du
 dépôt) est aussi signalé comme tel.
 
-## Lancer l'émulateur localement (version 1.1)
+## Lancer l'émulateur localement (version 1.2)
 
 Rien à compiler : téléchargez l'archive prête à l'emploi; il suffit de **Python 3** et
 d'un fureteur.
 
-1. Télécharger `trs80-emu-1.1.0.zip` sur la
+1. Télécharger `trs80-emu-1.2.0.zip` sur la
    [page des versions](https://github.com/ve2cuy/trs80-emu/releases/latest) et la
    décompresser.
 2. Lancer :
@@ -338,6 +341,12 @@ répondre à `MEM SIZE?` avec ENTRÉE.
     le fait la ROM.
   - Une **source EDTASM** s'ouvre dans l'atelier d'assemblage; une **cassette de données**
     est mise au magnétophone, pour le programme qui la lit.
+- **Admin** (Settings) : avec le mot de passe du dépôt, vérifié par le serveur, la fiche
+  sous l'écran permet de tester le fichier en cours sur les Model I, III et 4 (une
+  vignette de chaque écran après 5 s), de le retirer de la liste présentée aux
+  utilisateurs (il passe dans « À valider ») ou de l'y remettre, et de changer sa
+  catégorie. Côté serveur : [server/admin/README.md](server/admin/README.md). La fiche
+  indique aussi à l'ayant droit comment demander le retrait d'un programme (GitHub).
 - **Copier-coller** : Ctrl+V sur l'écran, le bouton Coller de la barre d'outils, ou « Type
   text… », tape le texte au clavier du TRS-80 (par exemple un programme BASIC ou des
   commandes du DOS). Ctrl+C sur l'écran (rien de sélectionné dans la page), ou le bouton

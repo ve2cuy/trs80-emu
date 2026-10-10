@@ -1,6 +1,6 @@
 [package]
 name = "z80"
-version = "1.1.0"
+version = "1.2.0"
 description = "Cœur Z80 (no_std) pour l'émulateur TRS-80 Model 1"
 edition.workspace = true
 authors.workspace = true
