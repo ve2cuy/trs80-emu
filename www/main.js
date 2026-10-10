@@ -1153,31 +1153,113 @@ setInterval(() => hardRows.forEach((r) => r.refresh()), 1000);
 // ------------------------------------------------------------------ barre des lecteurs
 
 // Sous l'écran : ce qui est dans les lecteurs 0 à 3 et les disques durs branchés (● : écrit
-// par le DOS). Un clic ouvre la section Disquettes.
+// par le DOS), leur géométrie, et pendant un accès l'opération, la piste et le secteur. Un
+// clic ouvre la section Disquettes.
 const driveBar = document.getElementById('drive-bar');
 let driveBarState = '';
+/** Dernier accès vu, par lecteur (« 0 » à « 3 », « HD1 », « HD2 ») : { text, at }. */
+const lastAccess = new Map();
+let lastDiskCommand = null;
+let lastHardCommand = null;
+const ACCESS_SHOWN_MS = 1500;
+
+/** Opération d'une commande du contrôleur de disquettes (clé geo.*), ou null. */
+function fdcOperation(cmd) {
+  if (cmd < 0x10) return 'restore';
+  if (cmd < 0x80) return 'seek';
+  if (cmd < 0xA0) return 'read';
+  if (cmd < 0xC0) return 'write';
+  if (cmd < 0xD0) return 'id';
+  if (cmd < 0xE0) return null; // interruption forcée
+  return cmd < 0xF0 ? 'read' : 'format';
+}
+
+/** Opération d'une commande du WD1010 (disque dur), ou null. */
+function hardOperation(cmd) {
+  return { 0x10: 'restore', 0x20: 'read', 0x30: 'write', 0x40: 'read', 0x50: 'format', 0x70: 'seek' }[cmd & 0xF0] ?? null;
+}
+
+/** Relève le dernier accès des contrôleurs (souvent : un accès est bref). */
+function watchAccess() {
+  if (!emulator) return;
+  const d = emulator.disk_position();
+  if (d.length && d[0] !== lastDiskCommand) {
+    if (lastDiskCommand !== null) {
+      const [, drive, track, sector, cmd] = d;
+      const op = fdcOperation(cmd);
+      if (op) {
+        // Déplacement de la tête : la piste seulement.
+        const where = op === 'seek' || op === 'restore' ? t('geo.track', { t: track }) : t('geo.pos', { t: track, s: sector });
+        lastAccess.set(String(drive), { text: `${t(`geo.${op}`)} · ${where}`, at: performance.now() });
+      }
+    }
+    lastDiskCommand = d[0];
+  }
+  const h = emulator.hard_position();
+  if (h.length && h[0] !== lastHardCommand) {
+    if (lastHardCommand !== null) {
+      const [, unit, cyl, head, sector, cmd] = h;
+      const op = hardOperation(cmd);
+      if (op) {
+        const where = op === 'seek' || op === 'restore' ? t('geo.cyl', { c: cyl }) : t('geo.hpos', { c: cyl, h: head, s: sector });
+        lastAccess.set(`HD${unit + 1}`, { text: `${t(`geo.${op}`)} · ${where}`, at: performance.now() });
+      }
+    }
+    lastHardCommand = h[0];
+  }
+}
+setInterval(watchAccess, 50);
+
+/** Géométrie d'une disquette (texte), ou '' sans disquette. */
+function diskGeometry(drive) {
+  const json = emulator?.disk_geometry(drive);
+  if (!json) return '';
+  const g = JSON.parse(json);
+  if (!g.tracks) return t('geo.blank');
+  const dens = (dd) => (dd ? 'DD' : 'SD');
+  const [n, size, dd] = g.t;
+  let text = t(g.sides > 1 ? 'geo.sides' : 'geo.disk', { tracks: g.tracks, sides: g.sides, n, size, dens: dens(dd) });
+  const [n0, size0, dd0] = g.t0;
+  if (n0 !== n || size0 !== size || dd0 !== dd) text += t('geo.t0', { n: n0, size: size0, dens: dens(dd0) });
+  return text;
+}
+
+/** Géométrie d'un disque dur (texte), ou ''. */
+function hardGeometry(unit) {
+  const g = emulator?.hard_geometry(unit);
+  return g?.length ? t('geo.hard', { cyl: g[0], heads: g[1] }) : '';
+}
 
 function renderDriveBar() {
+  const now = performance.now();
   const chips = [
-    ...driveRows.map((r, i) => ({ no: String(i), c: r.contents() })),
-    ...hardRows.map((r, u) => ({ no: `HD${u + 1}`, c: r.contents() })).filter((x) => x.c),
-  ];
+    ...driveRows.map((r, i) => ({ no: String(i), c: r.contents(), geo: r.contents() ? diskGeometry(i) : '' })),
+    ...hardRows.map((r, u) => ({ no: `HD${u + 1}`, c: r.contents(), geo: hardGeometry(u) })).filter((x) => x.c),
+  ].map((x) => {
+    const a = lastAccess.get(x.no);
+    return { ...x, access: a && now - a.at < ACCESS_SHOWN_MS ? a.text : '' };
+  });
   const state = JSON.stringify([document.documentElement.lang, !!emulator, chips]);
   if (state === driveBarState) return;
   driveBarState = state;
   driveBar.hidden = !emulator;
-  driveBar.replaceChildren(...chips.map(({ no, c }) => {
+  driveBar.replaceChildren(...chips.map(({ no, c, geo, access }) => {
     const chip = element('button', 'drive-chip');
     chip.type = 'button';
     chip.classList.toggle('empty', !c);
     chip.classList.toggle('modified', !!c?.modified);
-    chip.title = `${c ? c.name : t('bar.empty')} — ${t('bar.open')}`;
-    chip.append(element('span', 'no', no), element('span', 'file', c ? c.name : t('bar.empty')));
+    chip.classList.toggle('active', !!access);
+    chip.title = [c ? c.name : t('bar.empty'), geo, t('bar.open')].filter(Boolean).join('\n');
+    const head = element('span', 'chip-head');
+    head.append(element('span', 'no', no), element('span', 'file', c ? c.name : t('bar.empty')));
+    chip.append(head);
+    if (geo) chip.append(element('span', 'geo', geo));
+    if (access) chip.append(element('span', 'access', access));
     chip.addEventListener('click', () => showPanel('disks'));
     return chip;
   }));
 }
-setInterval(renderDriveBar, 500);
+setInterval(renderDriveBar, 200);
 languageListeners.push(renderDriveBar);
 
 // ------------------------------------------------------------------ reprise de session

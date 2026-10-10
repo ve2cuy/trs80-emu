@@ -244,3 +244,21 @@ fn extra_disk_from_environment() {
         }
     }
 }
+
+#[test]
+fn geometry_of_published_disks() {
+    use trs80::{Disk, Geometry, TrackShape};
+    let open = |name: &str| {
+        Disk::open(std::fs::read(format!("{}/../../www/disks/{name}", env!("CARGO_MANIFEST_DIR"))).unwrap()).unwrap()
+    };
+    // LDOS 5.3.1 (Model I) : JV1, 35 pistes de 10 secteurs de 256 octets en simple densité.
+    let sd = TrackShape { sectors: 10, size: 256, dd: false };
+    assert_eq!(open("ldos-531.dsk").geometry(), Geometry { tracks: 35, sides: 1, track0: sd, track: sd });
+    // TRSDOS-II 2.0a (Model II) : 77 pistes de 8 pouces; piste 0 en simple densité
+    // (26 × 128), les autres en double densité (26 × 256).
+    let g = open("trsdos20a-m2.imd").geometry();
+    assert_eq!((g.tracks, g.sides), (77, 1));
+    assert_eq!(g.track0, TrackShape { sectors: 26, size: 128, dd: false });
+    assert_eq!(g.track, TrackShape { sectors: 26, size: 256, dd: true });
+    assert_eq!(Disk::blank().geometry().tracks, 0);
+}

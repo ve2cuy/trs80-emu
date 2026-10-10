@@ -87,7 +87,10 @@ in `index.json`.
   TRS-80 on the disk, drives 1 to 3 take data disks, HD1 / HD2 take hard disk images
   (`.hdv`). Choosing a disk in a list only shows its card; nothing starts before "Put in…".
 - **Drive bar**: under the screen, what is in drives 0 to 3 and in the hard disks (● : the
-  DOS wrote on it); a click opens the Disks section.
+  DOS wrote on it), with their geometry (tracks, sides, sectors per track, size, density;
+  track 0 when it differs; cylinders and heads of a hard disk). During an access, the
+  operation and the track and sector (cylinder, head and sector of a hard disk) show for a
+  moment. A click opens the Disks section.
 - **Program card**: under the screen, the name of the program or disk being run, with
   its description when known (built-in list, repository, or the name and copyright
   records of a `.CMD` file).

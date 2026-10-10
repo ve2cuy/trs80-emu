@@ -88,6 +88,27 @@ pub struct Disk {
     pub(crate) rebuilt: bool,
 }
 
+/// Forme d'une piste : nombre de secteurs, taille, densité.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub struct TrackShape {
+    pub sectors: u8,
+    /// Taille du premier secteur (octets).
+    pub size: u16,
+    /// Double densité (MFM).
+    pub dd: bool,
+}
+
+/// Géométrie d'une disquette, déduite de ses secteurs (une image vierge : 0 piste).
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub struct Geometry {
+    pub tracks: u8,
+    pub sides: u8,
+    /// Piste 0 (face 0), souvent différente : simple densité pour démarrer.
+    pub track0: TrackShape,
+    /// Les autres pistes (la piste 1, face 0).
+    pub track: TrackShape,
+}
+
 /// Un secteur créé par le formatage d'une piste.
 pub(crate) struct NewSector {
     pub track: u8,
@@ -399,6 +420,26 @@ impl Disk {
 
     pub fn sector_count(&self) -> usize {
         self.sectors.len()
+    }
+
+    /// Pistes, faces, secteurs par piste, taille et densité.
+    pub fn geometry(&self) -> Geometry {
+        let shape = |track: u8| {
+            let on: Vec<&Sector> = self.sectors.iter().filter(|s| s.track == track && s.side == 0).collect();
+            TrackShape {
+                sectors: on.len().min(255) as u8,
+                size: on.first().map_or(0, |s| size_of_code(s.size_code) as u16),
+                dd: on.iter().any(|s| s.dd),
+            }
+        };
+        let (Some(tracks), Some(sides)) =
+            (self.sectors.iter().map(|s| s.track).max(), self.sectors.iter().map(|s| s.side).max())
+        else {
+            return Geometry::default();
+        };
+        let track0 = shape(0);
+        let track = if tracks >= 1 { shape(1) } else { track0 };
+        Geometry { tracks: tracks.saturating_add(1), sides: sides + 1, track0, track }
     }
 
     pub fn write_protected(&self) -> bool {

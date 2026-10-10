@@ -155,6 +155,16 @@ impl HardDisk {
     }
 }
 
+/// Dernière commande du contrôleur (barre des lecteurs de la page).
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub struct HardEvent {
+    pub command: u8,
+    pub unit: u8,
+    pub cylinder: u16,
+    pub head: u8,
+    pub sector: u8,
+}
+
 #[derive(Clone, Copy, PartialEq, Eq)]
 enum Transfer {
     None,
@@ -187,6 +197,9 @@ pub(crate) struct Controller {
     pub(crate) intrq: bool,
     /// Nombre de fins de commande (chaque une est un front montant de INTRQ).
     pub(crate) completions: u32,
+    /// Dernière commande, et nombre de commandes (compteur cumulatif).
+    pub(crate) last: HardEvent,
+    pub(crate) commands: u32,
     /// Model II : une unité absente n'est pas prête (TRSDOS-HD cherche ainsi les unités), et
     /// une image vierge est un disque non formaté. Ailleurs, comme xtrs : « prête » même sans
     /// unité, et un secteur jamais écrit se lit plein de zéros même sur une image vierge.
@@ -213,6 +226,8 @@ impl Controller {
             accesses: 0,
             intrq: false,
             completions: 0,
+            last: HardEvent::default(),
+            commands: 0,
             strict,
         }
     }
@@ -310,6 +325,8 @@ impl Controller {
     }
 
     fn command(&mut self, cmd: u8) {
+        self.last = HardEvent { command: cmd, unit: self.unit as u8, cylinder: self.cylinder, head: self.head, sector: self.sector };
+        self.commands = self.commands.wrapping_add(1);
         self.transfer = Transfer::None;
         self.intrq = false;
         match cmd & 0xF0 {

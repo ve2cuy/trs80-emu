@@ -133,6 +133,8 @@ pub(crate) struct Fdc {
     /// lecteurs : pas de la tête, et accès (commandes, sélections qui démarrent le moteur).
     pub(crate) steps: u32,
     pub(crate) accesses: u32,
+    /// Commandes reçues (compteur cumulatif) : la page voit ainsi chaque nouvel accès.
+    pub(crate) commands: u32,
 }
 
 impl Fdc {
@@ -162,6 +164,7 @@ impl Fdc {
             last_byte: 0,
             steps: 0,
             accesses: 0,
+            commands: 0,
         }
     }
 
@@ -287,6 +290,7 @@ impl Fdc {
 
     fn command(&mut self, cmd: u8) {
         self.execute(cmd);
+        self.commands = self.commands.wrapping_add(1);
         if self.disk().is_some() {
             self.accesses = self.accesses.wrapping_add(1);
         }

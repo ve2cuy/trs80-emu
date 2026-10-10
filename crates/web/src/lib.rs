@@ -209,6 +209,34 @@ impl Emulator {
         Some(self.machine.hard_disk(unit as usize)?.image().to_vec())
     }
 
+    /// Géométrie de la disquette du lecteur, en JSON (vide sans disquette) : pistes, faces,
+    /// puis [secteurs, taille, double densité] de la piste 0 et des autres pistes.
+    pub fn disk_geometry(&self, drive: u32) -> String {
+        let Some(g) = self.machine.disk_geometry(drive as usize) else { return String::new() };
+        let shape = |t: trs80::TrackShape| format!("[{},{},{}]", t.sectors, t.size, t.dd);
+        format!(r#"{{"tracks":{},"sides":{},"t0":{},"t":{}}}"#, g.tracks, g.sides, shape(g.track0), shape(g.track))
+    }
+
+    /// Géométrie du disque dur : [cylindres, têtes] (vide sans disque).
+    pub fn hard_geometry(&self, unit: u32) -> Vec<u32> {
+        self.machine.hard_disk(unit as usize).map_or_else(Vec::new, |d| vec![d.cylinders() as u32, d.heads() as u32])
+    }
+
+    /// Dernier accès aux disquettes : [n° de commande, lecteur, piste (tête), secteur,
+    /// commande] (vide avant le premier). Un nouveau n° signale un nouvel accès.
+    pub fn disk_position(&self) -> Vec<u32> {
+        self.machine.disk_position().map_or_else(Vec::new, |(n, e)| {
+            vec![n, e.drive as u32, e.head as u32, e.sector as u32, e.command as u32]
+        })
+    }
+
+    /// Dernier accès au disque dur : [n° de commande, unité, cylindre, tête, secteur, commande].
+    pub fn hard_position(&self) -> Vec<u32> {
+        self.machine.hard_position().map_or_else(Vec::new, |(n, e)| {
+            vec![n, e.unit as u32, e.cylinder as u32, e.head as u32, e.sector as u32, e.command as u32]
+        })
+    }
+
     /// Active le son à la fréquence `rate` (celle de l'AudioContext); 0 le désactive.
     pub fn set_audio_rate(&mut self, rate: u32) {
         self.machine.set_audio_rate(rate);

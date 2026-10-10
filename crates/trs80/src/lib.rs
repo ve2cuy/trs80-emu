@@ -29,9 +29,9 @@ mod typer;
 mod video;
 
 pub use cas::{CasError, Tape};
-pub use disk::{Disk, DiskError, Format};
+pub use disk::{Disk, DiskError, Format, Geometry, TrackShape};
 pub use fdc::{DRIVES, FdcEvent};
-pub use hard::{HARD_UNITS, HardDisk, HardError};
+pub use hard::{HARD_UNITS, HardDisk, HardError, HardEvent};
 pub use cmd::CmdError;
 pub use keyboard::Key;
 pub use ldosfs::{DirEntry, FsError};
@@ -1108,6 +1108,22 @@ impl Trs80 {
     /// Dernières commandes reçues par le contrôleur de disquettes (diagnostic).
     pub fn fdc_trace(&self) -> &[FdcEvent] {
         &self.board.fdc.trace
+    }
+
+    /// Dernière commande du contrôleur de disquettes (lecteur, piste, secteur), avec le
+    /// nombre de commandes reçues : un nouveau nombre signale un nouvel accès.
+    pub fn disk_position(&self) -> Option<(u32, FdcEvent)> {
+        self.board.fdc.trace.last().map(|e| (self.board.fdc.commands, *e))
+    }
+
+    /// Dernière commande du contrôleur de disque dur, avec le nombre de commandes reçues.
+    pub fn hard_position(&self) -> Option<(u32, HardEvent)> {
+        (self.board.hard.commands != 0).then_some((self.board.hard.commands, self.board.hard.last))
+    }
+
+    /// Géométrie de la disquette du lecteur `drive`.
+    pub fn disk_geometry(&self, drive: usize) -> Option<Geometry> {
+        self.board.fdc.drives[drive % DRIVES].as_ref().map(Disk::geometry)
     }
 
     /// Activité des lecteurs, pour en imiter le bruit : (pas de la tête, accès), deux

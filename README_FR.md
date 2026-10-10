@@ -89,7 +89,10 @@ vôtres dans `www/disks/local/`, avec `"model": 2`, `3` ou `4` dans `index.json`
   3 reçoivent des disquettes de données, HD1 / HD2 les images de disque dur (`.hdv`). Choisir
   un disque dans une liste n'affiche que sa fiche; rien ne démarre avant « Mettre dans… ».
 - **Barre des lecteurs** : sous l'écran, ce qui est dans les lecteurs 0 à 3 et les disques
-  durs (● : le DOS y a écrit); un clic ouvre la section Disquettes.
+  durs (● : le DOS y a écrit), avec leur géométrie (pistes, faces, secteurs par piste,
+  taille, densité; la piste 0 quand elle diffère; cylindres et têtes d'un disque dur).
+  Pendant un accès, l'opération, la piste et le secteur (cylindre, tête et secteur d'un
+  disque dur) s'affichent un instant. Un clic ouvre la section Disquettes.
 - **Fiche du programme** : sous l'écran, le nom du programme ou de la disquette en cours, avec
   sa description quand on la connaît (liste intégrée, dépôt, ou les enregistrements de nom et
   de droit d'auteur d'un fichier `.CMD`).
