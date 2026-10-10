@@ -61,9 +61,12 @@ The "Model" list (Machine section) chooses the computer; direct link `?model=3`:
   for 8-inch disks served by a Z80 DMA, mode 2 interrupts (DMA, CTC with its timers, PIO, SIO),
   hard disk and RS-232 (see below). Disk images in IMD (ImageDisk) or DMK format. Tested with
   TRSDOS-II 2.0a (it only accepts years 1980 to 1999), TRSDOS-II 4.2 and 4.4 (their boot
-  sector tests the memory, DMA, PIO and CTC) and TRSDOS-HD 4.0.
+  sector tests the memory, DMA, PIO and CTC) and TRSDOS-HD 4.0. 40-column mode (port FFh, bit
+  4: characters twice as wide), as in the printer warning of the Model II software demo.
 
-Not emulated yet: Model II 40-column mode; the alternate character set of the Model III and 4
+Not emulated yet: the 32 "business graphics" of the Model II (codes 04h-1Fh, shown as the
+letters 44h-5Fh; 00h-03h, the triangles of its logo, are emulated); the alternate character
+set of the Model III and 4
 (Katakana or international characters, port ECh bit 3): C0h-FFh always show the special
 characters. Model III and 4 system disks are
 not published here (copyright): put yours in `www/disks/local/` with `"model": 2`, `3` or `4`

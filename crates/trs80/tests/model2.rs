@@ -4,7 +4,7 @@
 //! Exige la ROM d'amorçage (`m2_boot_v5.bin`) et des disquettes TRSDOS-II dans
 //! `crates/trs80/tests/roms/` (non fournies : test ignoré sinon) : `m2-trsdos20a-64k.imd`
 //! (TRSDOS 2.0a), `m2-trsdos42.imd` (TRSDOS-II 4.2), `m2-omniterm-tdos4.imd` (OMNITERM sur
-//! TRSDOS-II 4.2).
+//! TRSDOS-II 4.2), `m2-demo.imd` (démonstration des logiciels du Model II, 40 colonnes).
 
 use trs80::{Model, Trs80};
 
@@ -115,4 +115,22 @@ fn model2_omniterm_over_rs232() {
     let s = screen(&m);
     assert!(s.contains("CONNECT 9600") && s.contains("WELCOME TO THE BBS"), "Écran :\n{s}");
     assert_eq!(m.serial_pending(), 0);
+}
+
+#[test]
+fn model2_shows_40_columns() {
+    // Bit 4 du port FFh : 40 colonnes de caractères doublés en largeur. La démonstration des
+    // logiciels du Model II (M2DEMO) affiche son avertissement d'imprimante en 40 colonnes.
+    let (Some(rom), Some(disk)) = (load("m2_boot_v5.bin"), load("m2-demo.imd")) else { return };
+    let mut m = Trs80::new(&rom).unwrap();
+    m.insert_disk(0, disk).unwrap();
+    run(&mut m, 15);
+    assert_eq!(m.text_mode().cols, 40);
+    let s = screen(&m);
+    assert!(s.lines().any(|l| l.trim() == "*     NO PRINTER DETECTED ON LINE      *"), "Écran :\n{s}");
+    // « C » : sans imprimante; le menu revient en 80 colonnes.
+    m.type_text("C");
+    run(&mut m, 10);
+    assert_eq!(m.text_mode().cols, 80);
+    assert!(m.screen_contains("WELCOME TO A DEMONSTRATION"), "Écran :\n{}", screen(&m));
 }

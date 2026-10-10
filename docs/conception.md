@@ -142,9 +142,14 @@ l'utilisateur chargera son propre fichier ROM, conservé ensuite dans IndexedDB.
 15. ✅ Caractères spéciaux C0h-FFh des Model III et 4 (dessins originaux en 5 × 7, équivalents
    Unicode pour le copier-coller); carte son Orchestra-90 / 85 (deux convertisseurs 8 bits
    mélangés au haut-parleur 1 bit). Essayé avec ORCH90 (Gypsy Rondo à quatre voix).
+16. ✅ Model II : mode 40 colonnes (bit 4 du port FFh), caractères doublés en largeur. Essayé
+   avec la démonstration des logiciels du Model II (avertissement d'imprimante). Restent les 32
+   « business graphics » (04h-1Fh), dont le dessin n'est pas documenté dans les manuels
+   consultés.
 
 ## Références
 
 - Décodage des opcodes : <http://www.z80.info/decoding.htm>
 - Comportements non documentés : « The Undocumented Z80 Documented » (Sean Young)
 - Émulateur TRS-80 existant en TypeScript : Lawrence Kesteloot (`lkesteloot/trs80` sur GitHub)
+- Documentation du Model II (manuels techniques, BASIC, cartes) : <https://github.com/pski/model2archive/tree/master/Hardware>

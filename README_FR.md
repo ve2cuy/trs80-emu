@@ -62,11 +62,14 @@ La liste « Modèle » (section Machine) choisit l'ordinateur; lien direct `?mod
   Z80, interruptions en mode 2 (DMA, CTC avec ses temporisateurs, PIO, SIO), disque dur et
   RS-232 (voir plus bas). Images de disquette IMD (ImageDisk) ou DMK. Essayé avec TRSDOS-II
   2.0a (qui n'accepte que les années 1980 à 1999), TRSDOS-II 4.2 et 4.4 (leur amorce teste la
-  mémoire, le DMA, le PIO et le CTC) et TRSDOS-HD 4.0.
+  mémoire, le DMA, le PIO et le CTC) et TRSDOS-HD 4.0. Mode 40 colonnes (bit 4 du port FFh :
+  caractères doublés en largeur), comme dans l'avertissement d'imprimante de la démonstration
+  des logiciels du Model II.
 
-Pas encore émulés : le mode 40 colonnes du Model II; le jeu de caractères alternatif des Model
-III et 4 (katakana ou caractères internationaux, bit 3 du port ECh) : C0h-FFh montrent
-toujours les caractères spéciaux. Les
+Pas encore émulés : les 32 caractères « business graphics » du Model II (codes 04h-1Fh,
+affichés comme les lettres 44h-5Fh; 00h-03h, les triangles de son logo, sont émulés); le jeu
+de caractères alternatif des Model III et 4 (katakana ou caractères internationaux, bit 3 du
+port ECh) : C0h-FFh montrent toujours les caractères spéciaux. Les
 disquettes système des Model III et 4 ne sont pas publiées ici (droit d'auteur) : mettre les
 vôtres dans `www/disks/local/`, avec `"model": 2`, `3` ou `4` dans `index.json`.
 

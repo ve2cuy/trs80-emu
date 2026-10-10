@@ -33,6 +33,8 @@ pub struct Mode {
     /// Model II : codes 00h-03h en triangles, et 5Bh-5Eh en [ \ ] ^ (jeu ASCII) au lieu
     /// des flèches des Model I et III.
     triangles: bool,
+    /// Largeur des points du caractère (2 : caractères doubles du mode 40 colonnes).
+    xscale: usize,
 }
 
 impl Mode {
@@ -50,10 +52,12 @@ impl Mode {
     }
 }
 
-pub const MODE64: Mode = Mode { cols: 64, rows: 16, cell_w: 6, cell_h: 12, glyph_x: 0, glyph_y: 2, triangles: false };
-pub const MODE80: Mode = Mode { cols: 80, rows: 24, cell_w: 8, cell_h: 10, glyph_x: 1, glyph_y: 1, triangles: false };
+pub const MODE64: Mode = Mode { cols: 64, rows: 16, cell_w: 6, cell_h: 12, glyph_x: 0, glyph_y: 2, triangles: false, xscale: 1 };
+pub const MODE80: Mode = Mode { cols: 80, rows: 24, cell_w: 8, cell_h: 10, glyph_x: 1, glyph_y: 1, triangles: false, xscale: 1 };
 /// Model II : 80 × 24 avec les triangles 00h-03h.
 pub const MODE80_II: Mode = Mode { triangles: true, ..MODE80 };
+/// Model II, mode 40 colonnes (bit 4 du port FFh) : 40 × 24, caractères doublés en largeur.
+pub const MODE40_II: Mode = Mode { cols: 40, cell_w: 16, glyph_x: 2, xscale: 2, ..MODE80_II };
 
 /// Phosphore blanc légèrement bleuté sur fond noir.
 pub(crate) const FG: [u8; 4] = [0xE6, 0xEE, 0xFF, 0xFF];
@@ -103,7 +107,7 @@ fn glyph_pixel(c: u8, x: usize, y: usize, ascii: bool) -> bool {
 #[allow(clippy::too_many_arguments)]
 fn cell_pixel(code: u8, x: usize, y: usize, m: &Mode, text: bool, lowercase: bool, inverse: bool, specials: bool) -> bool {
     if specials && code >= 0xC0 && !inverse {
-        let (gx, gy) = (x.wrapping_sub(m.glyph_x), y.wrapping_sub(m.glyph_y));
+        let (gx, gy) = (x.wrapping_sub(m.glyph_x) / m.xscale, y.wrapping_sub(m.glyph_y));
         let row = SPECIAL[(code - 0xC0) as usize].get(gy).copied().unwrap_or(0);
         return gx < 5 && row & (0x10 >> gx) != 0;
     }
@@ -129,7 +133,7 @@ fn cell_pixel(code: u8, x: usize, y: usize, m: &Mode, text: bool, lowercase: boo
     let lit = text
         && x >= m.glyph_x
         && y >= m.glyph_y
-        && glyph_pixel(ascii(code, lowercase), x - m.glyph_x, y - m.glyph_y, m.triangles);
+        && glyph_pixel(ascii(code, lowercase), (x - m.glyph_x) / m.xscale, y - m.glyph_y, m.triangles);
     lit != inverted
 }
 

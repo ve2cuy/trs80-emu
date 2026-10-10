@@ -34,12 +34,13 @@ export const FONTS = [
 // Disposition des glyphes selon l'écran. Le canvas fait 1536 × 1152 : en 64 × 16, une case
 // de 24 × 72; en 80 × 24, de 19,2 × 48, où l'on copie des glyphes de 24 × 60 réduits à 0,8
 // (mêmes proportions). Ligne de base et taille du texte : comme le glyphe 5 × 7 d'origine.
+// `maxScale` : condensation horizontale maximale des lettres.
 const LAYOUTS = {
-  64: { cellW: 24, cellH: 72, baseline: 56, size: 60 },
-  80: { cellW: 24, cellH: 60, baseline: 47, size: 50 },
+  64: { cellW: 24, cellH: 72, baseline: 56, size: 60, maxScale: 0.62 },
+  80: { cellW: 24, cellH: 60, baseline: 47, size: 50, maxScale: 0.62 },
+  // Model II en 40 colonnes : caractères doublés en largeur (case de 38,4 × 48).
+  40: { cellW: 48, cellH: 60, baseline: 47, size: 50, maxScale: 1.24 },
 };
-// Facteur de condensation maximal.
-const MAX_SCALE_X = 0.62;
 const TEXT_COLOR = '#e6eeff';
 // Fond de l'écran (caractères en vidéo inversée).
 const BACK_COLOR = '#08080a';
@@ -90,7 +91,7 @@ function sheet(atlas, cols, arrows, color) {
   g.textAlign = 'center';
   g.textBaseline = 'alphabetic';
   // Chasse fixe : un seul facteur pour toute la police, d'après la largeur de « M ».
-  const scaleX = Math.min(MAX_SCALE_X, (l.cellW - 2) / (g.measureText('M').width || 1));
+  const scaleX = Math.min(l.maxScale, (l.cellW - 2) / (g.measureText('M').width || 1));
   for (let i = 0; i < 95; i++) {
     const code = 0x20 + i;
     const ch = (arrows && SPECIAL[code]) || String.fromCharCode(code);

@@ -1270,6 +1270,7 @@ impl Trs80 {
     /// Mode d'affichage : 64 × 16, ou 80 × 24 (Model 4, bit 2 du port 84h).
     pub fn text_mode(&self) -> video::Mode {
         match self.board.model {
+            Model::II if self.board.ff_reg & 0x10 != 0 => video::MODE40_II,
             Model::II => video::MODE80_II,
             Model::IV if self.board.opreg & 0x04 != 0 => video::MODE80,
             _ => video::MODE64,
