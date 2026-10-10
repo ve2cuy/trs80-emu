@@ -74,10 +74,15 @@ fn model2_boots_trsdos42() {
     m.insert_disk(0, disk).unwrap();
     run(&mut m, 20);
     enter_date(&mut m);
-    m.type_text("DIR\n");
+    // Touche CAPS enfoncée au départ : « dir » arrive en majuscules (sinon : ERROR 31).
+    m.type_text("dir\n");
     run(&mut m, 10);
     let s = screen(&m);
     assert!(s.contains("Files Displayed") && s.contains("TRSDOS-II Ready"), "Écran :\n{s}");
+    m.toggle_caps();
+    m.type_text("dir\n");
+    run(&mut m, 5);
+    assert!(m.screen_contains("ERROR 31"), "Écran :\n{}", screen(&m));
 }
 
 #[test]

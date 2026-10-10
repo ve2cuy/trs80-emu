@@ -180,9 +180,10 @@
             <span class="label" data-i18n="nav.disks">Disks</span>
           </button>
           <div id="panel-disks" class="nav-panel" hidden>
-            <label class="field"><span data-i18n="disk.boot">Boot a disk</span>
+            <label class="field"><span data-i18n="disk.boot">Disks for this model</span>
               <select id="disk-list" disabled><option value="" data-i18n="choose">Choose…</option></select>
             </label>
+            <div id="disk-detail" class="lib-item" hidden></div>
             <button type="button" class="secondary with-icon" data-repo="disk">
               <svg class="icon"><use href="#i-cloud"/></svg><span data-i18n="disk.repo">Disks from repository</span></button>
             <div id="drives" class="drives"></div>
@@ -492,6 +493,8 @@
           <button type="button" class="secondary" data-key="ArrowRight">→</button>
           <button type="button" class="secondary" data-key="Enter">ENTER</button>
         </div>
+        <!-- Ce qui est dans chaque lecteur (un clic ouvre la section Disquettes). -->
+        <div id="drive-bar" class="drive-bar" role="group" aria-label="Drives" data-i18n-aria="bar.aria"></div>
         <!-- Programme ou disquette en cours : nom et description -->
         <section id="now-info" class="now-info" aria-live="polite" hidden>
           <svg id="now-icon" class="icon"><use href="#i-file"/></svg>

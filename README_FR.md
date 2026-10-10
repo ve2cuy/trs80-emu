@@ -83,6 +83,13 @@ vôtres dans `www/disks/local/`, avec `"model": 2`, `3` ou `4` dans `index.json`
   traduire leurs champs dans `"i18n": { "fr": { "description": "…" } }`.
 - **Préférences** (thème, menu, sections ouvertes, son, Turbo, dépôt...) conservées dans le
   fureteur.
+- **Mettre un disque dans un lecteur** : la même commande « Mettre dans… » partout
+  (disquettes de la section Disquettes, Ma bibliothèque, Dépôt), numérotée comme les
+  lecteurs : « Lecteur 0 — démarrer » redémarre le TRS-80 sur la disquette, les lecteurs 1 à
+  3 reçoivent des disquettes de données, HD1 / HD2 les images de disque dur (`.hdv`). Choisir
+  un disque dans une liste n'affiche que sa fiche; rien ne démarre avant « Mettre dans… ».
+- **Barre des lecteurs** : sous l'écran, ce qui est dans les lecteurs 0 à 3 et les disques
+  durs (● : le DOS y a écrit); un clic ouvre la section Disquettes.
 - **Fiche du programme** : sous l'écran, le nom du programme ou de la disquette en cours, avec
   sa description quand on la connaît (liste intégrée, dépôt, ou les enregistrements de nom et
   de droit d'auteur d'un fichier `.CMD`).
@@ -96,8 +103,8 @@ Disquettes, programmes (`.CMD`, `.CAS`) et listings BASIC (`.BAS`, en texte ou t
 conservent dans le fureteur (IndexedDB, sur cet appareil seulement; rien n'est envoyé) :
 « Add files… », le bouton « Keep » d'un lecteur (avec les modifications faites par le DOS) ou
 du panneau « Type text », ou automatiquement pour les fichiers ouverts (« Keep the files I
-open »). Depuis la bibliothèque : démarrer ou insérer une disquette, lancer un programme,
-télécharger ou supprimer.
+open »). Depuis la bibliothèque : mettre un disque dans un lecteur (« Mettre dans… »),
+lancer un programme, télécharger ou supprimer.
 
 ### Disque dur
 
@@ -291,12 +298,13 @@ programmes conçus pour disquette démarrent, mais rien n'est enregistré.
 
 ### Disquettes
 
-- **« Boot a disk »** : LDOS 5.3.1, redistribuable, en simple densité et en système complet
+- **« Disquettes de ce modèle »** : LDOS 5.3.1, redistribuable, en simple densité et en système complet
   double densité (voir [www/disks/README.md](www/disks/README.md)).
   Au démarrage, entrer une date de son époque, ex. `10/08/91`. Lien direct : `?disk=ldos-531`.
 - **Disquettes locales** (développement) : les disquettes qu'on ne peut pas publier
   (ex. TRSDOS) vont dans `www/disks/local/`; ce dossier est exclu de Git et ses
-  disquettes apparaissent dans « Boot a disk », marquées « local » (avec `python serve.py`).
+  disquettes apparaissent dans « Disquettes de ce modèle », marquées « local » (avec
+  `python serve.py`).
 - **Listes de disquettes** : après avoir ajouté ou retiré des images dans `www/disks/` ou
   `www/disks/local/`, lancer `python www/disks/make_index.py`. Il met à jour les deux
   `index.json` (une entrée pour chaque nouvelle image, retrait des images absentes, titres
@@ -332,6 +340,10 @@ s'occupe de la touche MAJ du TRS-80, dont la disposition est différente.
 
 Sur une tablette ou un téléphone, toucher l'écran (ou « ⌨ Keyboard ») fait apparaître le
 clavier virtuel; des boutons sous l'écran donnent BREAK, CLEAR, les flèches et ENTER.
+
+Model II : sa touche CAPS est enfoncée au départ, car TRSDOS-II n'accepte ses commandes qu'en
+majuscules (`dir` donne `ERROR 31`); Verr. Maj la bascule, pour taper en minuscules dans un
+programme de terminal.
 
 ### Assembleur Z80
 

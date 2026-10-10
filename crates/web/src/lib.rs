@@ -228,6 +228,11 @@ impl Emulator {
         self.machine.clear_audio();
     }
 
+    /// Model II : touche CAPS enfoncée (lettres en majuscules).
+    pub fn caps(&self) -> bool {
+        self.machine.caps()
+    }
+
     /// Interface d'expansion (horloge à 40 Hz).
     pub fn set_expansion_interface(&mut self, present: bool) {
         self.machine.set_expansion_interface(present);
@@ -238,6 +243,11 @@ impl Emulator {
     pub fn key_down(&mut self, name: &str) -> bool {
         if self.machine.model() == Model::II {
             // Clavier ASCII : la touche donne directement son code (MAJ déjà appliquée).
+            // Verr. Maj bascule la touche CAPS (majuscules), enfoncée au départ.
+            if name == "CapsLock" {
+                self.machine.toggle_caps();
+                return true;
+            }
             return match model2_code(name) {
                 Some(code) => {
                     self.machine.key_code(code);

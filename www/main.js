@@ -798,12 +798,41 @@ function iconButton(name, key, extra = '') {
 }
 
 /** Liste « Lecteur… » pour insérer une disquette dans les lecteurs 1 à 3. */
-function driveSelect() {
-  const into = element('select');
-  setTip(into, 'lib.into.tip');
-  const first = new Option(t('lib.drive'), '');
-  first.dataset.i18n = 'lib.drive';
-  into.append(first, ...[1, 2, 3].map((d) => new Option(t('lib.driveN', { n: d }), d)));
+/**
+ * Commande « Mettre dans… », la même partout (disquettes de la liste, bibliothèque, dépôt) :
+ * lecteur 0 (le TRS-80 redémarre dessus), lecteurs 1 à 3, ou disque dur HD1 / HD2 pour une
+ * image .hdv. `getBytes` fournit le contenu (téléchargé au besoin), ou null en cas d'échec.
+ */
+function placeSelect(name, getBytes, { libraryId = null, info = null } = {}) {
+  const hard = /\.hdv$/i.test(name);
+  const into = element('select', 'place');
+  setTip(into, hard ? 'place.hard.tip' : 'place.tip');
+  const keys = hard ? ['place.h0', 'place.h1'] : ['place.d0', 'place.d1', 'place.d2', 'place.d3'];
+  const option = (key, value) => {
+    const o = new Option(t(key), value);
+    o.dataset.i18n = key;
+    return o;
+  };
+  into.append(option('place', ''), ...keys.map((k) => option(k, k.slice(-2))));
+  into.addEventListener('change', async () => {
+    const target = into.value;
+    into.value = '';
+    if (!target) return;
+    if (!emulator) {
+      showStatus(t('prog.hint'), true);
+      return;
+    }
+    const bytes = await getBytes();
+    if (!bytes) return;
+    const n = Number(target[1]);
+    if (target[0] === 'h') {
+      if (hardRows[n].insert(name, bytes, libraryId)) focusScreen();
+    } else if (n === 0) {
+      if (driveRows[0].insertAndBoot(name, bytes, libraryId, info)) showScreen();
+    } else if (driveRows[n].insert(name, bytes, libraryId)) {
+      focusScreen();
+    }
+  });
   return into;
 }
 
@@ -957,6 +986,8 @@ function makeDriveRow(drive) {
       refresh();
     },
     hasDisk: () => !!current,
+    /** Barre des lecteurs : nom de la disquette et écritures du DOS, ou null. */
+    contents: () => (current ? { name: current.name, modified: !!emulator?.disk_modified(drive) } : null),
     /** Vide le lecteur (autre modèle : ses disquettes ne conviennent plus). */
     clear() {
       current = null;
@@ -983,15 +1014,6 @@ const driveRows = [0, 1, 2, 3].map(makeDriveRow);
 // Contrôleur Radio Shack (WD1010) : deux unités, les adresses 1 et 2 du pilote RSHARD (Model
 // I, III et 4) ou les unités 0 et 1 de TRSDOS-HD (Model II). Images au format Reed (.hdv),
 // comme xtrs, trs80gp et FreHD.
-
-/** Liste « Disque dur… » pour brancher une image sur l'unité 1 ou 2. */
-function hardSelect() {
-  const into = element('select');
-  const first = new Option(t('hd.mount'), '');
-  first.dataset.i18n = 'hd.mount';
-  into.append(first, ...[0, 1].map((u) => new Option(t('hd.unit', { n: u + 1 }), u)));
-  return into;
-}
 
 function makeHardRow(unit) {
   const row = element('div', 'drive');
@@ -1115,6 +1137,7 @@ function makeHardRow(unit) {
       setTip(blank, prefs.model === 2 ? 'hd.new.tip2' : 'hd.new.tip');
     },
     image: () => (current ? emulator?.hard_disk_image(unit) : null),
+    contents: () => (current ? { name: current.name, modified: !!emulator?.hard_disk_modified(unit) } : null),
     signature: () => (current ? `${current.name}#${version}#${emulator?.hard_disk_writes(unit) ?? 0}` : '-'),
     snapshot() {
       const bytes = current ? emulator?.hard_disk_image(unit) : null;
@@ -1126,6 +1149,36 @@ function makeHardRow(unit) {
 const hardRows = [0, 1].map(makeHardRow);
 languageListeners.push(() => hardRows.forEach((r) => r.refresh()));
 setInterval(() => hardRows.forEach((r) => r.refresh()), 1000);
+
+// ------------------------------------------------------------------ barre des lecteurs
+
+// Sous l'écran : ce qui est dans les lecteurs 0 à 3 et les disques durs branchés (● : écrit
+// par le DOS). Un clic ouvre la section Disquettes.
+const driveBar = document.getElementById('drive-bar');
+let driveBarState = '';
+
+function renderDriveBar() {
+  const chips = [
+    ...driveRows.map((r, i) => ({ no: String(i), c: r.contents() })),
+    ...hardRows.map((r, u) => ({ no: `HD${u + 1}`, c: r.contents() })).filter((x) => x.c),
+  ];
+  const state = JSON.stringify([document.documentElement.lang, !!emulator, chips]);
+  if (state === driveBarState) return;
+  driveBarState = state;
+  driveBar.hidden = !emulator;
+  driveBar.replaceChildren(...chips.map(({ no, c }) => {
+    const chip = element('button', 'drive-chip');
+    chip.type = 'button';
+    chip.classList.toggle('empty', !c);
+    chip.classList.toggle('modified', !!c?.modified);
+    chip.title = `${c ? c.name : t('bar.empty')} — ${t('bar.open')}`;
+    chip.append(element('span', 'no', no), element('span', 'file', c ? c.name : t('bar.empty')));
+    chip.addEventListener('click', () => showPanel('disks'));
+    return chip;
+  }));
+}
+setInterval(renderDriveBar, 500);
+languageListeners.push(renderDriveBar);
 
 // ------------------------------------------------------------------ reprise de session
 
@@ -1221,24 +1274,51 @@ function relabelDiskList() {
 }
 languageListeners.push(relabelDiskList);
 
-async function bootDisk(id) {
-  const d = disks.find((x) => x.id === id);
-  if (!d) return;
+/** Contenu d'une disquette de la liste (null en cas d'échec, signalé dans la ligne d'état). */
+async function fetchListedDisk(d) {
   try {
     const res = await fetch(`disks/${d.file}${V}`);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const name = d.file.split('/').pop();
-    const bytes = new Uint8Array(await res.arrayBuffer());
-    // Disquette de données (« data » : ex. les pilotes RSHARD) : lecteur 1, sans redémarrer.
-    if (d.data) driveRows[1].insert(name, bytes);
-    else driveRows[0].insertAndBoot(name, bytes, null, entryInfo(d, name));
+    return new Uint8Array(await res.arrayBuffer());
   } catch (e) {
     showStatus(t('download.fail', { name: localized(d, 'title'), msg: failure(e) }), true);
+    return null;
   }
+}
+
+/** Lien direct ?disk= : démarre la disquette (une disquette de données va au lecteur 1). */
+async function bootDisk(id) {
+  const d = disks.find((x) => x.id === id);
+  if (!d) return;
+  const bytes = await fetchListedDisk(d);
+  if (!bytes) return;
+  const name = d.file.split('/').pop();
+  if (d.data) driveRows[1].insert(name, bytes);
+  else driveRows[0].insertAndBoot(name, bytes, null, entryInfo(d, name));
   showScreen();
 }
 
-diskList.addEventListener('change', () => bootDisk(diskList.value));
+// Disquette choisie dans la liste : sa fiche, et « Mettre dans… » comme dans la bibliothèque
+// et le dépôt.
+const diskDetail = document.getElementById('disk-detail');
+
+function showDiskDetail() {
+  const d = disks.find((x) => x.id === diskList.value);
+  diskDetail.hidden = !d;
+  if (!d) return;
+  const name = d.file.split('/').pop();
+  const meta = element('div', 'lib-meta');
+  meta.append(element('span', 'lib-name', localized(d, 'title')),
+    element('span', 'lib-sub', [name, d.year, d.authors].filter(Boolean).join(' · ')));
+  const about = localized(d, 'description');
+  if (about) meta.append(element('span', 'lib-about', about));
+  const actions = element('div', 'lib-actions');
+  actions.append(placeSelect(name, () => fetchListedDisk(d), { info: entryInfo(d, name) }));
+  diskDetail.replaceChildren(icon('disk'), meta, actions);
+}
+
+diskList.addEventListener('change', showDiskDetail);
+languageListeners.push(showDiskDetail);
 
 // ------------------------------------------------------------------ bibliothèque
 
@@ -1328,28 +1408,8 @@ function libraryItem(file) {
     `${t(`kind.${kind.kind}`)} · ${formatSize(file.size)} · ${new Date(file.updated).toLocaleDateString(document.documentElement.lang)}`));
   const actions = element('div', 'lib-actions');
 
-  if (file.kind === 'disk') {
-    const boot = textElement('button', 'secondary', 'lib.boot');
-    boot.type = 'button';
-    setTip(boot, 'lib.boot.tip');
-    boot.addEventListener('click', () => {
-      if (driveRows[0].insertAndBoot(file.name, file.bytes, file.id)) showScreen();
-    });
-    const into = driveSelect();
-    into.addEventListener('change', () => {
-      const d = Number(into.value);
-      into.value = '';
-      if (d && driveRows[d].insert(file.name, file.bytes, file.id)) focusScreen();
-    });
-    actions.append(boot, into);
-  } else if (file.kind === 'hard') {
-    const into = hardSelect();
-    into.addEventListener('change', () => {
-      const u = Number(into.value);
-      into.value = '';
-      if (hardRows[u]?.insert(file.name, file.bytes, file.id)) focusScreen();
-    });
-    actions.append(into);
+  if (file.kind === 'disk' || file.kind === 'hard') {
+    actions.append(placeSelect(file.name, async () => file.bytes, { libraryId: file.id }));
   } else {
     const run = textElement('button', 'secondary', 'lib.run');
     run.type = 'button';
@@ -1530,16 +1590,14 @@ function repoItem(kind, entry) {
       showStatus(t('repo.romLoaded', { name: localized(entry, 'title') ?? name }));
     }, false));
   } else if (kind === 'disk') {
-    button('lib.boot', withFile((bytes) => {
-      if (driveRows[0].insertAndBoot(name, bytes, null, entryInfo(entry, name))) showScreen();
-    }), 'lib.boot.tip');
-    const into = driveSelect();
-    into.addEventListener('change', () => {
-      const d = Number(into.value);
-      into.value = '';
-      if (d) withFile((bytes) => driveRows[d].insert(name, bytes))();
-    });
-    actions.append(into);
+    actions.append(placeSelect(name, async () => {
+      try {
+        return await fetchRepoFile(kind, entry);
+      } catch (e) {
+        showStatus(t('download.fail', { name, msg: failure(e) }), true);
+        return null;
+      }
+    }, { info: entryInfo(entry, name) }));
   } else {
     button('lib.run', withFile((bytes) => runFile(bytes, name, entryInfo(entry, name))));
   }
@@ -1862,10 +1920,17 @@ window.addEventListener('keydown', (e) => {
   }
   // Model II : clavier ASCII avec répétition; les autres répètent d'eux-mêmes.
   if (e.repeat && emulator.model() !== 2) { e.preventDefault(); return; }
-  const key = pressKey(ctrlKey ? `Ctrl+${e.key.toUpperCase()}` : e.key);
+  // Model II : la casse des lettres vient de MAJ et de sa touche CAPS (Verr. Maj), pas du
+  // verrouillage des majuscules de l'ordinateur.
+  let name = e.key;
+  if (emulator.model() === 2 && /^[a-z]$/i.test(name) && e.getModifierState('CapsLock')) {
+    name = name === name.toLowerCase() ? name.toUpperCase() : name.toLowerCase();
+  }
+  const key = pressKey(ctrlKey ? `Ctrl+${e.key.toUpperCase()}` : name);
   if (key) {
     pressed.set(e.code, key);
     e.preventDefault();
+    if (name === 'CapsLock' && emulator.model() === 2) showStatus(t(emulator.caps() ? 'caps.on' : 'caps.off'));
   }
 });
 

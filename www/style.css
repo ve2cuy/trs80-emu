@@ -650,6 +650,27 @@ canvas:focus-visible { box-shadow: 0 0 0 3px var(--accent); }
 #now-lines p { margin: 4px 0 0; font-size: 0.9rem; }
 #now-lines p.muted { color: var(--muted); font-size: 0.82rem; }
 
+/* Barre des lecteurs, sous l'écran. */
+.drive-bar { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+.drive-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 100%;
+  padding: 3px 10px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--text);
+  font: 0.8rem ui-monospace, Consolas, monospace;
+  cursor: pointer;
+}
+.drive-chip:hover { border-color: var(--accent); }
+.drive-chip .no { color: var(--accent-ink); font-weight: 600; }
+.drive-chip .file { overflow: hidden; max-width: 24ch; text-overflow: ellipsis; white-space: nowrap; }
+.drive-chip.empty .file { color: var(--muted); }
+.drive-chip.modified::after { content: "●"; color: var(--accent); font-size: 0.7rem; }
+
 .status { min-height: 1.4em; margin: 10px 0 0; color: var(--muted); font-size: 0.88rem; }
 .status.error { color: var(--error); }
 

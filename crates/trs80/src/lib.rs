@@ -190,6 +190,9 @@ struct Board {
     /// Model II : clavier (touche en attente de lecture en FCh, puis les suivantes).
     kbd_latch: Option<u8>,
     kbd_queue: alloc::collections::VecDeque<u8>,
+    /// Model II : touche CAPS (lettres en majuscules), enfoncée au départ : TRSDOS-II
+    /// n'accepte ses commandes qu'en majuscules (« dir » : ERROR 31).
+    caps: bool,
     /// Model II : T-states depuis la dernière touche livrée (rythme du clavier).
     kbd_gap: u32,
     /// Model II : interruption du clavier (canal 3 du CTC) en attente.
@@ -647,6 +650,7 @@ impl Trs80 {
             ff_reg: 0,
             kbd_latch: None,
             kbd_queue: alloc::collections::VecDeque::new(),
+            caps: true,
             kbd_gap: 0,
             kbd_int: false,
             ctc: dma::Ctc::default(),
@@ -1203,10 +1207,23 @@ impl Trs80 {
     }
 
     /// Model II : envoie un code de touche (ASCII) au clavier; il arrive au programme par une interruption (canal 3 du CTC).
+    /// Avec CAPS, les lettres arrivent en majuscules.
     pub fn key_code(&mut self, code: u8) {
+        let code = if self.board.caps { code.to_ascii_uppercase() } else { code };
         if self.board.kbd_queue.len() < 256 {
             self.board.kbd_queue.push_back(code);
         }
+    }
+
+    /// Model II : bascule la touche CAPS; retourne son nouvel état.
+    pub fn toggle_caps(&mut self) -> bool {
+        self.board.caps = !self.board.caps;
+        self.board.caps
+    }
+
+    /// Model II : touche CAPS enfoncée (lettres en majuscules).
+    pub fn caps(&self) -> bool {
+        self.board.caps
     }
 
     /// Mode 32 caractères par ligne actif.

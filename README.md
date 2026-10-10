@@ -82,6 +82,12 @@ in `index.json`.
   fields in `"i18n": { "fr": { "description": "…" } }`.
 - **Preferences** (theme, menu, open sections, sound, Turbo, repository...) are kept
   in the browser.
+- **Putting a disk in a drive**: the same "Put in…" command everywhere (disks of the Disks
+  section, My library, Repository), numbered like the drives: "Drive 0 — boot" restarts the
+  TRS-80 on the disk, drives 1 to 3 take data disks, HD1 / HD2 take hard disk images
+  (`.hdv`). Choosing a disk in a list only shows its card; nothing starts before "Put in…".
+- **Drive bar**: under the screen, what is in drives 0 to 3 and in the hard disks (● : the
+  DOS wrote on it); a click opens the Disks section.
 - **Program card**: under the screen, the name of the program or disk being run, with
   its description when known (built-in list, repository, or the name and copyright
   records of a `.CMD` file).
@@ -95,7 +101,7 @@ Disks, programs (`.CMD`, `.CAS`) and BASIC listings (`.BAS`, text or tokenized) 
 kept in the browser (IndexedDB, on this device only; nothing is uploaded): "Add files…",
 the "Keep" button of a drive (with the changes made by the DOS) or of the "Type text"
 panel, or automatically for the files you open ("Keep the files I open"). From the
-library: Boot or insert a disk, Run a program, download or delete.
+library: put a disk in a drive ("Put in…"), Run a program, download or delete.
 
 ### Hard disk
 
@@ -280,12 +286,12 @@ start, but nothing is saved.
 
 ### Disks
 
-- **"Boot a disk"**: LDOS 5.3.1, freely redistributable, in single density and as a complete
+- **"Disks for this model"**: LDOS 5.3.1, freely redistributable, in single density and as a complete
   double-density system (see [www/disks/README.md](www/disks/README.md)).
   At boot, enter a date from its era, e.g. `10/08/91`. Direct link: `?disk=ldos-531`.
 - **Local disks** (development): disks you may not publish (e.g. TRSDOS) go in
   `www/disks/local/`; this folder is ignored by Git and its disks appear in "Boot a
-  disk" marked "local" (with `python serve.py`).
+  model" marked "local" (with `python serve.py`).
 - **Disk lists**: after adding or removing images in `www/disks/` or `www/disks/local/`,
   run `python www/disks/make_index.py`. It updates both `index.json` files (new images
   get an entry, entries of missing images are removed, existing titles and
@@ -320,6 +326,9 @@ TRS-80 Shift key, whose layout is different.
 
 On a tablet or phone, tap the screen (or "⌨ Keyboard") to show the on-screen keyboard;
 buttons under the screen give BREAK, CLEAR, the arrows and ENTER.
+
+Model II: its CAPS key starts pressed, since TRSDOS-II only accepts commands in upper case
+(`dir` gives `ERROR 31`); Caps Lock toggles it, to type lower case in a terminal program.
 
 ### Z80 assembler
 
