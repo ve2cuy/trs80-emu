@@ -675,8 +675,17 @@ function showNowInfo(source, kind = 'program') {
   // Fichier du dépôt : comment l'ayant droit peut en demander le retrait.
   if (source.repo) {
     const [before, after = ''] = t('now.rights').split('{link}');
+    // Le lien ouvre le formulaire « Demande de retrait » (.github/ISSUE_TEMPLATE), avec le
+    // programme et le fichier déjà remplis.
+    const title = localized(source.entry, 'title') ?? source.name;
+    const form = new URLSearchParams({
+      template: 'removal-request.yml',
+      title: `Demande de retrait / Removal request: ${title}`,
+      program: title,
+      file: `${source.repo.kind}/${source.repo.file}`,
+    });
     const link = element('a', '', ISSUES_URL);
-    link.href = ISSUES_URL;
+    link.href = `${ISSUES_URL}/new?${form}`;
     link.target = '_blank';
     link.rel = 'noopener';
     const p = element('p', 'muted rights');

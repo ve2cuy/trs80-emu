@@ -33,3 +33,13 @@ sudo chmod 664 /var/www/ve2cuy.com/trs80/*/index.json
 Pour changer le mot de passe, refaire la commande `password_hash`. Le mot de passe n'est
 jamais dans Git ni dans la page : la page l'envoie à chaque action et le serveur le
 vérifie (pause de 2 s après un refus).
+
+## Demandes de retrait (ayants droit)
+
+La fiche d'un fichier du dépôt, sous l'écran, invite l'ayant droit à demander le retrait
+du programme : le lien ouvre le formulaire GitHub « Demande de retrait / Removal request »
+(`.github/ISSUE_TEMPLATE/removal-request.yml`), avec le programme et le chemin du fichier
+déjà remplis, et l'étiquette `removal-request`.
+
+Traitement : lancer le fichier depuis le dépôt (en admin), **Retirer de la liste**
+(il passe dans « À valider »), répondre dans l'issue, puis la fermer.

@@ -1,0 +1,61 @@
+# Demande de retrait d'un programme du dépôt de l'émulateur (ve2cuy.com/trs80).
+# La fiche d'un programme, sous l'écran de l'émulateur, ouvre ce formulaire avec le nom du
+# programme et le chemin du fichier déjà remplis (paramètres program et file de l'adresse).
+name: Demande de retrait / Removal request
+description: >-
+  Vous êtes l'ayant droit d'un programme du dépôt et désirez qu'il soit retiré. /
+  You hold the rights to a program in the repository and want it removed.
+title: "Demande de retrait / Removal request: "
+labels: [removal-request]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        **Français** — Le programme sera retiré de la liste présentée aux utilisateurs de l'émulateur dès le traitement de la demande, et nous vous répondrons ici.
+        Cette page est **publique** : n'y inscrivez aucun renseignement personnel (adresse, téléphone...).
+
+        **English** — The program will be removed from the list shown to the emulator's users as soon as the request is processed, and we will reply here.
+        This page is **public**: do not post any personal information (address, phone...).
+  - type: input
+    id: program
+    attributes:
+      label: Programme / Program
+      description: Titre du programme tel qu'il paraît dans l'émulateur. / Title of the program as shown in the emulator.
+      placeholder: Fasteroids
+    validations:
+      required: true
+  - type: input
+    id: file
+    attributes:
+      label: Fichier du dépôt / Repository file
+      description: Chemin du fichier (rempli par l'émulateur). / File path (filled in by the emulator).
+      placeholder: cmd/model3/fstroids.cmd
+    validations:
+      required: true
+  - type: textarea
+    id: rights
+    attributes:
+      label: Vos droits sur le programme / Your rights to the program
+      description: >-
+        Par exemple : auteur, éditeur, successeur de l'éditeur, ou mandataire. /
+        For example: author, publisher, publisher's successor, or representative.
+    validations:
+      required: true
+  - type: textarea
+    id: other
+    attributes:
+      label: Autres fichiers ou précisions / Other files or details
+      description: >-
+        Autres versions du même programme à retirer, s'il y a lieu. /
+        Other versions of the same program to remove, if any.
+    validations:
+      required: false
+  - type: checkboxes
+    id: confirm
+    attributes:
+      label: Confirmation
+      options:
+        - label: >-
+            Je suis l'ayant droit de ce programme ou je le représente. /
+            I hold the rights to this program or represent the rights holder.
+          required: true
