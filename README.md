@@ -63,8 +63,9 @@ The "Model" list (Machine section) chooses the computer; direct link `?model=3`:
   TRSDOS-II 2.0a (it only accepts years 1980 to 1999), TRSDOS-II 4.2 and 4.4 (their boot
   sector tests the memory, DMA, PIO and CTC) and TRSDOS-HD 4.0.
 
-Not emulated yet: Model II 40-column mode; Model 4 sound board; the Model III
-special characters (C0h-FFh are shown as graphics blocks). Model III and 4 system disks are
+Not emulated yet: Model II 40-column mode; the alternate character set of the Model III and 4
+(Katakana or international characters, port ECh bit 3): C0h-FFh always show the special
+characters. Model III and 4 system disks are
 not published here (copyright): put yours in `www/disks/local/` with `"model": 2`, `3` or `4`
 in `index.json`.
 
@@ -163,6 +164,14 @@ the screen shows the 640 × 240 image with the text over it (exclusive or). Test
 under TRSDOS 1.3 on the Model III, which shows the graphics while a program runs and goes back
 to the text as soon as it prints (READY): `10 SCREEN 0:CLR:CIRCLE (320,120),100`,
 `20 GOTO 20`, `RUN`.
+
+### Orchestra sound board
+
+The Orchestra-90 (Model III and 4, ports 79h left and 75h right) and Orchestra-85 (Model I,
+ports B9h and B5h) of Software Affair: two 8-bit converters, mixed with the 1-bit speaker
+(mono). Tested with ORCH90 under LDOS 5.3.1 on the Model III (not provided): `ORCH90`, `N`
+(normal clock; `Y` on a Model 4 at 4 MHz), `4` voices, `N`, then BREAK and `G GYPSY:1` (read,
+score and play a music file).
 
 ### Modem and BBS (RS-232)
 

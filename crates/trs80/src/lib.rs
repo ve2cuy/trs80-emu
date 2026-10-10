@@ -222,6 +222,12 @@ struct Board {
     expansion: bool,
     /// Sortie cassette (bits 0-1 du port FFh) : sert de haut-parleur.
     sound: u8,
+    /// Carte son Orchestra (Software Affair) : deux convertisseurs 8 bits, gauche et droite
+    /// (valeurs signées). Orchestra-85 du Model I : ports B9h et B5h; Orchestra-90 des
+    /// Model III et 4 : ports 79h et 75h (comme xtrs).
+    orchestra: [i8; 2],
+    /// Écritures sur l'Orchestra (compteur cumulatif).
+    orchestra_writes: u32,
     /// Contrôleur de disquettes (interface d'expansion).
     fdc: Fdc,
     /// Disque dur Radio Shack (WD1010, ports C0h-CFh).
@@ -351,6 +357,13 @@ impl Board {
             0xFF => self.ff_reg = val,
             _ => {}
         }
+    }
+
+    /// Niveau du son : le haut-parleur 1 bit (cassette, port 90h du Model 4) et la carte
+    /// Orchestra (moyenne des deux canaux).
+    fn audio_level(&self) -> f32 {
+        let dac = (self.orchestra[0] as f32 + self.orchestra[1] as f32) / 256.0;
+        Audio::level(self.sound) + dac
     }
 
     /// Fréquence actuelle du processeur.
@@ -572,6 +585,13 @@ impl Bus for Board {
         if (0xC0..=0xCF).contains(&(port as u8)) {
             return self.hard.write(port as u8, val);
         }
+        // Orchestra : 79h et 75h (Model III et 4), B9h et B5h (Model I).
+        let orch = if self.model.ports() { [0x79, 0x75] } else { [0xB9, 0xB5] };
+        if let Some(ch) = orch.iter().position(|&p| p == port as u8) {
+            self.orchestra[ch] = val as i8;
+            self.orchestra_writes = self.orchestra_writes.wrapping_add(1);
+            return;
+        }
         if (0xE8..=0xEB).contains(&(port as u8)) {
             let (now, hz) = (self.now, self.clock_hz());
             return self.serial.write(port as u8, val, now, hz);
@@ -704,6 +724,8 @@ impl Trs80 {
             expansion: true,
             rtc_pending: false,
             sound: 0,
+            orchestra: [0; 2],
+            orchestra_writes: 0,
             fdc,
             hard: hard::Controller::new(model == Model::II),
             serial: serial::Serial::new(),
@@ -782,6 +804,11 @@ impl Trs80 {
         }
     }
 
+    /// Carte son Orchestra : écritures reçues (compteur cumulatif).
+    pub fn orchestra_writes(&self) -> u32 {
+        self.board.orchestra_writes
+    }
+
     /// Changements de l'image haute résolution (compteur cumulatif).
     pub fn hires_changes(&self) -> u32 {
         self.board.hires.changes
@@ -824,7 +851,7 @@ impl Trs80 {
     fn instruction(&mut self) -> u32 {
         let mut done = 0;
         {
-            let level = Audio::level(self.board.sound);
+            let level = self.board.audio_level();
             self.board.now = self.cpu.cycles;
             self.board.fdc.tick(self.cpu.cycles);
             let hz = self.board.clock_hz();
@@ -939,7 +966,7 @@ impl Trs80 {
             };
             if pending && self.cpu.iff1 {
                 let t = self.cpu.interrupt(&mut self.board, 0xFF);
-                self.audio.advance(Audio::level(self.board.sound), t);
+                self.audio.advance(self.board.audio_level(), t);
                 done += t;
             }
         }

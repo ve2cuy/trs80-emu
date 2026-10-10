@@ -139,6 +139,9 @@ l'utilisateur chargera son propre fichier ROM, conservé ensuite dans IndexedDB.
    Model 4 (8Ch-8Dh). Image de 640 × 240, texte superposé en ou exclusif. Essayé avec BASICG
    sous TRSDOS 6.2.1. Polices de la page : aussi en 80 × 24 (Model II, Model 4), avec
    minuscules, vidéo inversée et [ \ ] ^ du Model II.
+15. ✅ Caractères spéciaux C0h-FFh des Model III et 4 (dessins originaux en 5 × 7, équivalents
+   Unicode pour le copier-coller); carte son Orchestra-90 / 85 (deux convertisseurs 8 bits
+   mélangés au haut-parleur 1 bit). Essayé avec ORCH90 (Gypsy Rondo à quatre voix).
 
 ## Références
 

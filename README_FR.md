@@ -64,8 +64,9 @@ La liste « Modèle » (section Machine) choisit l'ordinateur; lien direct `?mod
   2.0a (qui n'accepte que les années 1980 à 1999), TRSDOS-II 4.2 et 4.4 (leur amorce teste la
   mémoire, le DMA, le PIO et le CTC) et TRSDOS-HD 4.0.
 
-Pas encore émulés : le mode 40 colonnes du Model II; la carte son du Model 4; les
-caractères spéciaux du Model III (C0h-FFh s'affichent comme des blocs graphiques). Les
+Pas encore émulés : le mode 40 colonnes du Model II; le jeu de caractères alternatif des Model
+III et 4 (katakana ou caractères internationaux, bit 3 du port ECh) : C0h-FFh montrent
+toujours les caractères spéciaux. Les
 disquettes système des Model III et 4 ne sont pas publiées ici (droit d'auteur) : mettre les
 vôtres dans `www/disks/local/`, avec `"model": 2`, `3` ou `4` dans `index.json`.
 
@@ -173,6 +174,14 @@ disquette de BASICG au lecteur 1, `BASICG`, puis `SCREEN 0`, `CLR`, `CIRCLE (320
 `LINE (0,0)-(639,239)`. Essayé aussi avec BASICG 1.0 sous TRSDOS 1.3 sur le Model III, qui
 montre le graphique pendant un programme et revient au texte dès qu'il écrit (READY) :
 `10 SCREEN 0:CLR:CIRCLE (320,120),100`, `20 GOTO 20`, `RUN`.
+
+### Carte son Orchestra
+
+L'Orchestra-90 (Model III et 4, ports 79h à gauche et 75h à droite) et l'Orchestra-85 (Model
+I, ports B9h et B5h) de Software Affair : deux convertisseurs 8 bits, mélangés au haut-parleur
+1 bit (mono). Essayé avec ORCH90 sous LDOS 5.3.1 sur le Model III (non fourni) : `ORCH90`, `N`
+(horloge normale; `Y` sur un Model 4 à 4 MHz), `4` voix, `N`, puis BREAK et `G GYPSY:1` (lire,
+compiler et jouer un morceau).
 
 ### Modem et BBS (RS-232)
 
