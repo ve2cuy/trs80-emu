@@ -75,6 +75,9 @@ impl Emulator {
                 self.machine.type_text("RUN\n");
                 Ok(format!("BASIC tape ({size} bytes), running"))
             }
+            Loaded::Level1 => Ok("Level I tape, CLOAD typed".into()),
+            Loaded::Blocks => Ok("machine-language blocks loaded, no entry point".into()),
+            Loaded::Inserted => Ok("data tape put in the recorder".into()),
         }
     }
 
@@ -239,11 +242,13 @@ impl Emulator {
         self.machine.eject_tape();
     }
 
-    /// Magnétophone : [octets lus, taille, moteur en marche (0 ou 1)]; vide sans cassette.
+    /// Magnétophone : [octets lus, taille, moteur en marche (0 ou 1), octets par seconde];
+    /// vide sans cassette.
     pub fn tape_progress(&self) -> Vec<u32> {
+        let rate = self.machine.tape_bytes_per_second();
         self.machine
             .tape_progress()
-            .map_or_else(Vec::new, |(pos, len, motor)| vec![pos as u32, len as u32, motor as u32])
+            .map_or_else(Vec::new, |(pos, len, motor)| vec![pos as u32, len as u32, motor as u32, rate])
     }
 
     /// Dernier accès au disque dur : [n° de commande, unité, cylindre, tête, secteur, commande].

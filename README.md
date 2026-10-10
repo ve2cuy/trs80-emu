@@ -315,6 +315,13 @@ answer `MEM SIZE?` with ENTER.
   FROGGER): a CAS chip under the screen shows the progress and the time left. With
   "Fast tape loading" (on by default), the whole machine runs as fast as the browser allows
   while the tape motor turns: a 3-minute tape loads in a few seconds.
+  - **Level I tapes** (250 baud) need the Level I BASIC ROM (4 KB, offered in the ROM
+    list): the Model I switches to it by itself, types CLOAD, then RUN for a BASIC
+    program; a Level II tape switches back to Level II.
+  - Model III **1500-baud** tapes (including those stored as a raw bit stream) are
+    converted; a block with a bad checksum is loaded anyway, as the ROM does.
+  - An **EDTASM source** tape opens in the assembler workshop; a **data tape** is put in
+    the tape recorder, for the program that reads it.
 - **Copy and paste**: Ctrl+V on the screen, the Paste button of the toolbar, or "Type
   text…", types the text on the TRS-80 keyboard (for example a BASIC program or DOS
   commands). Ctrl+C on the screen (nothing selected in the page), or the Copy button,

@@ -60,3 +60,28 @@ fn cload_reads_the_tape_on_model_i_and_iii() {
         assert!(m.screen_contains("TAPE 42"), "{model:?} : le programme lu ne s'exécute pas");
     }
 }
+
+/// BASIC Level I (ROM de 4 Ko) : une cassette Level I est lue par CLOAD à 250 bauds; une
+/// cassette Level II est refusée, et la ROM Level II refuse une cassette Level I.
+#[test]
+fn level1_tapes_go_through_cload() {
+    let (Some(l1), Some(l2)) = (rom("level1.bin"), rom("M1L2_1.3.bin")) else { return };
+    // Adresses de début et de fin (octet fort en premier), puis les octets.
+    let mut tape = vec![0u8; 64];
+    tape.extend([0xA5, 0x70, 0x00, 0x70, 0x03, 1, 2, 3, 4, 10]);
+    let mut m = Trs80::new(&l1).unwrap();
+    assert_eq!(m.model(), Model::I);
+    assert!(matches!(m.load_cas(&tape), Ok(trs80::Loaded::Level1)));
+    for _ in 0..600 {
+        m.run_frame();
+        if m.tape_progress().is_some_and(|(pos, _, motor)| pos > 0 && !motor) {
+            break;
+        }
+    }
+    let (pos, len, motor) = m.tape_progress().unwrap();
+    assert!(!motor && pos + 2 >= len, "{pos}/{len}");
+    assert_eq!((0x7000..0x7003).map(|a| m.peek(a)).collect::<Vec<_>>(), [1, 2, 3]);
+    assert_eq!(m.load_cas(&basic_tape()).unwrap_err().to_string(), "Level II tape: the Level I BASIC ROM cannot read it");
+    let mut m = Trs80::new(&l2).unwrap();
+    assert_eq!(m.load_cas(&tape).unwrap_err().to_string(), "Level I tape: it needs the Level I BASIC ROM (4 KB)");
+}

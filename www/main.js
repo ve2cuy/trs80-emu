@@ -385,6 +385,45 @@ function extractFromTar(tar, wanted) {
   return null;
 }
 
+/** Télécharge une ROM de la liste (vérifiée par son empreinte); lève une erreur sinon. */
+async function downloadListedRom(rom) {
+  const res = await fetch(rom.url);
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  const bytes = new Uint8Array(await res.arrayBuffer());
+  if (rom.sha256 && (await sha256Hex(bytes)) !== rom.sha256) throw new Error(t('rom.checksum'));
+  return bytes;
+}
+
+/**
+ * Model I : passe au BASIC Level I (1) ou Level II (2) pour une cassette de l'autre famille.
+ * La ROM Level I est conservée à part (clé « level1 »), téléchargée la première fois; la
+ * ROM Level II est celle de l'utilisateur, sinon celle par défaut. La ROM choisie dans la
+ * liste ne change pas.
+ */
+async function switchLevel(level) {
+  const wanted = roms.find((r) => r.id === (level === 1 ? 'level1' : DEFAULT_ROMS[1]));
+  let bytes = null;
+  try {
+    if (level === 1) {
+      bytes = await dbRequest('roms', 'readonly', (s) => s.get('level1')).catch(() => null);
+      if (!(bytes instanceof Uint8Array)) {
+        showStatus(t('downloading', { name: localized(wanted, 'title') }));
+        bytes = await downloadListedRom(wanted);
+        dbRequest('roms', 'readwrite', (s) => s.put(bytes, 'level1')).catch(() => {});
+      }
+    } else {
+      const saved = (await loadSavedRom()) ?? (await loadDevRom());
+      bytes = saved && saved.bytes.length !== 4096 ? saved.bytes : await downloadListedRom(wanted);
+    }
+  } catch (e) {
+    showStatus(t('download.fail', { name: wanted ? localized(wanted, 'title') : 'ROM', msg: failure(e) }), true);
+    return false;
+  }
+  if (!start(bytes)) return false;
+  showStatus(t(level === 1 ? 'rom.toLevel1' : 'rom.toLevel2'));
+  return true;
+}
+
 async function chooseListedRom(id) {
   const rom = roms.find((r) => r.id === id);
   romTar.hidden = true;
@@ -397,12 +436,7 @@ async function chooseListedRom(id) {
   }
   showStatus(t('downloading', { name: localized(rom, 'title') }));
   try {
-    const res = await fetch(rom.url);
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const bytes = new Uint8Array(await res.arrayBuffer());
-    if (rom.sha256 && (await sha256Hex(bytes)) !== rom.sha256) {
-      throw new Error(t('rom.checksum'));
-    }
+    const bytes = await downloadListedRom(rom);
     if (start(bytes)) {
       saveRom(rom.id, bytes);
       showStatus(t('rom.loaded', { name: localized(rom, 'title') }));
@@ -684,12 +718,27 @@ function casMessage(name, message) {
   if (m) return t('run.casSystem', { name, addr: m[1] });
   m = message.match(/^BASIC tape \((\d+) bytes\), running$/);
   if (m) return t('run.casBasic', { name, size: m[1] });
+  if (message === 'Level I tape, CLOAD typed') return t('run.casLevel1', { name });
+  if (message === 'machine-language blocks loaded, no entry point') return t('run.casBlocks', { name });
+  if (message === 'data tape put in the recorder') return t('run.casData', { name });
   return `${name}: ${message}`;
 }
 
 function diskMessage(desc) {
   const m = desc.match(/^(\S+), (\d+) sectors(, write-protected)?$/);
   return m ? t('disk.desc', { format: m[1], n: m[2] }) + (m[3] ? t('disk.protected') : '') : desc;
+}
+
+/**
+ * Source EDTASM enregistrée sur cassette (amorce, A5h, D3h, nom de 6 caractères, puis des
+ * lignes numérotées en chiffres au bit 7 levé) : le texte à ouvrir dans l'atelier, ou null.
+ */
+function edtasmTape(bytes) {
+  let i = 0;
+  while (i < bytes.length && bytes[i] === 0) i += 1;
+  const digit = (b) => b >= 0xB0 && b <= 0xB9;
+  if (bytes[i] !== 0xA5 || bytes[i + 1] !== 0xD3 || !digit(bytes[i + 8]) || !digit(bytes[i + 12])) return null;
+  return bytes.subarray(i + 1);
 }
 
 /**
@@ -704,6 +753,14 @@ function runFile(bytes, name, info = null) {
     return;
   }
   const label = describeSource(info).title;
+  const source = /\.cas$/i.test(name) ? edtasmTape(bytes) : null;
+  if (source) {
+    // Source assembleur sur cassette : ouverte dans l'atelier.
+    showIde(true);
+    ide.open(source, name.replace(/\.cas$/i, '.asm'));
+    showStatus(t('run.casSource', { name: label }));
+    return;
+  }
   try {
     if (/\.cas$/i.test(name)) {
       showStatus(casMessage(label, emulator.load_cas(bytes)));
@@ -714,6 +771,13 @@ function runFile(bytes, name, info = null) {
     }
     showNowInfo(info, /\.cas$/i.test(name) && info.basic ? 'basic' : 'program');
   } catch (e) {
+    // Model I : cassette de l'autre BASIC (Level I ou Level II) : on change de ROM, puis on
+    // recommence.
+    const level = /^Level I tape/.test(e.message) ? 1 : /^Level II tape/.test(e.message) ? 2 : 0;
+    if (level && prefs.model === 1 && !info.levelSwitched) {
+      switchLevel(level).then((ok) => ok && runFile(bytes, name, { ...info, levelSwitched: true }));
+      return;
+    }
     showStatus(t('run.fail', { name: label, msg: e.message ?? e }), true);
   }
   showScreen();
@@ -1268,17 +1332,16 @@ function hardGeometry(unit) {
 
 // Magnétophone : une cassette dont le programme lit lui-même la suite (chargeur à plusieurs
 // étapes) reste en place; la barre montre l'avancement et le temps qui reste (500 bauds :
-// environ 62 octets par seconde).
+// environ 62 octets par seconde, 31 à 250 bauds pour le Level I).
 let tapeName = null;
-const TAPE_BYTES_PER_SECOND = 62;
 
 function tapeChip() {
   const p = emulator?.tape_progress();
   if (!p?.length) return null;
-  const [pos, len, motor] = p;
+  const [pos, len, motor, rate] = p;
   // Cassette lue en entier (ou presque : quelques octets de remplissage) : plus rien à montrer.
   if (!motor && len - pos <= 16) return null;
-  const left = Math.ceil((len - pos) / TAPE_BYTES_PER_SECOND);
+  const left = Math.ceil((len - pos) / rate);
   const time = `${Math.floor(left / 60)}:${String(left % 60).padStart(2, '0')}`;
   const pct = Math.floor((pos * 100) / len);
   return {

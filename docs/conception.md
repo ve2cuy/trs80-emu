@@ -72,6 +72,12 @@ l'utilisateur chargera son propre fichier ROM, conservé ensuite dans IndexedDB.
    au bit 0 de FFh). Moteur : bit 2 de FFh (Model I), bit 1 de ECh (Model III/4). La suite
    d'une cassette SYSTEM y reste pour les chargeurs à plusieurs étapes; sur Model III/4,
    4211h = 0 met la ROM en basse vitesse (cassette à 500 bauds).
+   BASIC Level I (ROM de 4 Ko, Model I) : cassettes à 250 bauds (mêmes impulsions, durées
+   doublées), lues par la ROM (CLOAD tapé, puis RUN si l'invite revient). `cas::normalize`
+   convertit les cassettes à 1500 bauds (train de bits brut à 9 bits par octet compris) et
+   répare l'en-tête BASIC 53h D3h D3h; la lecture SYSTEM tolère les sommes de contrôle
+   fausses et l'absence d'adresse de lancement; une cassette d'un autre format est mise au
+   magnétophone.
 7b. ✅ VE2CUY Invaders (`asm/invaders.asm`, zmac) : jeu bilingue choisi à l'accueil,
    tampon d'écran, environ 31 images par seconde; testé par `tests/invaders.rs`.
 7c. ✅ Son : sortie cassette (port FFh, bits 0-1) échantillonnée au fil des cycles

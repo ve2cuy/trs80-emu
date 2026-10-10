@@ -54,6 +54,8 @@ pub const CYCLES_PER_FRAME: u32 = CLOCK_HZ / 60;
 pub const ROM_SIZE: usize = 0x3000;
 /// Taille de la ROM du Model III (14 Ko).
 pub const ROM3_SIZE: usize = 0x3800;
+/// ROM du BASIC Level I (Model I) : 4 Ko.
+pub const LEVEL1_SIZE: usize = 0x1000;
 /// Taille de la ROM d'amorçage du Model II (2 Ko).
 pub const ROM2_SIZE: usize = 0x800;
 /// Model II : durée d'une commande du disque dur avant son interruption (T-states, environ
@@ -82,7 +84,7 @@ impl Model {
     /// Modèle d'après la taille de la ROM : 12 Ko (Model I), 14 Ko (Model III) ou 2 Ko (Model II).
     pub fn from_rom_size(len: usize) -> Option<Model> {
         match len {
-            ROM_SIZE => Some(Model::I),
+            ROM_SIZE | LEVEL1_SIZE => Some(Model::I),
             ROM3_SIZE => Some(Model::III),
             ROM2_SIZE => Some(Model::II),
             _ => None,
@@ -154,7 +156,7 @@ impl core::fmt::Display for Error {
         match self {
             Error::BadRomSize(n) => write!(
                 f,
-                "a ROM must be {ROM_SIZE} bytes (Model I), {ROM3_SIZE} bytes (Model III/4) or {ROM2_SIZE} bytes (Model II); this file is {n} bytes"
+                "a ROM must be {ROM_SIZE} or {LEVEL1_SIZE} bytes (Model I, Level II or Level I), {ROM3_SIZE} bytes (Model III/4) or {ROM2_SIZE} bytes (Model II); this file is {n} bytes"
             ),
             Error::Cmd(e) => write!(f, "{e}"),
             Error::Cas(e) => write!(f, "{e}"),
@@ -643,6 +645,21 @@ pub struct Trs80 {
     disk_activity: u32,
     audio: Audio,
     debug: Debug,
+    /// Cassette Level I : RUN à taper quand le magnétophone s'est arrêté (voir `run_frame`).
+    autorun: AutoRun,
+}
+
+/// Lancement d'un programme Level I après CLOAD.
+#[derive(Clone, Copy, Default, PartialEq, Eq)]
+enum AutoRun {
+    #[default]
+    Off,
+    /// CLOAD tapé : le moteur doit démarrer.
+    Waiting,
+    /// La cassette défile.
+    Loading,
+    /// Moteur arrêté depuis n images.
+    Stopped(u8),
 }
 
 /// Raison d'un arrêt du débogueur.
@@ -693,6 +710,14 @@ pub enum Loaded {
     System(u16),
     /// Programme BASIC, prêt pour RUN (taille en octets).
     Basic(usize),
+    /// Cassette Level I au magnétophone : CLOAD est tapé, la ROM la lit (puis RUN).
+    Level1,
+    /// Blocs en langage machine chargés, sans adresse de lancement (une image d'écran, par
+    /// exemple) : le BASIC garde la main.
+    Blocks,
+    /// Ni programme ni BASIC (données, autre format) : la cassette est mise au magnétophone,
+    /// pour le programme qui la lit.
+    Inserted,
 }
 
 impl Trs80 {
@@ -705,7 +730,7 @@ impl Trs80 {
 
     /// Crée un modèle donné (la ROM doit lui correspondre).
     pub fn with_model(rom: &[u8], model: Model) -> Result<Self, Error> {
-        if rom.len() != model.rom_size() {
+        if rom.len() != model.rom_size() && !(model == Model::I && rom.len() == LEVEL1_SIZE) {
             return Err(Error::BadRomSize(rom.len()));
         }
         let mut fdc = Fdc::new();
@@ -765,6 +790,8 @@ impl Trs80 {
             nmi_line: false,
         };
         board.rom[..rom.len()].copy_from_slice(rom);
+        // BASIC Level I : cassettes à 250 bauds.
+        board.tape.slow = rom.len() == LEVEL1_SIZE;
         let mut audio = Audio::new();
         audio.set_clock(model.clock_hz());
         let mut typer = Typer::new();
@@ -780,6 +807,7 @@ impl Trs80 {
             disk_activity: 0,
             audio,
             debug: Debug::default(),
+            autorun: AutoRun::Off,
         })
     }
 
@@ -818,6 +846,7 @@ impl Trs80 {
         self.board.hard.reset();
         self.board.hires.reset();
         self.board.ec_reg = 0;
+        self.autorun = AutoRun::Off;
         let now = self.cpu.cycles;
         self.board.tape.set_motor(false, now, self.board.model.clock_hz());
         self.typer.cancel(&mut self.board.keyboard);
@@ -1126,6 +1155,41 @@ impl Trs80 {
         let hz = self.board.clock_hz();
         self.audio.set_clock(hz);
         self.run_cycles(hz / 60);
+        self.autorun_tick();
+    }
+
+    /// Après CLOAD d'une cassette Level I : une fois le moteur arrêté, si le BASIC attend une
+    /// commande (READY, puis l'invite), RUN lance le programme. Un programme en langage
+    /// machine qui a pris la main n'affiche pas l'invite : rien n'est tapé.
+    fn autorun_tick(&mut self) {
+        let motor = self.board.tape.motor;
+        self.autorun = match self.autorun {
+            AutoRun::Waiting if motor => AutoRun::Loading,
+            AutoRun::Loading if !motor => AutoRun::Stopped(0),
+            AutoRun::Stopped(_) if motor => AutoRun::Loading,
+            AutoRun::Stopped(n) if n >= 30 => {
+                if self.at_prompt() {
+                    self.type_text("RUN\n");
+                }
+                AutoRun::Off
+            }
+            AutoRun::Stopped(n) => AutoRun::Stopped(n + 1),
+            state => state,
+        };
+    }
+
+    /// Le BASIC attend une commande : dernière ligne non vide « > » (et le curseur), après
+    /// une ligne READY.
+    fn at_prompt(&self) -> bool {
+        let lines: alloc::vec::Vec<alloc::string::String> = (0..16)
+            .map(|r| (0..64).map(|c| self.char_at(r, c)).collect::<alloc::string::String>())
+            .map(|l| alloc::string::String::from(l.trim_end()))
+            .filter(|l| !l.is_empty())
+            .collect();
+        match lines.as_slice() {
+            [.., ready, prompt] => ready.contains("READY") && prompt.trim_end_matches('_') == ">",
+            _ => false,
+        }
     }
 
     /// Tape `text` au clavier, touche par touche, au fil des images (les fins de ligne
@@ -1154,6 +1218,7 @@ impl Trs80 {
     /// Met une cassette au magnétophone, au début : un programme peut la lire (CLOAD,
     /// SYSTEM, ou son propre chargeur) quand il met le moteur en marche.
     pub fn insert_tape(&mut self, data: alloc::vec::Vec<u8>) {
+        let data = cas::normalize(&data);
         self.tape_speed(&data);
         self.board.tape.insert(data, 0);
     }
@@ -1169,6 +1234,11 @@ impl Trs80 {
 
     pub fn eject_tape(&mut self) {
         self.board.tape.eject();
+    }
+
+    /// Octets lus par seconde au magnétophone : environ 62 à 500 bauds, 31 à 250 (Level I).
+    pub fn tape_bytes_per_second(&self) -> u32 {
+        if self.board.tape.slow { 31 } else { 62 }
     }
 
     /// Magnétophone : (octets lus, taille, moteur en marche), ou `None` sans cassette.
@@ -1549,7 +1619,31 @@ impl Trs80 {
     /// programme BASIC est placé en mémoire, prêt pour RUN (comme après CLOAD). La machine
     /// redémarre d'abord en BASIC (voir [`Trs80::load_cmd`]).
     pub fn load_cas(&mut self, data: &[u8]) -> Result<Loaded, Error> {
-        let tape = cas::parse(data).map_err(Error::Cas)?;
+        let data = &cas::normalize(data);
+        // BASIC Level I : la ROM lit la cassette elle-même (CLOAD), à 250 bauds.
+        if self.board.tape.slow {
+            if !cas::level1(data) {
+                return Err(Error::Cas(cas::CasError::NeedsLevel2));
+            }
+            self.restart_basic()?;
+            self.board.tape.insert(data.to_vec(), 0);
+            // Juste après READY, le BASIC n'écoute pas encore le clavier.
+            (0..30).for_each(|_| self.run_frame());
+            self.type_text("CLOAD\n");
+            self.autorun = AutoRun::Waiting;
+            return Ok(Loaded::Level1);
+        }
+        if cas::level1(data) {
+            return Err(Error::Cas(cas::CasError::NeedsLevel1));
+        }
+        let tape = match cas::parse(data) {
+            Ok(tape) => tape,
+            Err(cas::CasError::UnknownFormat) => {
+                self.insert_tape(data.to_vec());
+                return Ok(Loaded::Inserted);
+            }
+            Err(e) => return Err(Error::Cas(e)),
+        };
         self.restart_basic()?;
         match tape {
             Tape::System { entry, .. } => {
@@ -1565,6 +1659,7 @@ impl Trs80 {
                 let end = cas::system_end(data).map_err(Error::Cas)?;
                 self.board.tape.insert(data.to_vec(), end);
                 self.tape_speed(&data[end..]);
+                let Some(entry) = entry else { return Ok(Loaded::Blocks) };
                 self.cpu.halted = false;
                 self.cpu.pc = entry;
                 Ok(Loaded::System(entry))

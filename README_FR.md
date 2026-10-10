@@ -330,6 +330,14 @@ répondre à `MEM SIZE?` avec ENTRÉE.
   l'avancement et le temps qui reste. Avec « Cassettes rapides » (activé par défaut), toute
   la machine va aussi vite que le permet le fureteur pendant que le moteur tourne : une
   cassette de 3 minutes se charge en quelques secondes.
+  - Les **cassettes Level I** (250 bauds) demandent la ROM du BASIC Level I (4 Ko,
+    proposée dans la liste des ROM) : le Model I y passe de lui-même, tape CLOAD, puis RUN
+    pour un programme BASIC; une cassette Level II le ramène au Level II.
+  - Les cassettes Model III à **1500 bauds** (même enregistrées en train de bits brut) sont
+    converties; un bloc dont la somme de contrôle est fausse est chargé quand même, comme
+    le fait la ROM.
+  - Une **source EDTASM** s'ouvre dans l'atelier d'assemblage; une **cassette de données**
+    est mise au magnétophone, pour le programme qui la lit.
 - **Copier-coller** : Ctrl+V sur l'écran, le bouton Coller de la barre d'outils, ou « Type
   text… », tape le texte au clavier du TRS-80 (par exemple un programme BASIC ou des
   commandes du DOS). Ctrl+C sur l'écran (rien de sélectionné dans la page), ou le bouton

@@ -9,6 +9,8 @@
 //! Le Model III signale aussi chaque front par une interruption (port E0h, bit 0 : montant,
 //! bit 1 : descendant), et le bit 0 du port FFh donne le niveau du signal.
 //!
+//! Le BASIC Level I lit à 250 bauds : mêmes impulsions, durées doublées.
+//!
 //! « Lancer » une cassette en charge le programme directement en mémoire; le magnétophone
 //! reprend alors juste après, pour les programmes qui lisent la suite eux-mêmes (chargeurs à
 //! plusieurs étapes, comme FROGGER).
@@ -41,16 +43,18 @@ pub(crate) struct Tape {
     /// Fronts vus depuis la dernière lecture (bit 0 : montant, bit 1 : descendant).
     edges: u8,
     hz: u64,
+    /// 250 bauds (BASIC Level I) plutôt que 500.
+    pub(crate) slow: bool,
 }
 
 impl Tape {
     /// Met une cassette, prête à lire à partir de l'octet `pos`.
     pub(crate) fn insert(&mut self, data: Vec<u8>, pos: usize) {
-        *self = Tape { pos: pos.min(data.len()), data, hz: self.hz, ..Tape::default() };
+        *self = Tape { pos: pos.min(data.len()), data, hz: self.hz, slow: self.slow, ..Tape::default() };
     }
 
     pub(crate) fn eject(&mut self) {
-        *self = Tape { hz: self.hz, ..Tape::default() };
+        *self = Tape { hz: self.hz, slow: self.slow, ..Tape::default() };
     }
 
     pub(crate) fn loaded(&self) -> bool {
@@ -106,7 +110,8 @@ impl Tape {
                 us += SYNC_PAUSE;
             }
         }
-        self.delta = Some(us as u64 * self.hz / 1_000_000);
+        let us = if self.slow { us as u64 * 2 } else { us as u64 };
+        self.delta = Some(us * self.hz / 1_000_000);
     }
 
     /// Fait défiler la bande jusqu'à `now`.

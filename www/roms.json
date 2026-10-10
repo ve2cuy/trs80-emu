@@ -74,6 +74,25 @@
     "model": 1
   },
   {
+    "id": "level1",
+    "title": "Level I BASIC (Tandy, official)",
+    "source": "url",
+    "url": "https://raw.githubusercontent.com/kiwisincebirth/TRS-80-ROMS/736bcba36c606cb766eb8932977198c7d22889f7/test-roms/M1L1.bin",
+    "sha256": "74040b583672571038c8239695148194b073333cc7808c952cfecf2a78a20f8c",
+    "i18n": {
+      "fr": {
+        "title": "Level I BASIC (Tandy, officielle)"
+      },
+      "es": {
+        "title": "Level I BASIC (Tandy, oficial)"
+      },
+      "zh": {
+        "title": "Level I BASIC（Tandy 官方）"
+      }
+    },
+    "model": 1
+  },
+  {
     "id": "model3-revc",
     "model": 3,
     "title": "Model III ROM rev. C (Tandy, official)",
