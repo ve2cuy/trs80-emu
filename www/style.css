@@ -656,6 +656,8 @@ canvas:focus-visible { box-shadow: 0 0 0 3px var(--accent); }
 .now-admin .admin-row { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
 .now-admin button.secondary, .now-admin select { padding: 4px 10px; font-size: 0.85rem; }
 .now-admin select { width: auto; max-width: 100%; }
+.now-admin .admin-models { display: inline-flex; gap: 8px; align-items: center; font-size: 0.85rem; }
+.now-admin .admin-models label { display: inline-flex; gap: 3px; align-items: center; cursor: pointer; }
 .now-admin .admin-badge { color: var(--accent-ink); font: 600 0.75rem system-ui, sans-serif; }
 .test-shots { display: flex; flex-wrap: wrap; gap: 8px; }
 .test-shots figure { margin: 0; text-align: center; font-size: 0.78rem; color: var(--muted); }

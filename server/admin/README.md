@@ -7,7 +7,7 @@ par le serveur :
 - de **retirer un fichier de la liste** présentée aux utilisateurs : son entrée quitte
   `<genre>/index.json` et passe dans la liste « À valider » (visible seulement en admin),
   d'où on peut la remettre ;
-- de **changer sa catégorie**.
+- de **changer sa catégorie** et les **modèles** sur lesquels il est proposé.
 
 Les fichiers eux-mêmes restent sur le serveur; seul l'index change. Chaque modification
 garde une copie de l'index dans `/var/lib/trs80-admin/backup/` (les 200 dernières).
@@ -54,4 +54,4 @@ d'écran bienvenue).
 
 Traitement : lancer le fichier (en admin), **Tester sur M1, M3 et M4**; s'il ne
 fonctionne nulle part, **Retirer de la liste** (ou corriger l'émulateur, ou les modèles de
-son entrée), répondre dans l'issue, puis la fermer.
+son entrée : cases M1 à M4 de la fiche), répondre dans l'issue, puis la fermer.

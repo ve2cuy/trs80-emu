@@ -1,11 +1,12 @@
 <?php
 // Administration du dépôt de l'émulateur TRS-80 : retirer un fichier de la liste présentée
-// aux utilisateurs (il passe dans la liste « À valider »), l'y remettre, changer sa catégorie.
+// aux utilisateurs (il passe dans la liste « À valider »), l'y remettre, changer sa catégorie
+// ou les modèles sur lesquels il est proposé.
 //
 // POST <dépôt>/admin.php, corps JSON (envoyé en text/plain : pas de requête préalable CORS) :
-//   { "password": "...", "action": "login" | "pending" | "hide" | "restore" | "category",
+//   { "password": "...", "action": "login" | "pending" | "hide" | "restore" | "category" | "models",
 //     "kind": "cmd" | "bas" | "asm" | "cas" | "disk" | "rom", "file": "model1/x.cas",
-//     "category": "games" }
+//     "category": "games", "models": [1, 3] }
 // Réponse : { "ok": true, ... } ou { "ok": false, "error": "..." }.
 //
 // Données hors du site (DATA) : password.hash (password_hash() du mot de passe, jamais dans
@@ -174,5 +175,25 @@ switch ($action) {
             fail('not found', 404);
         }
         reply(['ok' => true]);
+
+    case 'models':
+        // Un modèle : un nombre; plusieurs : une liste (comme dans les index).
+        $models = array_values(array_unique(array_map('intval', (array) ($req['models'] ?? []))));
+        sort($models);
+        if (!$models || array_diff($models, [1, 2, 3, 4])) {
+            fail('bad models');
+        }
+        $value = count($models) === 1 ? $models[0] : $models;
+        if ($i !== null) {
+            backup($kind);
+            $index[$i]['model'] = $value;
+            write_json(index_path($kind), $index);
+        } elseif ($p !== null) {
+            $pending[$p]['entry']['model'] = $value;
+            write_json($pendingPath, $pending);
+        } else {
+            fail('not found', 404);
+        }
+        reply(['ok' => true, 'model' => $value]);
 }
 fail('unknown action');

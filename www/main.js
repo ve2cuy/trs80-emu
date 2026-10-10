@@ -2889,6 +2889,19 @@ async function restoreFile(repo, label) {
   }
 }
 
+/** Modèles sur lesquels le fichier est proposé (au moins un). */
+async function setModels(repo, entry, models, label) {
+  try {
+    const { model } = await adminCall('models', { ...repo, models });
+    entry.model = model;
+    adminMessage(t('admin.modelsChanged', { name: label, models: models.map((m) => `M${m}`).join('/') }));
+    await afterAdminChange();
+  } catch (e) {
+    adminMessage(t('admin.fail', { msg: failure(e) }), true);
+  }
+  renderNowAdmin();
+}
+
 async function setCategory(repo, entry, category, label) {
   try {
     await adminCall('category', { ...repo, category });
@@ -2934,6 +2947,24 @@ function renderNowAdmin() {
   cat.value = entry.category ?? '';
   cat.addEventListener('change', () => cat.value && setCategory(repo, entry, cat.value, label));
   row.append(cat);
+  // Modèles proposés : une case par modèle; la dernière cochée ne peut pas être décochée.
+  const models = element('span', 'admin-models');
+  setTip(models, 'admin.models');
+  const current = repoModels(entry);
+  for (const m of [1, 2, 3, 4]) {
+    const box = element('input');
+    box.type = 'checkbox';
+    box.checked = current.includes(m);
+    box.disabled = box.checked && current.length === 1;
+    box.addEventListener('change', () => {
+      const next = [1, 2, 3, 4].filter((x) => (x === m ? box.checked : current.includes(x)));
+      setModels(repo, entry, next, label);
+    });
+    const lab = element('label');
+    lab.append(box, `M${m}`);
+    models.append(lab);
+  }
+  row.append(models);
   const parts = [row];
   const shots = testShots.get(repo.file);
   if (shots?.length) {
