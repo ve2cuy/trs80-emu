@@ -1,19 +1,24 @@
-//! Disque dur Radio Shack (Model I, III et 4) : contrôleur Western Digital WD1010 sur les
-//! ports C0h-CFh, utilisé par les pilotes RSHARD5 (LDOS 5.3) et RSHARD6 (LS-DOS 6.3) de
-//! MISOSYS, et par les cartes FreHD.
+//! Disque dur Radio Shack : contrôleur Western Digital WD1010 sur les ports C0h-CFh, utilisé
+//! par les pilotes RSHARD5 (LDOS 5.3) et RSHARD6 (LS-DOS 6.3) de MISOSYS, par les cartes
+//! FreHD, et sur le Model II par la ROM d'amorçage et TRSDOS-HD (secteurs de 512 octets).
 //!
 //! Images au format « Reed » (.hdv), comme xtrs, trs80gp et FreHD : un en-tête de 256 octets
-//! puis les secteurs de 256 octets, cylindre par cylindre, tête par tête, 32 secteurs par
-//! piste. L'en-tête donne le nombre de secteurs par cylindre (octet 29), d'où le nombre de
+//! puis les secteurs, cylindre par cylindre, tête par tête, 32 secteurs par piste. La taille
+//! des secteurs (256 octets, ou celle que le DOS choisit dans le registre CEh) fixe leur
+//! position dans l'image. L'en-tête donne le nombre de secteurs par cylindre (octet 29), d'où le nombre de
 //! têtes. Comme xtrs, le nombre de cylindres n'est pas une limite : l'image s'allonge quand
-//! le DOS écrit plus loin, et un secteur jamais écrit se lit plein de zéros.
+//! le DOS écrit plus loin, et un secteur jamais écrit se lit plein de zéros. Sur le Model II,
+//! une image vierge (en-tête seul) est un disque non formaté, où aucun secteur n'est trouvé
+//! avant la première commande FORMAT (la ROM d'amorçage passe alors aux disquettes au lieu de
+//! lire le disque sans fin).
 //!
 //! Ports (comme xtrs) :
-//! - C0h : lecture : protection en écriture (bit 7 - unité, bit 1 : au moins une).
+//! - C0h : lecture : protection en écriture (bit 7 - unité, bit 1 : au moins une),
+//!   interruption du contrôleur (bit 0 : fin de commande, effacée par la lecture de CFh).
 //! - C1h : contrôle (bit 4 : RESET, bit 3 : contrôleur actif).
 //! - C8h : données; C9h : erreur (lecture) / précompensation (écriture);
 //! - CAh : nombre de secteurs; CBh : secteur; CCh-CDh : cylindre;
-//! - CEh : taille / unité (bits 4-3) / tête (bits 2-0);
+//! - CEh : taille (bits 6-5 : 256, 512, 1024, 128 octets) / unité (bits 4-3) / tête (bits 2-0);
 //! - CFh : état (lecture) / commande (écriture).
 
 use alloc::vec;
@@ -22,6 +27,7 @@ use alloc::vec::Vec;
 /// Unités par contrôleur.
 pub const HARD_UNITS: usize = 4;
 const SECTOR: usize = 256;
+const MAX_SECTOR: usize = 1024;
 const HEADER: usize = 256;
 const SECTORS_PER_TRACK: usize = 32;
 const MAX_HEADS: usize = 8;
@@ -128,9 +134,9 @@ impl HardDisk {
         &self.data
     }
 
-    fn offset(&self, cyl: u16, head: u8, sector: u8) -> usize {
+    fn offset(&self, cyl: u16, head: u8, sector: u8, size: usize) -> usize {
         let index = (cyl as usize * self.heads + head as usize) * SECTORS_PER_TRACK + sector as usize % SECTORS_PER_TRACK;
-        HEADER + index * SECTOR
+        HEADER + index * size
     }
 
     fn read(&self, at: usize, out: &mut [u8]) {
@@ -167,17 +173,28 @@ pub(crate) struct Controller {
     cylinder: u16,
     unit: usize,
     head: u8,
+    /// Taille des secteurs (registre CEh).
+    size: usize,
     transfer: Transfer,
     /// Secteur en cours de transfert, et sa position dans l'image.
-    buffer: [u8; SECTOR],
+    buffer: [u8; MAX_SECTOR],
     pos: usize,
     at: usize,
     /// Compteur cumulatif d'accès (bruit des lecteurs).
     pub(crate) accesses: u32,
+    /// Fin de commande (INTRQ du WD1010) : données prêtes pour une lecture, secteur écrit
+    /// pour une écriture. Sur le Model II, déclenche le canal 0 du CTC de l'interface.
+    pub(crate) intrq: bool,
+    /// Nombre de fins de commande (chaque une est un front montant de INTRQ).
+    pub(crate) completions: u32,
+    /// Model II : une unité absente n'est pas prête (TRSDOS-HD cherche ainsi les unités), et
+    /// une image vierge est un disque non formaté. Ailleurs, comme xtrs : « prête » même sans
+    /// unité, et un secteur jamais écrit se lit plein de zéros même sur une image vierge.
+    strict: bool,
 }
 
 impl Controller {
-    pub(crate) fn new() -> Self {
+    pub(crate) fn new(strict: bool) -> Self {
         Controller {
             units: [None, None, None, None],
             control: 0,
@@ -188,11 +205,15 @@ impl Controller {
             cylinder: 0,
             unit: 0,
             head: 0,
+            size: SECTOR,
             transfer: Transfer::None,
-            buffer: [0; SECTOR],
+            buffer: [0; MAX_SECTOR],
             pos: 0,
             at: 0,
             accesses: 0,
+            intrq: false,
+            completions: 0,
+            strict,
         }
     }
 
@@ -218,7 +239,7 @@ impl Controller {
                 .iter()
                 .enumerate()
                 .filter(|(_, u)| u.as_ref().is_some_and(HardDisk::write_protected))
-                .fold(0, |v, (i, _)| v | (0x80 >> i) | 0x02),
+                .fold(self.intrq as u8, |v, (i, _)| v | (0x80 >> i) | 0x02),
             0xC1 => self.control,
             0xC8 => self.read_data(),
             0xC9 => self.error,
@@ -226,8 +247,15 @@ impl Controller {
             0xCB => self.sector,
             0xCC => self.cylinder as u8,
             0xCD => (self.cylinder >> 8) as u8,
-            0xCE => (self.unit as u8) << 3 | self.head,
-            0xCF => self.status,
+            0xCE => Self::size_bits(self.size) | (self.unit as u8) << 3 | self.head,
+            0xCF => {
+                self.intrq = false;
+                if self.strict && self.units[self.unit].is_none() {
+                    self.status & !READY
+                } else {
+                    self.status
+                }
+            }
             _ => 0xFF,
         }
     }
@@ -248,6 +276,7 @@ impl Controller {
             0xCE => {
                 self.unit = ((val >> 3) & 3) as usize;
                 self.head = val & 7;
+                self.size = [256, 512, 1024, 128][(val >> 5) as usize & 3];
                 // « Prêt » même sans unité (comme xtrs) : la commande signalera l'erreur.
                 self.status = READY | SEEK_DONE;
             }
@@ -269,11 +298,12 @@ impl Controller {
             self.fail(NOT_FOUND);
             return None;
         };
-        if head as usize >= disk.heads || sector as usize > SECTORS_PER_TRACK {
+        let unformatted = self.strict && disk.data.len() <= HEADER;
+        if head as usize >= disk.heads || sector as usize > SECTORS_PER_TRACK || unformatted {
             self.fail(NOT_FOUND);
             return None;
         }
-        let at = disk.offset(cyl, head, sector);
+        let at = disk.offset(cyl, head, sector, self.size);
         self.accesses = self.accesses.wrapping_add(1);
         self.error = 0;
         Some(at)
@@ -281,6 +311,7 @@ impl Controller {
 
     fn command(&mut self, cmd: u8) {
         self.transfer = Transfer::None;
+        self.intrq = false;
         match cmd & 0xF0 {
             // RESTORE
             0x10 => {
@@ -292,7 +323,8 @@ impl Controller {
             0x20 | 0x30 if cmd & 0x04 != 0 => self.fail(ABORTED),
             0x20 => {
                 if let Some(at) = self.find() {
-                    self.units[self.unit].as_ref().unwrap().read(at, &mut self.buffer);
+                    let size = self.size;
+                    self.units[self.unit].as_ref().unwrap().read(at, &mut self.buffer[..size]);
                     self.start(Transfer::Read, at);
                 }
             }
@@ -313,10 +345,39 @@ impl Controller {
             }
             // FORMAT (la piste reste lisible : rien à effacer), INIT.
             0x50 | 0x60 => {
+                // Disque non formaté (Model II) : le voici formaté.
+                if let Some(disk) = self.units[self.unit].as_mut().filter(|_| self.strict) {
+                    if disk.data.len() <= HEADER && !disk.write_protected {
+                        let at = disk.offset(self.cylinder, self.head, 0, self.size);
+                        disk.write(at, &[0]);
+                    }
+                }
                 self.error = 0;
                 self.status = READY | SEEK_DONE;
             }
             _ => self.fail(ABORTED),
+        }
+        if self.transfer != Transfer::Write {
+            self.complete();
+        }
+    }
+
+    fn complete(&mut self) {
+        self.intrq = true;
+        self.completions = self.completions.wrapping_add(1);
+    }
+
+    /// Données prêtes à lire ou à écrire (registre C8h), pour le DMA du Model II.
+    pub(crate) fn drq(&self) -> bool {
+        self.transfer != Transfer::None
+    }
+
+    fn size_bits(size: usize) -> u8 {
+        match size {
+            512 => 0x20,
+            1024 => 0x40,
+            128 => 0x60,
+            _ => 0,
         }
     }
 
@@ -333,7 +394,7 @@ impl Controller {
         }
         let v = self.buffer[self.pos];
         self.pos += 1;
-        if self.pos == SECTOR {
+        if self.pos == self.size {
             self.transfer = Transfer::None;
             self.status = READY | SEEK_DONE;
         }
@@ -346,11 +407,12 @@ impl Controller {
         }
         self.buffer[self.pos] = val;
         self.pos += 1;
-        if self.pos == SECTOR {
+        if self.pos == self.size {
             let (at, buffer) = (self.at, self.buffer);
-            self.units[self.unit].as_mut().unwrap().write(at, &buffer);
+            self.units[self.unit].as_mut().unwrap().write(at, &buffer[..self.size]);
             self.transfer = Transfer::None;
             self.status = READY | SEEK_DONE;
+            self.complete();
         }
     }
 }
@@ -370,12 +432,16 @@ mod tests {
 
     #[test]
     fn write_then_read_a_sector() {
-        let mut c = Controller::new();
+        let mut c = Controller::new(true);
         c.units[0] = Some(HardDisk::open(HardDisk::blank(153, 2)).unwrap());
-        // Cylindre 100, tête 1, secteur 5.
+        // Cylindre 100, tête 1, secteur 5 : introuvable tant que le disque n'est pas formaté.
         c.write(0xCC, 100);
         c.write(0xCD, 0);
         c.write(0xCE, 0x01);
+        c.write(0xCB, 5);
+        c.write(0xCF, 0x20);
+        assert_eq!(c.read(0xCF) & ERR, ERR);
+        c.write(0xCF, 0x50);
         c.write(0xCB, 5);
         c.write(0xCF, 0x30);
         assert_eq!(c.read(0xCF) & DRQ, DRQ);
@@ -399,7 +465,7 @@ mod tests {
 
     #[test]
     fn absent_controller_reads_ff() {
-        let mut c = Controller::new();
+        let mut c = Controller::new(false);
         assert_eq!(c.read(0xCF), 0xFF);
     }
 }

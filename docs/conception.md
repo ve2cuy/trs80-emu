@@ -123,6 +123,17 @@ l'utilisateur chargera son propre fichier ROM, conservé ensuite dans IndexedDB.
    la lecture de E0h. Modem Hayes dans la page (`www/modem.js`) et relais WebSocket -> telnet
    en Python sans dépendance (`server/telnet-relay`). Essayé avec LCOMM de LDOS 5.3.1 sur
    bbs.electrodrome.net.
+13. ✅ Model II : disque dur et RS-232. CTC complet (`dma.rs`) : temporisateurs (pré-diviseur
+   16 ou 256, constante, interruption au passage à zéro) et compteurs; l'amorce de
+   TRSDOS-II 4.x teste les canaux 0 à 2 (« BOOT ERROR CT » sinon). Disque dur : le WD1010 de
+   `hard.rs` avec la taille de secteur de CEh (512 octets), un second CTC sur C4h-C7h dont le
+   canal 0 compte les fins de commande (interruption environ 1 ms après la commande, le DOS
+   remettant son indicateur à zéro juste après l'avoir lancée), le DMA servi par C8h (DRQ),
+   une unité absente « pas prête » et une image vierge non formatée (la ROM affiche alors
+   « BOOT ERROR HN »). Essayé avec TRSDOS-HD 4.0 : INIT, démarrage sur le disque dur, COPY,
+   DIR. RS-232 : Z80 SIO (`sio.rs`, F4h-F7h), canal A relié au modem; vitesse donnée par les
+   canaux 0 et 1 du CTC et le diviseur de WR4; vecteur modifié par l'état. Essayé avec
+   OMNITERM 1.10 (300 bauds) sur bbs.electrodrome.net.
 
 ## Références
 

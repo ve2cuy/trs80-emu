@@ -59,10 +59,12 @@ La liste « Modèle » (section Machine) choisit l'ordinateur; lien direct `?mod
   téléchargement : chargez la vôtre avec « Charger une ROM… »), 64 Ko de RAM, écran de 80 × 24
   avec vidéo inversée, clavier ASCII (Ctrl + lettre donne les codes de contrôle, Fin = BREAK),
   4 MHz, horloge à 60 Hz par NMI, contrôleur FD1791 pour disquettes de 8 pouces servi par un DMA
-  Z80, interruptions en mode 2 (DMA, CTC, PIO). Images de disquette IMD (ImageDisk) ou DMK.
-  Essayé avec TRSDOS-II 2.0a (qui n'accepte que les années 1980 à 1999).
+  Z80, interruptions en mode 2 (DMA, CTC avec ses temporisateurs, PIO, SIO), disque dur et
+  RS-232 (voir plus bas). Images de disquette IMD (ImageDisk) ou DMK. Essayé avec TRSDOS-II
+  2.0a (qui n'accepte que les années 1980 à 1999), TRSDOS-II 4.2 et 4.4 (leur amorce teste la
+  mémoire, le DMA, le PIO et le CTC) et TRSDOS-HD 4.0.
 
-Pas encore émulés : le disque dur, les ports série et le mode 40 colonnes du Model II; le RS-232, la carte son et la carte graphique du Model 4; les
+Pas encore émulés : le mode 40 colonnes du Model II; la carte son et la carte graphique du Model 4; les
 caractères spéciaux du Model III (C0h-FFh s'affichent comme des blocs graphiques). Les
 disquettes système des Model III et 4 ne sont pas publiées ici (droit d'auteur) : mettre les
 vôtres dans `www/disks/local/`, avec `"model": 2`, `3` ou `4` dans `index.json`.
@@ -97,7 +99,7 @@ du panneau « Type text », ou automatiquement pour les fichiers ouverts (« Kee
 open »). Depuis la bibliothèque : démarrer ou insérer une disquette, lancer un programme,
 télécharger ou supprimer.
 
-### Disque dur (Model I, III et 4)
+### Disque dur
 
 La section Disquettes offre deux disques durs (HD1 et HD2) : l'interface Radio Shack, un
 contrôleur Western Digital WD1010 sur les ports C0h-CFh, celle des pilotes **RSHARD** de
@@ -133,12 +135,22 @@ une copie.
 Machine, actif par défaut) : les disquettes et les disques durs en place, avec leurs
 modifications (SYSGEN, fichiers copiés…), sont enregistrés dans le fureteur pour chaque
 modèle. Au rechargement de la page, ou en revenant à ce modèle, ils sont remis dans les
-lecteurs et le TRS-80 redémarre sur le lecteur 0. Le disque dur du Model II viendra
-plus tard.
+lecteurs et le TRS-80 redémarre sur le lecteur 0.
+
+**Model II** : le même contrôleur WD1010, avec ce que le Model II y ajoute : secteurs de 512
+octets, un CTC sur la carte d'interface (ports C4h-C7h) dont le canal 0 interrompt à la fin de
+chaque commande, données transférées par le DMA Z80, et une ROM d'amorçage qui essaie le disque
+dur avant les disquettes. Le système est **TRSDOS-HD** (Tandy, non fourni) : « Nouveau » crée
+un disque de 8,4 Mo (256 cylindres, 4 têtes); la ROM d'amorçage affiche alors
+`BOOT ERROR HN` (disque non formaté) : appuyez sur ÉCHAP pour démarrer la disquette TRSDOS-HD,
+puis `INIT` formate le disque dur (lecteur 4) et y copie le système. Le Model II démarre
+ensuite sur le disque dur (`TRSDOS-HD Ready`, `DIR :4`). Une image de disque dur du Model II
+ne passe pas aux autres modèles, ni l'inverse.
 
 ### Modem et BBS (RS-232)
 
-Le port série RS-232 (UART des ports E8h-EBh, Model I, III et 4) est relié à un modem Hayes
+Le port série RS-232 (UART des ports E8h-EBh sur les Model I, III et 4; port A du Z80 SIO,
+ports F4h-F7h, sur le Model II) est relié à un modem Hayes
 virtuel qui joint les BBS par telnet, à travers un relais WebSocket
 ([`server/telnet-relay`](server/telnet-relay/README.md)), car un fureteur ne peut pas ouvrir de
 connexion telnet. La section Modem propose environ 850 BBS (`www/bbs.json`, tirés de
@@ -167,8 +179,13 @@ ATDT bbs.electrodrome.net
 ligne, `ATH` ou le bouton Raccrocher (section Modem) termine l'appel. Le modem retire les
 séquences ANSI (couleurs, curseur) que le TRS-80 ne peut pas afficher (interrupteur dans la
 section Modem). Sur le Model I, `BREAK=255` contourne un défaut du pilote RS232R de LDOS
-5.3.1, qui sinon perd chaque caractère reçu. Essayé avec LDOS 5.3.1 (Model I et III) et TRSDOS 6.2.1 (Model 4); le
-Model II viendra plus tard.
+5.3.1, qui sinon perd chaque caractère reçu. Essayé avec LDOS 5.3.1 (Model I et III) et TRSDOS 6.2.1 (Model 4).
+
+Model II : lancez un programme de terminal sur le canal A (essayé avec OMNITERM 1.10 sous
+TRSDOS-II 4.2, non fourni), puis `ATDT bbs.electrodrome.net`. La vitesse de la ligne vient du
+CTC, comme sur la vraie machine : OMNITERM démarre à 300 bauds (changez-la dans ses réglages
+pour aller plus vite), et un programme qui n'affiche pas aussi vite que la ligne reçoit perd
+des caractères, comme il le ferait sur le vrai Model II.
 
 ### Dépôt externe
 

@@ -5,7 +5,8 @@
 //! Exige `rshard.dsk` (archive rshard.zip de la page MISOSYS de Tim Mann) et les ROM dans
 //! `crates/trs80/tests/roms/` (non fournis : test ignoré sinon). Model 4 : la disquette
 //! TRSDOS 6.2.1 `m4-trsdos621.dsk` en plus; Model III : LDOS 5.3.1 `m3-ldos531.dsk`
-//! (ld3-531.zip, même page).
+//! (ld3-531.zip, même page). Model II : la ROM d'amorçage `m2_boot_v5.bin` et la disquette
+//! TRSDOS-HD `m2-hard-disk.imd`.
 
 use trs80::{HardDisk, Model, Trs80};
 
@@ -189,13 +190,6 @@ fn model3_ldos_formats_and_uses_a_hard_disk() {
 }
 
 #[test]
-fn model2_has_no_hard_disk_yet() {
-    let Some(rom) = local("m2_boot_v5.bin") else { return };
-    let mut m = Trs80::new(&rom).unwrap();
-    assert!(m.insert_hard_disk(0, HardDisk::blank(306, 4)).is_err());
-}
-
-#[test]
 fn model1_backup_floppy_to_hard_disk() {
     let (Some(rom), Some(rshard)) = (local("M1L2_1.3.bin").or_else(|| local("level2.rom")), local("rshard.dsk")) else {
         return;
@@ -220,4 +214,49 @@ fn model1_backup_floppy_to_hard_disk() {
     let s = screen(&m);
     assert!(s.contains("BACKUP/CMD") && s.contains("CONFIG/SYS"), "DIR :2. Écran :
 {s}");
+}
+
+/// Model II : attend `text`, en regardant l'écran une fois par seconde (l'initialisation du
+/// disque dur dure plusieurs minutes émulées).
+fn wait_long(m: &mut Trs80, text: &str, seconds: usize) -> bool {
+    for _ in 0..seconds {
+        if m.screen_contains(text) {
+            return true;
+        }
+        (0..60).for_each(|_| m.run_frame());
+    }
+    m.screen_contains(text)
+}
+
+#[test]
+fn model2_trsdos_hd_initializes_and_boots_the_hard_disk() {
+    // Disque dur du Model II : la disquette TRSDOS-HD (`m2-hard-disk.imd`) installe le système
+    // sur le disque (INIT, lecteur 4), puis la ROM d'amorçage démarre sur le disque dur.
+    let (Some(rom), Some(hd_floppy)) = (local("m2_boot_v5.bin"), local("m2-hard-disk.imd")) else { return };
+    let mut m = Trs80::new(&rom).unwrap();
+    m.insert_disk(0, hd_floppy).unwrap();
+    m.insert_hard_disk(0, HardDisk::blank(256, 4)).unwrap();
+    // Disque vierge : la ROM le dit non formaté (« HN »); ÉCHAP démarre sur la disquette.
+    assert!(wait_long(&mut m, "BOOT ERROR HN", 20), "Écran :\n{}", screen(&m));
+    m.type_text("\x1b");
+    assert!(wait_long(&mut m, "Enter Date", 20), "Écran :\n{}", screen(&m));
+    m.type_text("10/09/1986\n");
+    assert!(wait_long(&mut m, "Enter Time", 10), "Écran :\n{}", screen(&m));
+    m.type_text("12.00.00\n");
+    assert!(wait_long(&mut m, "TRSDOS READY", 10), "Écran :\n{}", screen(&m));
+    m.type_text("INIT\n");
+    assert!(wait_long(&mut m, "INITIALIZATION COMPLETED", 600), "Écran :\n{}", screen(&m));
+    let image = m.hard_disk(0).unwrap().image().to_vec();
+
+    // Machine neuve, disque dur seul : TRSDOS-HD démarre, le lecteur 4 a ses fichiers.
+    let mut m = Trs80::new(&rom).unwrap();
+    m.insert_hard_disk(0, image).unwrap();
+    assert!(wait_long(&mut m, "TRSDOS-HD", 30), "Écran :\n{}", screen(&m));
+    assert!(wait_long(&mut m, "Enter date", 10), "Écran :\n{}", screen(&m));
+    m.type_text("10/09/1986\n");
+    assert!(wait_long(&mut m, "Enter time", 10), "Écran :\n{}", screen(&m));
+    m.type_text("12.00.00\n");
+    assert!(wait_long(&mut m, "TRSDOS-HD Ready", 10), "Écran :\n{}", screen(&m));
+    m.type_text("DIR :4\n");
+    assert!(wait_long(&mut m, "READ/ME", 20), "Écran :\n{}", screen(&m));
 }

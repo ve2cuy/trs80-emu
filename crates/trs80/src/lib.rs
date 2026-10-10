@@ -22,6 +22,7 @@ mod cmd;
 mod font;
 mod hard;
 mod serial;
+mod sio;
 mod keyboard;
 pub mod ldosfs;
 mod typer;
@@ -53,6 +54,9 @@ pub const ROM_SIZE: usize = 0x3000;
 pub const ROM3_SIZE: usize = 0x3800;
 /// Taille de la ROM d'amorçage du Model II (2 Ko).
 pub const ROM2_SIZE: usize = 0x800;
+/// Model II : durée d'une commande du disque dur avant son interruption (T-states, environ
+/// 1 ms à 4 MHz).
+const HD_LATENCY: u32 = 4_000;
 
 /// Modèle de TRS-80 émulé.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -139,8 +143,6 @@ pub enum Error {
     Disk(DiskError),
     /// Image de disque dur invalide.
     Hard(HardError),
-    /// Pas de disque dur sur ce modèle (Model II : pas encore émulé).
-    NoHardDisk,
     /// Le BASIC n'a jamais atteint « READY » (impossible de charger un programme).
     NotReady,
 }
@@ -156,7 +158,6 @@ impl core::fmt::Display for Error {
             Error::Cas(e) => write!(f, "{e}"),
             Error::Disk(e) => write!(f, "{e}"),
             Error::Hard(e) => write!(f, "{e}"),
-            Error::NoHardDisk => write!(f, "this model has no hard disk interface (yet)"),
             Error::NotReady => write!(f, "BASIC did not reach READY"),
         }
     }
@@ -194,6 +195,13 @@ struct Board {
     /// Model II : interruption du clavier (canal 3 du CTC) en attente.
     kbd_int: bool,
     ctc: dma::Ctc,
+    /// Model II : CTC de l'interface du disque dur (C4h-C7h). Canal 0 : fin de commande du
+    /// contrôleur (front montant de INTRQ), compté par `hard.completions`.
+    hd_ctc: dma::Ctc,
+    hd_completions: u32,
+    /// T-states avant l'interruption de la prochaine fin de commande (le disque met environ
+    /// une milliseconde; le DOS n'attend l'interruption qu'après avoir lancé la commande).
+    hd_delay: u32,
     /// Model II : interruption d'horloge en attente (effacée par la lecture de FEh).
     rtc2: bool,
     /// Model II : DMA Z80 (port F8h) et PIO du contrôleur de disquettes (E0h-E3h).
@@ -212,10 +220,12 @@ struct Board {
     sound: u8,
     /// Contrôleur de disquettes (interface d'expansion).
     fdc: Fdc,
-    /// Disque dur Radio Shack (WD1010, ports C0h-CFh), Model I, III et 4.
+    /// Disque dur Radio Shack (WD1010, ports C0h-CFh).
     hard: hard::Controller,
     /// Port série RS-232-C (UART, ports E8h-EBh), Model I, III et 4.
     serial: serial::Serial,
+    /// Model II : ports série (Z80 SIO, F4h-F7h); le canal A va au modem.
+    sio: sio::Sio,
     /// Temps machine (T-states), pour l'impulsion d'index des disquettes.
     now: u64,
     /// Interruption d'horloge en attente : effacée par la lecture de 37E0h.
@@ -248,6 +258,8 @@ impl Board {
 
     fn input2(&mut self, port: u8) -> u8 {
         match port {
+            0xF4..=0xF7 => self.sio.read(port),
+            0xC0..=0xCF => self.hard.read(port),
             // Fin de commande du contrôleur (bit 0); imprimante prête (bit 4 : pas de défaut).
             0xE0 => 0x10 | self.fdc.intrq as u8,
             0xE4..=0xE7 if self.fdc.present() => self.fdc.read(port as u16, self.now),
@@ -276,6 +288,12 @@ impl Board {
 
     fn output2(&mut self, port: u8, val: u8) {
         match port {
+            0xF4..=0xF7 => {
+                let now = self.now;
+                self.sio.write(port, val, now)
+            }
+            0xC4..=0xC7 => self.hd_ctc.write(port as usize & 3, val),
+            0xC0..=0xCF => self.hard.write(port, val),
             0xE4..=0xE7 => {
                 // Une commande abaisse INTRQ; ici elle peut se terminer aussitôt. Le PIO
                 // doit voir ce passage à 0 pour interrompre sur la nouvelle fin de commande.
@@ -447,9 +465,14 @@ impl dma::DmaBus for Board {
         self.output2(port as u8, val)
     }
 
-    /// Le registre de données du contrôleur (E7h) n'est prêt que pendant un transfert.
+    /// Les registres de données des contrôleurs (E7h : disquettes, C8h : disque dur) ne sont
+    /// prêts que pendant un transfert.
     fn io_ready(&mut self, port: u16) -> bool {
-        port as u8 != 0xE7 || self.fdc.drq()
+        match port as u8 {
+            0xE7 => self.fdc.drq(),
+            0xC8 => self.hard.drq(),
+            _ => true,
+        }
     }
 }
 
@@ -627,6 +650,9 @@ impl Trs80 {
             kbd_gap: 0,
             kbd_int: false,
             ctc: dma::Ctc::default(),
+            hd_ctc: dma::Ctc::default(),
+            hd_completions: 0,
+            hd_delay: 0,
             rtc2: false,
             dma: dma::Dma::default(),
             pio_a: dma::Pio::default(),
@@ -644,8 +670,9 @@ impl Trs80 {
             rtc_pending: false,
             sound: 0,
             fdc,
-            hard: hard::Controller::new(),
+            hard: hard::Controller::new(model == Model::II),
             serial: serial::Serial::new(),
+            sio: sio::Sio::default(),
             now: 0,
             int_latch: 0,
             int_mask: 0,
@@ -699,6 +726,8 @@ impl Trs80 {
         self.board.kbd_latch = None;
         self.board.kbd_int = false;
         self.board.ctc = dma::Ctc::default();
+        self.board.sio.reset();
+        self.board.hd_ctc = dma::Ctc::default();
         self.board.kbd_queue.clear();
         self.board.fdc.reset();
         self.board.hard.reset();
@@ -741,8 +770,12 @@ impl Trs80 {
             let level = Audio::level(self.board.sound);
             self.board.now = self.cpu.cycles;
             self.board.fdc.tick(self.cpu.cycles);
-            if self.board.model != Model::II {
-                let hz = self.board.clock_hz();
+            let hz = self.board.clock_hz();
+            if self.board.model == Model::II {
+                let clocks = [self.board.ctc.timer_period(0), self.board.ctc.timer_period(1)];
+                self.board.sio.set_clocks(clocks, hz);
+                self.board.sio.tick(self.cpu.cycles);
+            } else {
                 self.board.serial.tick(self.cpu.cycles, hz);
             }
             let t = self.cpu.step(&mut self.board);
@@ -771,15 +804,39 @@ impl Trs80 {
                     self.board.kbd_latch = self.board.kbd_queue.pop_front();
                     self.board.kbd_int = self.board.kbd_latch.is_some() && self.board.ctc.enabled(3);
                 }
-                // Interruptions en mode 2, par ordre de priorité : DMA, clavier, PIO. La
-                // demande reste en attente tant que le processeur ne l'a pas acceptée
-                // (interruptions masquées, ou instruction qui suit un EI).
+                self.board.ctc.tick(done);
+                self.board.hd_ctc.tick(done);
+                // Disque dur : chaque fin de commande déclenche le canal 0 du CTC de
+                // l'interface, après le temps de la commande.
+                if self.board.hd_completions != self.board.hard.completions {
+                    if self.board.hd_delay == 0 {
+                        self.board.hd_delay = HD_LATENCY;
+                    } else if self.board.hd_delay > done {
+                        self.board.hd_delay -= done;
+                    } else {
+                        self.board.hd_delay = 0;
+                        self.board.hd_completions = self.board.hd_completions.wrapping_add(1);
+                        self.board.hd_ctc.trigger(0);
+                    }
+                }
+                // Interruptions en mode 2, par ordre de priorité : DMA, temporisateurs du CTC
+                // (canaux 0 à 2), clavier (canal 3), PIO, SIO, puis le CTC du disque dur
+                // (carte d'interface, plus loin sur la chaîne). La demande reste en attente tant que
+                // le processeur ne l'a pas acceptée (interruptions masquées, ou instruction
+                // qui suit un EI).
+                let timer = (0..3).find(|&ch| self.board.ctc.pending[ch]);
                 let request = if self.board.dma.int_pending {
                     Some((0, self.board.dma.int_vector()))
+                } else if let Some(ch) = timer {
+                    Some((3 + ch, self.board.ctc.vector(ch)))
                 } else if self.board.kbd_int {
                     Some((1, self.board.ctc.vector(3)))
                 } else if self.board.pio_a.int_pending {
                     Some((2, self.board.pio_a.vector()))
+                } else if let Some((source, vector)) = self.board.sio.request() {
+                    Some((20 + source, vector))
+                } else if let Some(ch) = (0..4).find(|&ch| self.board.hd_ctc.pending[ch]) {
+                    Some((10 + ch, self.board.hd_ctc.vector(ch)))
                 } else {
                     None
                 };
@@ -789,7 +846,10 @@ impl Trs80 {
                         match source {
                             0 => self.board.dma.int_pending = false,
                             1 => self.board.kbd_int = false,
-                            _ => self.board.pio_a.int_pending = false,
+                            2 => self.board.pio_a.int_pending = false,
+                            ch @ 3..=5 => self.board.ctc.pending[ch - 3] = false,
+                            ch @ 10..=13 => self.board.hd_ctc.pending[ch - 10] = false,
+                            source => self.board.sio.acknowledge(source - 20),
                         }
                         done += t;
                     }
@@ -990,32 +1050,41 @@ impl Trs80 {
     }
 
     /// Port série RS-232 : octets venus de l'autre bout (modem, Internet), que le TRS-80
-    /// recevra au rythme de la vitesse choisie. Model I, III et 4.
+    /// recevra au rythme de la vitesse choisie. Model II : canal A du SIO.
     pub fn serial_send(&mut self, bytes: &[u8]) {
-        self.board.serial.send(bytes);
+        match self.board.model {
+            Model::II => self.board.sio.send(bytes),
+            _ => self.board.serial.send(bytes),
+        }
     }
 
     /// Port série RS-232 : octets émis par le TRS-80 depuis le dernier appel.
     pub fn serial_take(&mut self) -> alloc::vec::Vec<u8> {
-        self.board.serial.take_output()
+        match self.board.model {
+            Model::II => self.board.sio.take_output(),
+            _ => self.board.serial.take_output(),
+        }
     }
 
     /// Port série RS-232 : octets reçus pas encore lus par le TRS-80 (contrôle de flux).
     pub fn serial_pending(&self) -> usize {
-        self.board.serial.pending_input()
+        match self.board.model {
+            Model::II => self.board.sio.pending_input(),
+            _ => self.board.serial.pending_input(),
+        }
     }
 
     /// Port série RS-232 : vitesse choisie par le programme (bauds).
     pub fn serial_baud(&self) -> u32 {
-        self.board.serial.baud()
+        match self.board.model {
+            Model::II => self.board.sio.baud(),
+            _ => self.board.serial.baud(),
+        }
     }
 
     /// Branche une image de disque dur (format Reed / HDV) sur l'unité `unit` (0 à 3) du
-    /// contrôleur Radio Shack. Model I, III et 4 seulement.
+    /// contrôleur Radio Shack.
     pub fn insert_hard_disk(&mut self, unit: usize, image: alloc::vec::Vec<u8>) -> Result<&HardDisk, Error> {
-        if self.board.model == Model::II {
-            return Err(Error::NoHardDisk);
-        }
         let disk = HardDisk::open(image).map_err(Error::Hard)?;
         let slot = &mut self.board.hard.units[unit % HARD_UNITS];
         *slot = Some(disk);

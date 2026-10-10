@@ -144,7 +144,7 @@ impl Emulator {
     }
 
     /// Branche une image de disque dur (Reed / HDV) sur l'unité `unit` (0 à 3) du contrôleur
-    /// Radio Shack (Model I, III et 4). Retourne sa description (taille, têtes).
+    /// Radio Shack. Retourne sa description (taille, têtes).
     pub fn insert_hard_disk(&mut self, unit: u32, image: Vec<u8>) -> Result<String, JsError> {
         let disk = self
             .machine

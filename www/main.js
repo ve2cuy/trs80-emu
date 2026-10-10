@@ -414,10 +414,14 @@ function applyModel() {
   modelList.value = String(prefs.model);
   // L'interface d'expansion (horloge à 40 Hz) n'existe que sur le Model I.
   expansion.closest('label').hidden = prefs.model !== 1;
-  // Disque dur Radio Shack : Model I, III et 4 (celui du Model II viendra plus tard).
-  hardSection.hidden = prefs.model === 2;
-  // Port RS-232 : Model I, III et 4 (Model II : plus tard).
-  document.getElementById('modem-group').hidden = prefs.model === 2;
+  // Disque dur et port RS-232 : l'aide du Model II (TRSDOS-HD, SIO) diffère des autres.
+  const two = prefs.model === 2 ? '2' : '';
+  for (const [id, key] of [['hd-hint', 'hd.hint'], ['modem-help', 'modem.help']]) {
+    const el = document.getElementById(id);
+    el.dataset.i18nHtml = key + two;
+    el.innerHTML = t(key + two);
+  }
+  hardRows.forEach((r) => r.setModel());
   const name = t(`model.${prefs.model}`);
   document.title = name;
   for (const el of document.querySelectorAll('.machine-name')) el.textContent = name;
@@ -976,9 +980,9 @@ const driveRows = [0, 1, 2, 3].map(makeDriveRow);
 
 // ------------------------------------------------------------------ disques durs
 
-// Contrôleur Radio Shack (WD1010) des Model I, III et 4 : deux unités, les adresses 1 et 2
-// du pilote RSHARD. Images au format Reed (.hdv), comme xtrs, trs80gp et FreHD.
-const hardSection = document.getElementById('hard-section');
+// Contrôleur Radio Shack (WD1010) : deux unités, les adresses 1 et 2 du pilote RSHARD (Model
+// I, III et 4) ou les unités 0 et 1 de TRSDOS-HD (Model II). Images au format Reed (.hdv),
+// comme xtrs, trs80gp et FreHD.
 
 /** Liste « Disque dur… » pour brancher une image sur l'unité 1 ou 2. */
 function hardSelect() {
@@ -1004,7 +1008,6 @@ function makeHardRow(unit) {
   insertLabel.append(input);
   const blank = textElement('button', 'secondary', 'hd.new');
   blank.type = 'button';
-  setTip(blank, 'hd.new.tip');
   const eject = iconButton('eject', 'drive.eject');
   const keep = iconButton('folder-plus', 'hd.keep');
   const save = iconButton('download', 'hd.download');
@@ -1014,7 +1017,7 @@ function makeHardRow(unit) {
   row.append(head, actions, error);
   document.getElementById('hard-drives').append(row);
 
-  let current = null; // { name, bytes, libraryId } : image d'origine (null pour un disque neuf)
+  let current = null; // { name, bytes, libraryId, model2 } : image d'origine (null pour un disque neuf)
   let version = 0; // change à chaque insertion ou éjection (reprise de session)
 
   function refresh() {
@@ -1030,7 +1033,8 @@ function makeHardRow(unit) {
     if (!emulator) return false;
     try {
       const desc = emulator.insert_hard_disk(unit, bytes);
-      current = { name: fileName, bytes, libraryId };
+      // Model II : secteurs de 512 octets, une image incompatible avec les autres modèles.
+      current = { name: fileName, bytes, libraryId, model2: prefs.model === 2 };
       version++;
       error.textContent = '';
       showStatus(t('hd.inserted', { n: unit + 1, name: fileName, desc }));
@@ -1059,9 +1063,11 @@ function makeHardRow(unit) {
   });
   blank.addEventListener('click', () => {
     if (!emulator) return;
-    // 306 cylindres, 4 têtes : les valeurs que propose RSHARD (10 Mo).
-    const bytes = Emulator.blank_hard_disk(306, 4);
-    if (insert(`hard${unit + 1}.hdv`, bytes)) showStatus(t('hd.newStatus', { n: unit + 1 }));
+    // 306 cylindres, 4 têtes : les valeurs que propose RSHARD (10 Mo). Model II : le disque
+    // Tandy de 8,4 Mo (256 cylindres, 4 têtes), que TRSDOS-HD formate avec INIT.
+    const two = prefs.model === 2;
+    const bytes = two ? Emulator.blank_hard_disk(256, 4) : Emulator.blank_hard_disk(306, 4);
+    if (insert(`hard${unit + 1}.hdv`, bytes)) showStatus(t(two ? 'hd.newStatus2' : 'hd.newStatus', { n: unit + 1 }));
     focusScreen();
   });
   eject.addEventListener('click', () => {
@@ -1094,15 +1100,19 @@ function makeHardRow(unit) {
       refresh();
     },
     /** Nouvelle machine (autre ROM, autre modèle) : le disque dur y reste branché, avec
-     *  ses écritures, sauf sur le Model II (pas encore de disque dur). */
+     *  ses écritures, sauf entre le Model II et les autres (formats différents). */
     reinsert(image) {
-      if (current && image && prefs.model !== 2) {
+      if (current && image && current.model2 === (prefs.model === 2)) {
         try { emulator.insert_hard_disk(unit, image); } catch { current = null; }
-      } else if (prefs.model === 2) {
+      } else if (current) {
         current = null;
         version++;
       }
       refresh();
+    },
+    /** Infobulle du bouton Nouveau selon le modèle. */
+    setModel() {
+      setTip(blank, prefs.model === 2 ? 'hd.new.tip2' : 'hd.new.tip');
     },
     image: () => (current ? emulator?.hard_disk_image(unit) : null),
     signature: () => (current ? `${current.name}#${version}#${emulator?.hard_disk_writes(unit) ?? 0}` : '-'),

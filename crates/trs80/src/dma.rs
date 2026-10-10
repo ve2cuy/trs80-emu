@@ -322,20 +322,38 @@ impl Pio {
     }
 }
 
-/// CTC Z80 (F0h-F3h), réduit à ce que demande le Model II : le vecteur et l'autorisation
-/// d'interruption de chaque canal. Le clavier déclenche le canal 3 (vecteur de base + 6).
+/// CTC Z80 (F0h-F3h). Chaque canal : mot de commande (bit 7 : interruption, bit 6 : mode
+/// compteur, bit 5 : pré-diviseur 256 au lieu de 16, bit 3 : départ sur déclencheur externe,
+/// bit 2 : constante de temps à suivre, bit 1 : remise à zéro), puis constante de temps (0 =
+/// 256). En mode temporisateur, le décompte suit l'horloge du processeur; au passage à zéro, le
+/// canal se recharge et demande une interruption. Le Model II déclenche le canal 3 à chaque
+/// touche (mode compteur); les autres entrées de déclenchement (horloges du port série) ne
+/// sont pas reliées.
 #[derive(Default)]
 pub(crate) struct Ctc {
     vector: u8,
     control: [u8; 4],
+    constant: [u16; 4],
+    /// T-states restants avant le passage à zéro (temporisateur en marche).
+    remaining: [Option<u32>; 4],
     /// Le prochain octet du canal est sa constante de temps.
     expect_tc: [bool; 4],
+    /// Interruption demandée par le canal (temporisateur), pas encore acceptée.
+    pub(crate) pending: [bool; 4],
 }
 
 impl Ctc {
     pub(crate) fn write(&mut self, channel: usize, data: u8) {
         if self.expect_tc[channel] {
             self.expect_tc[channel] = false;
+            self.constant[channel] = if data == 0 { 256 } else { data as u16 };
+            // Temporisateur sans déclencheur externe : il part dès la constante reçue.
+            let c = self.control[channel];
+            self.remaining[channel] = if c & 0x40 != 0 {
+                Some(self.constant[channel] as u32)
+            } else {
+                (c & 0x08 == 0).then(|| self.period(channel))
+            };
         } else if data & 1 == 0 {
             // Vecteur (écrit sur le canal 0) : bits 2-1 = numéro du canal.
             if channel == 0 {
@@ -344,7 +362,60 @@ impl Ctc {
         } else {
             self.control[channel] = data;
             self.expect_tc[channel] = data & 0x04 != 0;
+            if data & 0x02 != 0 {
+                // Remise à zéro : le canal s'arrête jusqu'à sa prochaine constante.
+                self.remaining[channel] = None;
+                self.pending[channel] = false;
+            }
         }
+    }
+
+    fn period(&self, channel: usize) -> u32 {
+        let prescaler = if self.control[channel] & 0x20 != 0 { 256 } else { 16 };
+        prescaler * self.constant[channel] as u32
+    }
+
+    /// Impulsion sur l'entrée de déclenchement du canal : en mode compteur, décompte; au
+    /// passage à zéro, recharge et demande d'interruption.
+    pub(crate) fn trigger(&mut self, channel: usize) {
+        if self.control[channel] & 0x40 == 0 || self.expect_tc[channel] || self.constant[channel] == 0 {
+            return;
+        }
+        let left = self.remaining[channel].unwrap_or(self.constant[channel] as u32);
+        if left > 1 {
+            self.remaining[channel] = Some(left - 1);
+        } else {
+            self.remaining[channel] = Some(self.constant[channel] as u32);
+            if self.enabled(channel) {
+                self.pending[channel] = true;
+            }
+        }
+    }
+
+    /// Avance les temporisateurs de `cycles` T-states.
+    pub(crate) fn tick(&mut self, cycles: u32) {
+        for ch in 0..4 {
+            if self.control[ch] & 0x40 != 0 {
+                continue;
+            }
+            let Some(left) = self.remaining[ch] else { continue };
+            if left > cycles {
+                self.remaining[ch] = Some(left - cycles);
+            } else {
+                let period = self.period(ch);
+                let over = (cycles - left) % period;
+                self.remaining[ch] = Some(period - over);
+                if self.enabled(ch) {
+                    self.pending[ch] = true;
+                }
+            }
+        }
+    }
+
+    /// Période du canal en temporisateur, s'il est en marche (T-states) : horloge des ports
+    /// série du Model II.
+    pub(crate) fn timer_period(&self, channel: usize) -> Option<u32> {
+        (self.control[channel] & 0x40 == 0 && self.remaining[channel].is_some()).then(|| self.period(channel))
     }
 
     /// Le canal peut-il interrompre ?

@@ -58,10 +58,12 @@ The "Model" list (Machine section) chooses the computer; direct link `?model=3`:
 - **Model II** (`?model=2`): a different machine. 2 KB boot ROM (not offered for download: load
   your own with "Load ROM file…"), 64 KB of RAM, 80 × 24 screen with inverse video, ASCII keyboard
   (Ctrl + letter gives control codes, End = BREAK), 4 MHz, 60 Hz clock on NMI, FD1791 controller
-  for 8-inch disks served by a Z80 DMA, mode 2 interrupts (DMA, CTC, PIO). Disk images in IMD
-  (ImageDisk) or DMK format. Tested with TRSDOS-II 2.0a (it only accepts years 1980 to 1999).
+  for 8-inch disks served by a Z80 DMA, mode 2 interrupts (DMA, CTC with its timers, PIO, SIO),
+  hard disk and RS-232 (see below). Disk images in IMD (ImageDisk) or DMK format. Tested with
+  TRSDOS-II 2.0a (it only accepts years 1980 to 1999), TRSDOS-II 4.2 and 4.4 (their boot
+  sector tests the memory, DMA, PIO and CTC) and TRSDOS-HD 4.0.
 
-Not emulated yet: Model II hard disk, serial ports and 40-column mode; Model 4 RS-232, sound board and graphics board; the Model III
+Not emulated yet: Model II 40-column mode; Model 4 sound board and graphics board; the Model III
 special characters (C0h-FFh are shown as graphics blocks). Model III and 4 system disks are
 not published here (copyright): put yours in `www/disks/local/` with `"model": 2`, `3` or `4`
 in `index.json`.
@@ -95,7 +97,7 @@ the "Keep" button of a drive (with the changes made by the DOS) or of the "Type 
 panel, or automatically for the files you open ("Keep the files I open"). From the
 library: Boot or insert a disk, Run a program, download or delete.
 
-### Hard disk (Model I, III and 4)
+### Hard disk
 
 The Disks section has two hard disks (HD1 and HD2): the Radio Shack interface, a Western
 Digital WD1010 controller on ports C0h-CFh, as supported by the MISOSYS **RSHARD** drivers
@@ -126,11 +128,21 @@ disk in My library (or download them) to keep a copy.
 **Session restore** (switch "Keep disks after reload", Machine section, on by default): the
 disks and hard disks in the drives, with their changes (SYSGEN, copied files…), are saved in
 the browser for each model. When the page is reloaded, or when you come back to that model,
-they are put back in the drives and the TRS-80 restarts on drive 0. The Model II hard disk will come later.
+they are put back in the drives and the TRS-80 restarts on drive 0.
+
+**Model II**: the same WD1010 controller, with what the Model II adds: 512-byte sectors, an
+interface CTC (ports C4h-C7h) whose channel 0 interrupts at the end of each command, data
+moved by the Z80 DMA, and a boot ROM that tries the hard disk before the diskettes. The system
+is **TRSDOS-HD** (Tandy, not provided): "New" creates an 8.4 MB disk (256 cylinders, 4 heads);
+the boot ROM then shows `BOOT ERROR HN` (unformatted disk): press ESC to boot the TRSDOS-HD
+diskette, then `INIT` formats the hard disk (drive 4) and copies the system onto it. The
+Model II then boots from the hard disk (`TRSDOS-HD Ready`, `DIR :4`). A Model II hard disk
+image does not go to the other models, and vice versa.
 
 ### Modem and BBS (RS-232)
 
-The RS-232 serial port (UART on ports E8h-EBh, Model I, III and 4) is connected to a virtual
+The RS-232 serial port (UART on ports E8h-EBh on the Model I, III and 4; port A of the Z80 SIO,
+ports F4h-F7h, on the Model II) is connected to a virtual
 Hayes modem that reaches BBSes over telnet, through a WebSocket relay
 ([`server/telnet-relay`](server/telnet-relay/README.md)), since a browser cannot open telnet
 connections. The Modem section lists about 850 BBSes (`www/bbs.json`, from
@@ -159,8 +171,13 @@ ATDT bbs.electrodrome.net
 online, `ATH` or the Hang up button (Modem section) ends the call. The modem removes the ANSI
 sequences (colors, cursor) that the TRS-80 cannot display (switch in the Modem section). On the
 Model I, `BREAK=255` works around a flaw of the LDOS 5.3.1 RS232R driver, which otherwise loses
-every received character. Tested with LDOS 5.3.1 (Model I and III) and TRSDOS 6.2.1 (Model 4); the Model II will come
-later.
+every received character. Tested with LDOS 5.3.1 (Model I and III) and TRSDOS 6.2.1 (Model 4).
+
+Model II: start a terminal program on channel A (tested with OMNITERM 1.10 on TRSDOS-II 4.2,
+not provided), then `ATDT bbs.electrodrome.net`. The line speed comes from the CTC, as on the
+real machine: OMNITERM starts at 300 baud (change it in its settings to go faster), and a
+program that cannot display as fast as the line receives loses characters, as it would on
+the real Model II.
 
 ### External repository
 
