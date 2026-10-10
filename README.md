@@ -220,7 +220,8 @@ the real Model II.
 
 Files can come from your device (Load…, Insert…, My library) or from a repository on the
 Web, by default `https://ve2cuy.com/trs80`, which can be changed in the Repository section.
-It has four folders, `rom/`, `disk/`, `cmd/` and `bas/`, each with an `index.json` listing
+It has six folders, `rom/`, `disk/`, `cmd/`, `bas/`, `asm/` (assembly sources, opened in the
+workshop) and `cas/` (cassettes), each with an `index.json` listing
 its files, in the same format as [`www/disks/index.json`](www/disks/index.json):
 
 ```json
@@ -231,7 +232,11 @@ its files, in the same format as [`www/disks/index.json`](www/disks/index.json):
 ]
 ```
 
-Only `file` is required (a plain file name is also accepted). The server must allow
+Only `file` is required (a plain file name is also accepted). `model` (a number or a list)
+limits a file to some models, and `category` (`games`, `education`, `finance`, `office`,
+`programming`, `utilities`, `graphics`, `music`, `communications`, `science`, `systems`,
+`demo`, `other`) feeds the category filter; a search field also filters by title, name and
+description. The default repository holds about 20,000 files sorted this way. The server must allow
 cross-origin requests (CORS header `Access-Control-Allow-Origin: *`), since the page is
 served from another address.
 

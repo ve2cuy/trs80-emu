@@ -681,6 +681,10 @@ export function createIde(api) {
       if (session?.paused) setState(pausedText());
       showRegisters();
     },
+    /** Ouvre une source (fichier du dépôt, par exemple). */
+    open(bytes, name) {
+      loadSource(decodeSource(bytes), name);
+    },
     /** Nouvel émulateur (autre ROM) : la session de débogage n'a plus de sens. */
     reset() {
       if (session) endSession(t('ide.stopped'));

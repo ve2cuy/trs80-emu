@@ -53,6 +53,8 @@ const prefs = {
   driveSound: false,    // imiter le bruit des lecteurs de disquettes
   repo: 'https://ve2cuy.com/trs80', // dépôt externe (dossiers rom, disk, cmd, bas)
   repoKind: 'rom',
+  repoCat: {},          // dépôt : catégorie choisie, par genre de fichier
+  repoQuery: '',        // dépôt : texte recherché
   repoAll: false, // dépôt : afficher les fichiers de tous les modèles
   repoPick: {},   // dépôt : dernier fichier choisi par catégorie (rom, disk...)
   lang: null,           // langue de l'interface (null : celle du fureteur)
@@ -1580,7 +1582,9 @@ document.getElementById('library-file').addEventListener('change', async (event)
 // `file` peut inclure un sous-dossier (ex. model3/trsdos13.dsk).
 // Le serveur doit permettre les requêtes d'une autre origine (CORS).
 const DEFAULT_REPO = 'https://ve2cuy.com/trs80';
-const REPO_ICONS = { rom: 'cpu', disk: 'disk', cmd: 'file', bas: 'basic' };
+const REPO_ICONS = { rom: 'cpu', disk: 'disk', cmd: 'file', bas: 'basic', asm: 'code', cas: 'tape' };
+const repoCat = document.getElementById('repo-cat');
+const repoSearch = document.getElementById('repo-search');
 const repoSelect = document.getElementById('repo-select');
 const repoDetail = document.getElementById('repo-detail');
 let repoShown = []; // entrées de la liste déroulante (catégorie et modèle courants)
@@ -1612,13 +1616,27 @@ async function loadRepo(kind) {
     }
     if (prefs.repoKind !== kind) return; // une autre catégorie a été choisie entre-temps
     const model = t(`model.${prefs.model}`);
-    const shown = prefs.repoAll ? entries : entries.filter((e) => repoModels(e).includes(prefs.model));
+    const forModel = prefs.repoAll ? entries : entries.filter((e) => repoModels(e).includes(prefs.model));
+    // Catégories des fichiers du modèle (avec leur nombre), puis recherche dans le texte.
+    const counts = new Map();
+    for (const e of forModel) if (e.category) counts.set(e.category, (counts.get(e.category) ?? 0) + 1);
+    let cat = prefs.repoCat[kind] ?? '';
+    if (cat && !counts.has(cat)) cat = '';
+    const allOption = new Option(t('repo.allCats'), '');
+    repoCat.replaceChildren(allOption, ...[...counts].sort((a, b) => b[1] - a[1])
+      .map(([c, n]) => new Option(`${t(`cat.${c}`)} (${n})`, c)));
+    repoCat.value = cat;
+    repoCat.hidden = !counts.size;
+    const words = (prefs.repoQuery ?? '').toLowerCase().split(/\s+/).filter(Boolean);
+    const shown = forModel.filter((e) => (!cat || e.category === cat) && (!words.length || words.every((w) =>
+      `${localized(e, 'title') ?? ''} ${e.file} ${localized(e, 'description') ?? ''} ${e.authors ?? ''}`.toLowerCase().includes(w))));
     let summary;
     if (!entries.length) summary = t('repo.empty');
-    else if (!shown.length) summary = t('repo.noneForModel', { model, n: entries.length });
+    else if (!forModel.length) summary = t('repo.noneForModel', { model, n: entries.length });
     else if (prefs.repoAll) summary = t('repo.countAll', { n: entries.length });
-    else summary = t('repo.count', { n: shown.length, total: entries.length, model });
-    repoStatus.textContent = shown.length ? `${prefs.repo}/${kind}/ — ${summary}` : summary;
+    else summary = t('repo.count', { n: forModel.length, total: entries.length, model });
+    if (shown.length !== forModel.length) summary += ` — ${t('repo.filtered', { n: shown.length })}`;
+    repoStatus.textContent = forModel.length ? `${prefs.repo}/${kind}/ — ${summary}` : summary;
     fillRepoSelect(kind, shown);
   } catch (e) {
     if (prefs.repoKind !== kind) return;
@@ -1665,6 +1683,22 @@ function repoModels(entry) {
   return entry.model == null ? [1, 2, 3, 4] : [entry.model].flat().map(Number);
 }
 
+repoCat.addEventListener('change', () => {
+  prefs.repoCat[prefs.repoKind] = repoCat.value;
+  savePrefs();
+  loadRepo(prefs.repoKind);
+});
+repoSearch.value = prefs.repoQuery ?? '';
+let repoSearchTimer = 0;
+repoSearch.addEventListener('input', () => {
+  clearTimeout(repoSearchTimer);
+  repoSearchTimer = setTimeout(() => {
+    prefs.repoQuery = repoSearch.value.trim();
+    savePrefs();
+    loadRepo(prefs.repoKind);
+  }, 250);
+});
+
 const repoAllBox = document.getElementById('repo-all');
 repoAllBox.checked = prefs.repoAll;
 repoAllBox.addEventListener('change', () => {
@@ -1688,7 +1722,8 @@ function repoItem(kind, entry) {
   title.title = [localized(entry, 'title'), localized(entry, 'description'), localized(entry, 'license')]
     .filter(Boolean).join('\n\n') || name;
   const models = entry.model != null ? repoModels(entry).map((m) => `M${m}`).join('/') : null;
-  meta.append(title, element('span', 'lib-sub', [models, name, entry.year, entry.authors].filter(Boolean).join(' · ')));
+  const category = entry.category ? t(`cat.${entry.category}`) : null;
+  meta.append(title, element('span', 'lib-sub', [category, models, name, entry.year, entry.authors].filter(Boolean).join(' · ')));
   const about = localized(entry, 'description');
   if (about) meta.append(element('span', 'lib-about', about));
   const actions = element('div', 'lib-actions');
@@ -1730,6 +1765,13 @@ function repoItem(kind, entry) {
         return null;
       }
     }, { info: entryInfo(entry, name) }));
+  } else if (kind === 'asm') {
+    // Source assembleur : ouverte dans l'atelier.
+    button('repo.openIde', withFile((bytes) => {
+      showIde(true);
+      ide.open(bytes, name);
+      showStatus(t('repo.opened', { name }));
+    }, false));
   } else {
     button('lib.run', withFile((bytes) => runFile(bytes, name, entryInfo(entry, name))));
   }

@@ -232,14 +232,18 @@
             <span class="label" data-i18n="nav.repo">Repository</span>
           </button>
           <div id="panel-repo" class="nav-panel" hidden>
-            <fieldset class="field segmented four">
+            <fieldset class="field segmented six">
               <legend data-i18n="repo.legend">Files from the external repository</legend>
               <label><input type="radio" name="repo-kind" value="rom" checked><span data-i18n="repo.rom">ROM</span></label>
               <label><input type="radio" name="repo-kind" value="disk"><span data-i18n="repo.disk">Disks</span></label>
               <label><input type="radio" name="repo-kind" value="cmd"><span data-i18n="repo.cmd">CMD</span></label>
               <label><input type="radio" name="repo-kind" value="bas"><span data-i18n="repo.bas">BASIC</span></label>
+              <label><input type="radio" name="repo-kind" value="asm"><span data-i18n="repo.asm">ASM</span></label>
+              <label><input type="radio" name="repo-kind" value="cas"><span data-i18n="repo.cas">CAS</span></label>
             </fieldset>
             <label class="switch"><input id="repo-all" type="checkbox"><span class="knob"></span><span data-i18n="repo.all">All models</span></label>
+            <select id="repo-cat" aria-label="Category" data-i18n-aria="repo.cat"></select>
+            <input id="repo-search" type="search" spellcheck="false" autocomplete="off" placeholder="Search" data-i18n-placeholder="repo.search">
             <select id="repo-select" aria-label="File" data-i18n-aria="repo.pick"></select>
             <div id="repo-detail" class="lib-item repo-detail empty"></div>
             <p id="repo-status" class="hint"></p>

@@ -315,6 +315,7 @@ button:focus-visible, .button:focus-within, select:focus-visible, textarea:focus
 }
 
 .segmented.four span { padding-inline: 2px; font-size: 0.82rem; }
+.segmented.six span { padding-inline: 1px; font-size: 0.76rem; }
 .repo-settings summary { color: var(--muted); font-size: 0.85rem; cursor: pointer; }
 .repo-settings[open] summary { margin-bottom: 8px; }
 code { font: 0.8rem ui-monospace, Consolas, monospace; }
@@ -495,7 +496,7 @@ table.keys th { color: var(--muted); font-weight: 600; }
 .lib-actions button.secondary, .lib-actions select { width: auto; padding: 3px 9px; font-size: 0.82rem; }
 .lib-actions .spacer { flex: 1; }
 /* Dépôt : fiche du fichier choisi dans la liste déroulante (hauteur bornée). */
-#repo-select { margin-bottom: 6px; }
+#repo-select, #repo-cat, #repo-search { margin-bottom: 6px; }
 #bbs-filter, #bbs-select { margin-bottom: 6px; }
 #bbs-select { padding: 4px; }
 #bbs-select option { padding: 2px 5px; border-radius: 4px; }

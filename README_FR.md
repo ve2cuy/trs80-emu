@@ -230,7 +230,8 @@ des caractères, comme il le ferait sur le vrai Model II.
 
 Les fichiers viennent de l'appareil (Load…, Insert…, My library) ou d'un dépôt sur le Web,
 par défaut `https://ve2cuy.com/trs80`, modifiable dans la section Repository. Il comporte
-quatre dossiers, `rom/`, `disk/`, `cmd/` et `bas/`, chacun avec un `index.json` qui liste ses
+six dossiers, `rom/`, `disk/`, `cmd/`, `bas/`, `asm/` (sources assembleur, ouvertes dans
+l'atelier) et `cas/` (cassettes), chacun avec un `index.json` qui liste ses
 fichiers, dans le même format que [`www/disks/index.json`](www/disks/index.json) :
 
 ```json
@@ -241,7 +242,12 @@ fichiers, dans le même format que [`www/disks/index.json`](www/disks/index.json
 ]
 ```
 
-Seul `file` est obligatoire (un simple nom de fichier est aussi accepté). Le serveur doit
+Seul `file` est obligatoire (un simple nom de fichier est aussi accepté). `model` (un nombre
+ou une liste) réserve un fichier à certains modèles, et `category` (`games`, `education`,
+`finance`, `office`, `programming`, `utilities`, `graphics`, `music`, `communications`,
+`science`, `systems`, `demo`, `other`) alimente le filtre par catégorie; un champ de recherche
+filtre aussi par titre, nom et description. Le dépôt par défaut compte environ 20 000
+fichiers classés ainsi. Le serveur doit
 permettre les requêtes d'une autre origine (en-tête CORS `Access-Control-Allow-Origin: *`),
 puisque la page est servie depuis une autre adresse.
 
