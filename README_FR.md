@@ -92,7 +92,11 @@ vôtres dans `www/disks/local/`, avec `"model": 2`, `3` ou `4` dans `index.json`
   durs (● : le DOS y a écrit), avec leur géométrie (pistes, faces, secteurs par piste,
   taille, densité; la piste 0 quand elle diffère; cylindres et têtes d'un disque dur).
   Pendant un accès, l'opération, la piste et le secteur (cylindre, tête et secteur d'un
-  disque dur) s'affichent un instant. Un clic ouvre la section Disquettes.
+  disque dur) s'affichent un instant. Chaque disque a un bouton d'éjection; un clic ailleurs
+  ouvre la section Disquettes. Une disquette des lecteurs 1, 2 ou 3 dont le DOS du lecteur 0
+  ne peut pas lire le format s'affiche en rouge, avec les deux formats (TRSDOS-II 2.0 et 4.x,
+  TRSDOS 1.3 / 2.7DD, LDOS / LS-DOS / TRSDOS 6), reconnus à leur géométrie : taille des
+  secteurs des disquettes de 8 pouces, numéro du premier secteur (1 ou 0) des autres.
 - **Fiche du programme** : sous l'écran, le nom du programme ou de la disquette en cours, avec
   sa description quand on la connaît (liste intégrée, dépôt, ou les enregistrements de nom et
   de droit d'auteur d'un fichier `.CMD`).

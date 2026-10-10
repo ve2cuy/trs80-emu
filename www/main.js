@@ -949,14 +949,15 @@ function makeDriveRow(drive) {
     refresh();
     focusScreen();
   });
-  eject.addEventListener('click', () => {
+  function ejectDisk() {
     emulator?.eject_disk(drive);
     current = null;
     version++;
     error.textContent = '';
     refresh();
     focusScreen();
-  });
+  }
+  eject.addEventListener('click', ejectDisk);
   keep.addEventListener('click', async () => {
     const image = currentImage();
     if (!image) return;
@@ -986,6 +987,7 @@ function makeDriveRow(drive) {
       refresh();
     },
     hasDisk: () => !!current,
+    eject: ejectDisk,
     /** Barre des lecteurs : nom de la disquette et écritures du DOS, ou null. */
     contents: () => (current ? { name: current.name, modified: !!emulator?.disk_modified(drive) } : null),
     /** Vide le lecteur (autre modèle : ses disquettes ne conviennent plus). */
@@ -1092,14 +1094,15 @@ function makeHardRow(unit) {
     if (insert(`hard${unit + 1}.hdv`, bytes)) showStatus(t(two ? 'hd.newStatus2' : 'hd.newStatus', { n: unit + 1 }));
     focusScreen();
   });
-  eject.addEventListener('click', () => {
+  function ejectHard() {
     emulator?.eject_hard_disk(unit);
     current = null;
     version++;
     error.textContent = '';
     refresh();
     focusScreen();
-  });
+  }
+  eject.addEventListener('click', ejectHard);
   keep.addEventListener('click', async () => {
     const image = currentImage();
     if (!image) return;
@@ -1138,6 +1141,7 @@ function makeHardRow(unit) {
     },
     image: () => (current ? emulator?.hard_disk_image(unit) : null),
     contents: () => (current ? { name: current.name, modified: !!emulator?.hard_disk_modified(unit) } : null),
+    eject: ejectHard,
     signature: () => (current ? `${current.name}#${version}#${emulator?.hard_disk_writes(unit) ?? 0}` : '-'),
     snapshot() {
       const bytes = current ? emulator?.hard_disk_image(unit) : null;
@@ -1189,8 +1193,8 @@ function watchAccess() {
       const op = fdcOperation(cmd);
       if (op) {
         // Déplacement de la tête : la piste seulement.
-        const where = op === 'seek' || op === 'restore' ? t('geo.track', { t: track }) : t('geo.pos', { t: track, s: sector });
-        lastAccess.set(String(drive), { text: `${t(`geo.${op}`)} · ${where}`, at: performance.now() });
+        const where = op === 'seek' ? t('geo.track', { t: track }) : t('geo.pos', { t: track, s: sector });
+        lastAccess.set(String(drive), { text: op === 'restore' ? t('geo.restore') : `${t(`geo.${op}`)} · ${where}`, at: performance.now() });
       }
     }
     lastDiskCommand = d[0];
@@ -1201,8 +1205,8 @@ function watchAccess() {
       const [, unit, cyl, head, sector, cmd] = h;
       const op = hardOperation(cmd);
       if (op) {
-        const where = op === 'seek' || op === 'restore' ? t('geo.cyl', { c: cyl }) : t('geo.hpos', { c: cyl, h: head, s: sector });
-        lastAccess.set(`HD${unit + 1}`, { text: `${t(`geo.${op}`)} · ${where}`, at: performance.now() });
+        const where = op === 'seek' ? t('geo.cyl', { c: cyl }) : t('geo.hpos', { c: cyl, h: head, s: sector });
+        lastAccess.set(`HD${unit + 1}`, { text: op === 'restore' ? t('geo.restore') : `${t(`geo.${op}`)} · ${where}`, at: performance.now() });
       }
     }
     lastHardCommand = h[0];
@@ -1210,11 +1214,30 @@ function watchAccess() {
 }
 setInterval(watchAccess, 50);
 
+/**
+ * Famille de format d'une disquette, d'après sa géométrie (null : vierge ou inconnue). Deux
+ * familles différentes ne se lisent pas : TRSDOS-II 2.0 et 4.x (8 pouces, secteurs de 256
+ * ou 512 octets), TRSDOS 1.3 du Model III et 2.7DD du Model I (secteurs numérotés à partir
+ * de 1), LDOS / LS-DOS / TRSDOS 6 et les DOS du Model I qui leur ressemblent (à partir de 0).
+ */
+function diskFamily(g) {
+  if (!g?.tracks) return null;
+  const [, size, , first] = g.t;
+  const [n0, size0] = g.t0;
+  if (g.tracks >= 70 || (n0 === 26 && size0 === 128)) return size === 512 ? 'trsdos2-4' : 'trsdos2-2';
+  return first === 1 ? 'trsdos13' : 'ldos';
+}
+
+/** Géométrie d'une disquette (objet), ou null sans disquette. */
+function diskGeometryOf(drive) {
+  const json = emulator?.disk_geometry(drive);
+  return json ? JSON.parse(json) : null;
+}
+
 /** Géométrie d'une disquette (texte), ou '' sans disquette. */
 function diskGeometry(drive) {
-  const json = emulator?.disk_geometry(drive);
-  if (!json) return '';
-  const g = JSON.parse(json);
+  const g = diskGeometryOf(drive);
+  if (!g) return '';
   if (!g.tracks) return t('geo.blank');
   const dens = (dd) => (dd ? 'DD' : 'SD');
   const [n, size, dd] = g.t;
@@ -1232,30 +1255,51 @@ function hardGeometry(unit) {
 
 function renderDriveBar() {
   const now = performance.now();
+  // Format du DOS du lecteur 0 : une disquette d'une autre famille aux lecteurs 1 à 3 est
+  // signalée (en rouge).
+  const system = driveRows[0].contents() ? diskFamily(diskGeometryOf(0)) : null;
   const chips = [
-    ...driveRows.map((r, i) => ({ no: String(i), c: r.contents(), geo: r.contents() ? diskGeometry(i) : '' })),
-    ...hardRows.map((r, u) => ({ no: `HD${u + 1}`, c: r.contents(), geo: hardGeometry(u) })).filter((x) => x.c),
+    ...driveRows.map((r, i) => {
+      const c = r.contents();
+      const family = c ? diskFamily(diskGeometryOf(i)) : null;
+      const clash = i > 0 && system && family && family !== system;
+      return {
+        no: String(i), c, row: r, geo: c ? diskGeometry(i) : '',
+        clash: clash ? t('bar.clash', { disk: t(`family.${family}`), system: t(`family.${system}`) }) : '',
+      };
+    }),
+    ...hardRows.map((r, u) => ({ no: `HD${u + 1}`, c: r.contents(), row: r, geo: hardGeometry(u), clash: '' })).filter((x) => x.c),
   ].map((x) => {
     const a = lastAccess.get(x.no);
     return { ...x, access: a && now - a.at < ACCESS_SHOWN_MS ? a.text : '' };
   });
-  const state = JSON.stringify([document.documentElement.lang, !!emulator, chips]);
+  const state = JSON.stringify([document.documentElement.lang, !!emulator, chips.map(({ row, ...x }) => x)]);
   if (state === driveBarState) return;
   driveBarState = state;
   driveBar.hidden = !emulator;
-  driveBar.replaceChildren(...chips.map(({ no, c, geo, access }) => {
-    const chip = element('button', 'drive-chip');
-    chip.type = 'button';
+  driveBar.replaceChildren(...chips.map(({ no, c, row, geo, clash, access }) => {
+    const chip = element('div', 'drive-chip');
     chip.classList.toggle('empty', !c);
     chip.classList.toggle('modified', !!c?.modified);
     chip.classList.toggle('active', !!access);
-    chip.title = [c ? c.name : t('bar.empty'), geo, t('bar.open')].filter(Boolean).join('\n');
+    chip.classList.toggle('clash', !!clash);
+    // Le corps ouvre la section Disquettes; le bouton éjecte.
+    const main = element('button', 'chip-main');
+    main.type = 'button';
+    main.title = [c ? c.name : t('bar.empty'), geo, clash, t('bar.open')].filter(Boolean).join('\n');
     const head = element('span', 'chip-head');
     head.append(element('span', 'no', no), element('span', 'file', c ? c.name : t('bar.empty')));
-    chip.append(head);
-    if (geo) chip.append(element('span', 'geo', geo));
-    if (access) chip.append(element('span', 'access', access));
-    chip.addEventListener('click', () => showPanel('disks'));
+    main.append(head);
+    if (geo) main.append(element('span', 'geo', geo));
+    if (clash) main.append(element('span', 'clash-text', clash));
+    if (access) main.append(element('span', 'access', access));
+    main.addEventListener('click', () => showPanel('disks'));
+    chip.append(main);
+    if (c) {
+      const eject = iconButton('eject', 'drive.eject');
+      eject.addEventListener('click', () => row.eject());
+      chip.append(eject);
+    }
     return chip;
   }));
 }

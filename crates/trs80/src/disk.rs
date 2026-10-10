@@ -96,6 +96,9 @@ pub struct TrackShape {
     pub size: u16,
     /// Double densité (MFM).
     pub dd: bool,
+    /// Plus petit numéro de secteur (0 pour LDOS et TRSDOS 6, 1 pour TRSDOS 1.3 et
+    /// TRSDOS-II).
+    pub first: u8,
 }
 
 /// Géométrie d'une disquette, déduite de ses secteurs (une image vierge : 0 piste).
@@ -430,6 +433,7 @@ impl Disk {
                 sectors: on.len().min(255) as u8,
                 size: on.first().map_or(0, |s| size_of_code(s.size_code) as u16),
                 dd: on.iter().any(|s| s.dd),
+                first: on.iter().map(|s| s.sector).min().unwrap_or(0),
             }
         };
         let (Some(tracks), Some(sides)) =

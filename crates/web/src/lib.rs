@@ -210,10 +210,10 @@ impl Emulator {
     }
 
     /// Géométrie de la disquette du lecteur, en JSON (vide sans disquette) : pistes, faces,
-    /// puis [secteurs, taille, double densité] de la piste 0 et des autres pistes.
+    /// puis [secteurs, taille, double densité, premier secteur] de la piste 0 et des autres pistes.
     pub fn disk_geometry(&self, drive: u32) -> String {
         let Some(g) = self.machine.disk_geometry(drive as usize) else { return String::new() };
-        let shape = |t: trs80::TrackShape| format!("[{},{},{}]", t.sectors, t.size, t.dd);
+        let shape = |t: trs80::TrackShape| format!("[{},{},{},{}]", t.sectors, t.size, t.dd, t.first);
         format!(r#"{{"tracks":{},"sides":{},"t0":{},"t":{}}}"#, g.tracks, g.sides, shape(g.track0), shape(g.track))
     }
 

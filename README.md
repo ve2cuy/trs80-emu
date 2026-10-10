@@ -90,7 +90,10 @@ in `index.json`.
   DOS wrote on it), with their geometry (tracks, sides, sectors per track, size, density;
   track 0 when it differs; cylinders and heads of a hard disk). During an access, the
   operation and the track and sector (cylinder, head and sector of a hard disk) show for a
-  moment. A click opens the Disks section.
+  moment. Each disk has an eject button; a click elsewhere opens the Disks section. A disk
+  in drive 1, 2 or 3 whose format the DOS in drive 0 cannot read shows in red, with both
+  formats (TRSDOS-II 2.0 and 4.x, TRSDOS 1.3 / 2.7DD, LDOS / LS-DOS / TRSDOS 6), told apart by
+  their geometry: sector size of 8-inch disks, first sector number (1 or 0) of the others.
 - **Program card**: under the screen, the name of the program or disk being run, with
   its description when known (built-in list, repository, or the name and copyright
   records of a `.CMD` file).
