@@ -11,7 +11,7 @@
 //!   cellule coupées en diagonale) qui dessinent notamment le logo de TRSDOS-II.
 //! - Mode 32 caractères : seules les colonnes paires s'affichent, en double largeur.
 
-use crate::font::{FONT, LOWER};
+use crate::font::{ASCII_5B, FONT, LOWER};
 
 /// Taille de l'image en 64 × 16 (et taille maximale : voir `MAX_WIDTH`).
 pub const SCREEN_WIDTH: usize = 64 * 6;
@@ -30,7 +30,8 @@ pub struct Mode {
     /// Position du caractère de 5 × 7 dans sa cellule.
     glyph_x: usize,
     glyph_y: usize,
-    /// Codes 00h-03h : triangles du Model II.
+    /// Model II : codes 00h-03h en triangles, et 5Bh-5Eh en [ \ ] ^ (jeu ASCII) au lieu
+    /// des flèches des Model I et III.
     triangles: bool,
 }
 
@@ -73,11 +74,14 @@ pub(crate) fn display_char(code: u8, lowercase: bool, inverse: bool) -> char {
 }
 
 /// Le pixel (x, y) du caractère `c` (20h-7Fh), relatif au coin de son dessin de 5 × 8.
-fn glyph_pixel(c: u8, x: usize, y: usize) -> bool {
+/// `ascii` : [ \ ] ^ en 5Bh-5Eh (Model II) au lieu des flèches.
+fn glyph_pixel(c: u8, x: usize, y: usize, ascii: bool) -> bool {
     if x >= 5 {
         return false;
     }
-    let row = if c >= 0x60 {
+    let row = if ascii && (0x5B..=0x5E).contains(&c) {
+        ASCII_5B[(c - 0x5B) as usize].get(y).copied().unwrap_or(0)
+    } else if c >= 0x60 {
         LOWER[(c - 0x60) as usize].get(y).copied().unwrap_or(0)
     } else {
         FONT[(c - 0x20) as usize].get(y).copied().unwrap_or(0)
@@ -110,7 +114,7 @@ fn cell_pixel(code: u8, x: usize, y: usize, m: &Mode, text: bool, lowercase: boo
     let lit = text
         && x >= m.glyph_x
         && y >= m.glyph_y
-        && glyph_pixel(ascii(code, lowercase), x - m.glyph_x, y - m.glyph_y);
+        && glyph_pixel(ascii(code, lowercase), x - m.glyph_x, y - m.glyph_y, m.triangles);
     lit != inverted
 }
 
@@ -134,5 +138,24 @@ pub(crate) fn render(video: &[u8], m: &Mode, wide: bool, text: bool, lowercase: 
             let i = (y * w + x) * 4;
             out[i..i + 4].copy_from_slice(if on { &FG } else { &BG });
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn rows(c: u8, ascii: bool) -> [u8; 7] {
+        core::array::from_fn(|y| (0..5).fold(0, |r, x| r | (glyph_pixel(c, x, y, ascii) as u8) << (4 - x)))
+    }
+
+    #[test]
+    fn model2_shows_brackets_where_model1_shows_arrows() {
+        // 5Bh : ↑ sur les Model I et III, [ sur le Model II (jeu ASCII).
+        assert_eq!(rows(0x5B, false), [0x04, 0x0E, 0x15, 0x04, 0x04, 0x04, 0x04]);
+        assert_eq!(rows(0x5B, true), [0x0E, 0x08, 0x08, 0x08, 0x08, 0x08, 0x0E]);
+        assert_eq!(rows(0x5D, true), [0x0E, 0x02, 0x02, 0x02, 0x02, 0x02, 0x0E]);
+        // Les autres caractères ne changent pas.
+        assert_eq!(rows(b'A', true), rows(b'A', false));
     }
 }
