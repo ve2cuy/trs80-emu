@@ -28,6 +28,7 @@ const cmdButton = document.getElementById('cmd-button');
 const programsHint = document.getElementById('programs-hint');
 const typeButton = document.getElementById('type-button');
 const expansion = document.getElementById('expansion');
+const hiresBoard = document.getElementById('hires');
 const soundBox = document.getElementById('sound');
 const driveSound = document.getElementById('drive-sound');
 const app = document.getElementById('app');
@@ -43,6 +44,7 @@ const prefs = {
   turbo: false,
   sound: true,
   expansion: true,
+  hires: true,          // carte graphique haute résolution (Model III et 4)
   keepFiles: true,      // garder dans la bibliothèque les fichiers ouverts
   keepSession: true,    // retrouver les disques (avec leurs écritures) au rechargement
   modemRelay: null,     // adresse du relais telnet (null : celle par défaut)
@@ -92,6 +94,7 @@ langList.addEventListener('change', () => {
 turbo.checked = prefs.turbo;
 soundBox.checked = prefs.sound;
 expansion.checked = prefs.expansion;
+hiresBoard.checked = prefs.hires;
 turbo.addEventListener('change', () => { prefs.turbo = turbo.checked; savePrefs(); focusScreen(); });
 
 // ------------------------------------------------------------------ thème
@@ -414,6 +417,8 @@ function applyModel() {
   modelList.value = String(prefs.model);
   // L'interface d'expansion (horloge à 40 Hz) n'existe que sur le Model I.
   expansion.closest('label').hidden = prefs.model !== 1;
+  // La carte graphique Radio Shack : Model III et 4.
+  hiresBoard.closest('label').hidden = prefs.model !== 3 && prefs.model !== 4;
   // Disque dur et port RS-232 : l'aide du Model II (TRSDOS-HD, SIO) diffère des autres.
   const two = prefs.model === 2 ? '2' : '';
   for (const [id, key] of [['hd-hint', 'hd.hint'], ['modem-help', 'modem.help']]) {
@@ -516,6 +521,7 @@ function start(bytes) {
   }
   errorBox.textContent = '';
   emulator.set_expansion_interface(expansion.checked);
+  emulator.set_graphics_board(hiresBoard.checked);
   if (audioCtx && soundBox.checked) emulator.set_audio_rate(audioCtx.sampleRate);
   // Nouvelle ROM : les disquettes déjà insérées le restent (images d'origine).
   for (const row of driveRows) row.reinsert();
@@ -1998,6 +2004,14 @@ expansion.addEventListener('change', () => {
   focusScreen();
 });
 
+hiresBoard.addEventListener('change', () => {
+  emulator?.set_graphics_board(hiresBoard.checked);
+  prefs.hires = hiresBoard.checked;
+  savePrefs();
+  lastVideo = null;
+  focusScreen();
+});
+
 // ------------------------------------------------------------------ clavier
 
 // La touche relâchée peut avoir un autre nom que la touche enfoncée (ex. : « a » puis « A »
@@ -2388,6 +2402,7 @@ fontList.addEventListener('change', () => { selectFont(fontList.value); focusScr
 // Dernier contenu dessiné : on ne redessine que si l'écran du TRS-80 a changé.
 let lastVideo = null;
 let lastWide = false;
+let lastScreenState = '';
 
 /** Caractères affichés (64 × 16, ou 80 × 24 sur le Model 4). */
 function shownText() {
@@ -2399,15 +2414,19 @@ function screenChanged() {
   const video = shownText();
   if (lastVideo && lastVideo.length !== video.length) lastVideo = null;
   const wide = emulator.wide();
-  if (lastVideo && wide === lastWide && video.every((b, i) => b === lastVideo[i])) return false;
+  // Graphique haute résolution et vidéo inversée : hors de la mémoire texte.
+  const state = `${emulator.hires_active()}/${emulator.hires_changes()}/${emulator.inverse_video()}`;
+  if (lastVideo && wide === lastWide && state === lastScreenState && video.every((b, i) => b === lastVideo[i])) return false;
   lastVideo = video.slice();
   lastWide = wide;
+  lastScreenState = state;
   return true;
 }
 
 function draw() {
-  // Les polices de fonts.js sont prévues pour 64 × 16 : en 80 × 24, la police d'origine.
-  const fontText = atlas && emulator.text_cols() === 64;
+  // Police choisie (fonts.js) : la page dessine le texte par-dessus les blocs graphiques.
+  // Le graphique haute résolution (640 × 240) inclut son texte, en police d'origine.
+  const fontText = atlas && !emulator.hires_active();
   const ptr = fontText ? emulator.render_graphics() : emulator.render();
   const w = emulator.screen_width();
   const h = emulator.screen_height();
@@ -2421,7 +2440,18 @@ function draw() {
   smallCtx.putImageData(image, 0, 0);
   ctx.imageSmoothingEnabled = false;
   ctx.drawImage(small, 0, 0, canvas.width, canvas.height);
-  if (fontText) drawText(ctx, atlas, shownText(), emulator.wide());
+  if (fontText) {
+    const model = emulator.model();
+    drawText(ctx, atlas, shownText(), {
+      cols: emulator.text_cols(),
+      rows: emulator.text_rows(),
+      wide: emulator.wide(),
+      lowercase: model !== 1,
+      inverse: emulator.inverse_video(),
+      triangles: model === 2,
+      arrows: model !== 2,
+    });
+  }
 }
 
 // ------------------------------------------------------------------ atelier d'assemblage

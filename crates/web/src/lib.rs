@@ -261,6 +261,26 @@ impl Emulator {
         self.machine.caps()
     }
 
+    /// Vidéo inversée (bit 7 : caractère inversé, sinon bloc graphique).
+    pub fn inverse_video(&self) -> bool {
+        self.machine.inverse_video()
+    }
+
+    /// Carte graphique haute résolution (Model III et 4) : branchée ou non.
+    pub fn set_graphics_board(&mut self, present: bool) {
+        self.machine.set_graphics_board(present);
+    }
+
+    /// Changements de l'image haute résolution (pour ne redessiner qu'au besoin).
+    pub fn hires_changes(&self) -> u32 {
+        self.machine.hires_changes()
+    }
+
+    /// Graphique haute résolution affiché : l'image fait 640 × 240, texte compris.
+    pub fn hires_active(&self) -> bool {
+        self.machine.hires_active()
+    }
+
     /// Interface d'expansion (horloge à 40 Hz).
     pub fn set_expansion_interface(&mut self, present: bool) {
         self.machine.set_expansion_interface(present);

@@ -63,7 +63,7 @@ The "Model" list (Machine section) chooses the computer; direct link `?model=3`:
   TRSDOS-II 2.0a (it only accepts years 1980 to 1999), TRSDOS-II 4.2 and 4.4 (their boot
   sector tests the memory, DMA, PIO and CTC) and TRSDOS-HD 4.0.
 
-Not emulated yet: Model II 40-column mode; Model 4 sound board and graphics board; the Model III
+Not emulated yet: Model II 40-column mode; Model 4 sound board; the Model III
 special characters (C0h-FFh are shown as graphics blocks). Model III and 4 system disks are
 not published here (copyright): put yours in `www/disks/local/` with `"model": 2`, `3` or `4`
 in `index.json`.
@@ -150,6 +150,16 @@ the boot ROM then shows `BOOT ERROR HN` (unformatted disk): press ESC to boot th
 diskette, then `INIT` formats the hard disk (drive 4) and copies the system onto it. The
 Model II then boots from the hard disk (`TRSDOS-HD Ready`, `DIR :4`). A Model II hard disk
 image does not go to the other models, and vice versa.
+
+### Graphics board (Model III and 4)
+
+The Radio Shack high-resolution graphics board (26-1125 for the Model III, 26-1126 for the
+Model 4) is connected by default (switch "Graphics board (640 × 240)", Machine section):
+640 × 240 points, 32 KB of memory on ports 80h-83h (X, Y, data with automatic advance, mode),
+plus the Model 4 scroll registers 8Ch-8Dh, as in xtrs. When a program turns the graphics on,
+the screen shows the 640 × 240 image with the text over it (exclusive or). Tested with BASICG
+01.01.00 under TRSDOS 6.2.1 (not provided): put the BASICG disk in drive 1, `BASICG`, then
+`SCREEN 0`, `CLR`, `CIRCLE (320,120),100`, `LINE (0,0)-(639,239)`.
 
 ### Modem and BBS (RS-232)
 

@@ -56,8 +56,8 @@ pub const MODE80: Mode = Mode { cols: 80, rows: 24, cell_w: 8, cell_h: 10, glyph
 pub const MODE80_II: Mode = Mode { triangles: true, ..MODE80 };
 
 /// Phosphore blanc légèrement bleuté sur fond noir.
-const FG: [u8; 4] = [0xE6, 0xEE, 0xFF, 0xFF];
-const BG: [u8; 4] = [0x08, 0x08, 0x0A, 0xFF];
+pub(crate) const FG: [u8; 4] = [0xE6, 0xEE, 0xFF, 0xFF];
+pub(crate) const BG: [u8; 4] = [0x08, 0x08, 0x0A, 0xFF];
 
 /// Code ASCII (20h-7Fh) réellement affiché pour un code de caractère.
 fn ascii(code: u8, lowercase: bool) -> u8 {

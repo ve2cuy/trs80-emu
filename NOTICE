@@ -39,4 +39,9 @@ README.md next to them). They are not covered by the Apache License.
     xtrs (trs_hard.c, reed.h, trs_uart.h), Copyright (c) 2000-2020 Timothy P. Mann,
     MIT license.
 
+- crates/trs80/src/hires.rs
+    Radio Shack high-resolution graphics board registers (ports 80h-83h, 8Ch-8Eh)
+    modelled on xtrs (trs_xinterface.c, Grafyx / Radio Shack support), Copyright (c)
+    1996-2020 Timothy P. Mann, MIT license.
+
 TRS-80 ROMs are NOT included: they are (c) Tandy / Microsoft.

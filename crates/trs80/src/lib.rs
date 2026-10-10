@@ -21,6 +21,7 @@ mod fdc;
 mod cmd;
 mod font;
 mod hard;
+mod hires;
 mod serial;
 mod sio;
 mod keyboard;
@@ -227,6 +228,10 @@ struct Board {
     hard: hard::Controller,
     /// Port série RS-232-C (UART, ports E8h-EBh), Model I, III et 4.
     serial: serial::Serial,
+    /// Carte graphique haute résolution Radio Shack (Model III et 4, ports 80h-83h), et
+    /// si elle est branchée.
+    hires: hires::HiRes,
+    graphics_board: bool,
     /// Model II : ports série (Z80 SIO, F4h-F7h); le canal A va au modem.
     sio: sio::Sio,
     /// Temps machine (T-states), pour l'impulsion d'index des disquettes.
@@ -408,6 +413,11 @@ impl Board {
 
     /// Model III : ports. Les verrous d'interruption se lisent inversés (0 = en attente).
     fn input3(&mut self, port: u8) -> u8 {
+        if self.graphics_board
+            && let Some(v) = self.hires.read(port)
+        {
+            return v;
+        }
         match port {
             // Interruptions en attente (inversées) : horloge, et RS-232 (bit 4 : émission, bit 5 : réception).
             0xE0..=0xE3 => {
@@ -432,6 +442,9 @@ impl Board {
 
     fn output3(&mut self, port: u8, val: u8) {
         let m4 = self.model == Model::IV;
+        if self.graphics_board && self.hires.write(port, val, m4) {
+            return;
+        }
         match port {
             0x84..=0x87 if m4 => self.opreg = val,
             // Contrôleur vidéo : registre choisi (pair), puis sa valeur (impair). Seule
@@ -694,6 +707,8 @@ impl Trs80 {
             fdc,
             hard: hard::Controller::new(model == Model::II),
             serial: serial::Serial::new(),
+            hires: hires::HiRes::new(),
+            graphics_board: true,
             sio: sio::Sio::default(),
             now: 0,
             int_latch: 0,
@@ -753,8 +768,28 @@ impl Trs80 {
         self.board.kbd_queue.clear();
         self.board.fdc.reset();
         self.board.hard.reset();
+        self.board.hires.reset();
         self.typer.cancel(&mut self.board.keyboard);
         self.board.keyboard.release_all();
+    }
+
+    /// Branche ou débranche la carte graphique haute résolution (Model III et 4). Branchée
+    /// par défaut; débranchée, ses ports lisent FFh.
+    pub fn set_graphics_board(&mut self, present: bool) {
+        self.board.graphics_board = present;
+        if !present {
+            self.board.hires.reset();
+        }
+    }
+
+    /// Changements de l'image haute résolution (compteur cumulatif).
+    pub fn hires_changes(&self) -> u32 {
+        self.board.hires.changes
+    }
+
+    /// Le graphique haute résolution est-il affiché (image de 640 × 240) ?
+    pub fn hires_active(&self) -> bool {
+        self.board.graphics_board && self.board.model.ports() && self.board.hires.enabled()
     }
 
     /// Branche ou débranche l'interface d'expansion (horloge à 40 Hz). Branchée par défaut.
@@ -1216,6 +1251,9 @@ impl Trs80 {
 
     /// Taille de l'image produite par [`Trs80::render`] (pixels).
     pub fn screen_size(&self) -> (usize, usize) {
+        if self.hires_active() {
+            return (hires::HIRES_WIDTH, hires::HIRES_HEIGHT);
+        }
         let m = self.text_mode();
         (m.width(), m.height())
     }
@@ -1230,6 +1268,12 @@ impl Trs80 {
 
     fn lowercase(&self) -> bool {
         self.board.model != Model::I
+    }
+
+    /// Vidéo inversée : le bit 7 d'un caractère l'inverse au lieu d'en faire un bloc
+    /// graphique (Model II; Model 4, bit 3 du port 84h).
+    pub fn inverse_video(&self) -> bool {
+        self.inverse()
     }
 
     fn inverse(&self) -> bool {
@@ -1433,13 +1477,39 @@ impl Trs80 {
     /// Dessine l'écran dans `out` : [`SCREEN_WIDTH`] × [`SCREEN_HEIGHT`] pixels RGBA.
     pub fn render(&self, out: &mut [u8]) {
         let m = self.text_mode();
+        if self.hires_active() {
+            return self.render_hires(&m, out);
+        }
         video::render(&self.display(), &m, self.board.wide, true, self.lowercase(), self.inverse(), out);
+    }
+
+    /// Graphique haute résolution (640 × 240) et texte superposé (ou exclusif, comme xtrs) :
+    /// une cellule de texte couvre 8 × 10 points en 80 × 24, 10 × 15 en 64 × 16.
+    fn render_hires(&self, m: &video::Mode, out: &mut [u8]) {
+        let (tw, th) = (m.width(), m.height());
+        let mut text = alloc::vec![0u8; tw * th * 4];
+        video::render(&self.display(), m, self.board.wide, true, self.lowercase(), self.inverse(), &mut text);
+        let (w, h) = (hires::HIRES_WIDTH, hires::HIRES_HEIGHT);
+        for y in 0..h {
+            let ty = y * th / h;
+            for x in 0..w {
+                let tx = x * tw / w;
+                let t = (ty * tw + tx) * 4;
+                let lit = (text[t..t + 4] != video::BG) != self.board.hires.pixel(x, y);
+                let i = (y * w + x) * 4;
+                out[i..i + 4].copy_from_slice(if lit { &video::FG } else { &video::BG });
+            }
+        }
     }
 
     /// Comme [`Trs80::render`], mais sans le texte : seulement le fond et les blocs
     /// semi-graphiques. L'hôte dessine alors le texte avec la police de son choix.
     pub fn render_graphics(&self, out: &mut [u8]) {
         let m = self.text_mode();
+        if self.hires_active() {
+            // L'hôte ne peut pas placer son texte sur l'image de 640 × 240 : texte compris.
+            return self.render_hires(&m, out);
+        }
         video::render(&self.display(), &m, self.board.wide, false, self.lowercase(), self.inverse(), out);
     }
 }

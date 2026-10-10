@@ -134,6 +134,11 @@ l'utilisateur chargera son propre fichier ROM, conservé ensuite dans IndexedDB.
    DIR. RS-232 : Z80 SIO (`sio.rs`, F4h-F7h), canal A relié au modem; vitesse donnée par les
    canaux 0 et 1 du CTC et le diviseur de WR4; vecteur modifié par l'état. Essayé avec
    OMNITERM 1.10 (300 bauds) sur bbs.electrodrome.net.
+14. ✅ Carte graphique haute résolution Radio Shack (Model III et 4, `hires.rs`), comme xtrs
+   (MIT) : 128 × 256 octets, X, Y, donnée avec avance automatique, mode (83h), défilement du
+   Model 4 (8Ch-8Dh). Image de 640 × 240, texte superposé en ou exclusif. Essayé avec BASICG
+   sous TRSDOS 6.2.1. Polices de la page : aussi en 80 × 24 (Model II, Model 4), avec
+   minuscules, vidéo inversée et [ \ ] ^ du Model II.
 
 ## Références
 

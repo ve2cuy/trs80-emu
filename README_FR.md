@@ -64,7 +64,7 @@ La liste « Modèle » (section Machine) choisit l'ordinateur; lien direct `?mod
   2.0a (qui n'accepte que les années 1980 à 1999), TRSDOS-II 4.2 et 4.4 (leur amorce teste la
   mémoire, le DMA, le PIO et le CTC) et TRSDOS-HD 4.0.
 
-Pas encore émulés : le mode 40 colonnes du Model II; la carte son et la carte graphique du Model 4; les
+Pas encore émulés : le mode 40 colonnes du Model II; la carte son du Model 4; les
 caractères spéciaux du Model III (C0h-FFh s'affichent comme des blocs graphiques). Les
 disquettes système des Model III et 4 ne sont pas publiées ici (droit d'auteur) : mettre les
 vôtres dans `www/disks/local/`, avec `"model": 2`, `3` ou `4` dans `index.json`.
@@ -160,6 +160,17 @@ un disque de 8,4 Mo (256 cylindres, 4 têtes); la ROM d'amorçage affiche alors
 puis `INIT` formate le disque dur (lecteur 4) et y copie le système. Le Model II démarre
 ensuite sur le disque dur (`TRSDOS-HD Ready`, `DIR :4`). Une image de disque dur du Model II
 ne passe pas aux autres modèles, ni l'inverse.
+
+### Carte graphique (Model III et 4)
+
+La carte graphique haute résolution Radio Shack (26-1125 pour le Model III, 26-1126 pour le
+Model 4) est branchée par défaut (interrupteur « Carte graphique (640 × 240) », section
+Machine) : 640 × 240 points, 32 Ko de mémoire sur les ports 80h-83h (X, Y, donnée avec avance
+automatique, mode), plus les registres de défilement 8Ch-8Dh du Model 4, comme dans xtrs.
+Quand un programme affiche le graphique, l'écran montre l'image de 640 × 240 avec le texte
+par-dessus (ou exclusif). Essayé avec BASICG 01.01.00 sous TRSDOS 6.2.1 (non fourni) : la
+disquette de BASICG au lecteur 1, `BASICG`, puis `SCREEN 0`, `CLR`, `CIRCLE (320,120),100`,
+`LINE (0,0)-(639,239)`.
 
 ### Modem et BBS (RS-232)
 
