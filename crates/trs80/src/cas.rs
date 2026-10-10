@@ -80,6 +80,28 @@ pub fn system_blocks(data: &[u8], load: impl FnMut(u16, &[u8])) -> Result<(), Ca
     walk_system(&data[start..], load).map(|_| ())
 }
 
+/// Position de l'octet qui suit le programme SYSTEM (après son adresse de lancement) : la
+/// suite de la cassette, que certains chargeurs lisent eux-mêmes.
+pub fn system_end(data: &[u8]) -> Result<usize, CasError> {
+    let start = after_sync(data)? + 7;
+    let body = &data[start..];
+    let mut i = 0;
+    loop {
+        match body.get(i) {
+            Some(0x3C) => {
+                let n = match body.get(i + 1) {
+                    Some(0) => 256,
+                    Some(&n) => n as usize,
+                    None => return Err(CasError::Truncated),
+                };
+                i += 5 + n;
+            }
+            Some(0x78) => return Ok(start + i + 3),
+            _ => return Err(CasError::Truncated),
+        }
+    }
+}
+
 fn walk_system(data: &[u8], mut load: impl FnMut(u16, &[u8])) -> Result<u16, CasError> {
     let mut i = 0;
     loop {

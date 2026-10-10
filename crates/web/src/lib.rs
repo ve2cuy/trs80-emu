@@ -230,6 +230,22 @@ impl Emulator {
         })
     }
 
+    /// Met une cassette au magnétophone (lue par CLOAD, SYSTEM ou le chargeur d'un programme).
+    pub fn insert_tape(&mut self, data: &[u8]) {
+        self.machine.insert_tape(data.to_vec());
+    }
+
+    pub fn eject_tape(&mut self) {
+        self.machine.eject_tape();
+    }
+
+    /// Magnétophone : [octets lus, taille, moteur en marche (0 ou 1)]; vide sans cassette.
+    pub fn tape_progress(&self) -> Vec<u32> {
+        self.machine
+            .tape_progress()
+            .map_or_else(Vec::new, |(pos, len, motor)| vec![pos as u32, len as u32, motor as u32])
+    }
+
     /// Dernier accès au disque dur : [n° de commande, unité, cylindre, tête, secteur, commande].
     pub fn hard_position(&self) -> Vec<u32> {
         self.machine.hard_position().map_or_else(Vec::new, |(n, e)| {

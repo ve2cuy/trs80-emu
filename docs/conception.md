@@ -67,6 +67,11 @@ l'utilisateur chargera son propre fichier ROM, conservé ensuite dans IndexedDB.
 7a. ✅ Cassettes `.CAS` (SYSTEM et BASIC, chargées directement en mémoire; BASIC : liens
    de lignes et pointeurs recalculés), frappe automatique (collage, file de 16 Ko,
    ×4 pendant la frappe), interface d'expansion avec horloge à 40 Hz (IM 1, verrou 37E0h).
+   Magnétophone (`tape.rs`, d'après xtrs) : lecture à 500 bauds par l'entrée cassette
+   (bascule du bit 7 de FFh; Model III : fronts en interruptions, port E0h bits 0-1, niveau
+   au bit 0 de FFh). Moteur : bit 2 de FFh (Model I), bit 1 de ECh (Model III/4). La suite
+   d'une cassette SYSTEM y reste pour les chargeurs à plusieurs étapes; sur Model III/4,
+   4211h = 0 met la ROM en basse vitesse (cassette à 500 bauds).
 7b. ✅ VE2CUY Invaders (`asm/invaders.asm`, zmac) : jeu bilingue choisi à l'accueil,
    tampon d'écran, environ 31 images par seconde; testé par `tests/invaders.rs`.
 7c. ✅ Son : sortie cassette (port FFh, bits 0-1) échantillonnée au fil des cycles

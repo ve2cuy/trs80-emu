@@ -699,6 +699,8 @@ canvas:focus-visible { box-shadow: 0 0 0 3px var(--accent); }
 .drive-chip .geo { color: var(--muted); font: 0.72rem system-ui, sans-serif; }
 .drive-chip .access { color: var(--accent-ink); font: 600 0.72rem system-ui, sans-serif; }
 .drive-chip.active { border-color: var(--accent); background: var(--accent-soft); }
+/* Cassette : la partie lue se remplit de gauche à droite. */
+.drive-chip.tape, .drive-chip.tape.active { background: linear-gradient(to right, color-mix(in srgb, var(--accent) 22%, var(--surface)) var(--progress), var(--surface) var(--progress)); }
 
 .status { min-height: 1.4em; margin: 10px 0 0; color: var(--muted); font-size: 0.88rem; }
 .status.error { color: var(--error); }

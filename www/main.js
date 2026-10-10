@@ -703,6 +703,7 @@ function runFile(bytes, name, info = null) {
   try {
     if (/\.cas$/i.test(name)) {
       showStatus(casMessage(label, emulator.load_cas(bytes)));
+      tapeName = label;
     } else {
       const entry = emulator.load_cmd(bytes);
       showStatus(t('run.cmd', { name: label, addr: entry.toString(16).toUpperCase().padStart(4, '0') }));
@@ -1261,6 +1262,29 @@ function hardGeometry(unit) {
   return g?.length ? t('geo.hard', { cyl: g[0], heads: g[1] }) : '';
 }
 
+// Magnétophone : une cassette dont le programme lit lui-même la suite (chargeur à plusieurs
+// étapes) reste en place; la barre montre l'avancement et le temps qui reste (500 bauds :
+// environ 62 octets par seconde).
+let tapeName = null;
+const TAPE_BYTES_PER_SECOND = 62;
+
+function tapeChip() {
+  const p = emulator?.tape_progress();
+  if (!p?.length) return null;
+  const [pos, len, motor] = p;
+  // Cassette lue en entier (ou presque : quelques octets de remplissage) : plus rien à montrer.
+  if (!motor && len - pos <= 16) return null;
+  const left = Math.ceil((len - pos) / TAPE_BYTES_PER_SECOND);
+  const time = `${Math.floor(left / 60)}:${String(left % 60).padStart(2, '0')}`;
+  const pct = Math.floor((pos * 100) / len);
+  return {
+    no: 'CAS', c: { name: tapeName ?? t('bar.tape') }, tape: pct,
+    geo: t('bar.tapeLeft', { pct, time }) + (motor ? '' : ` · ${t('bar.tapeStopped')}`),
+    clash: '', access: motor ? t('bar.tapeRead') : '',
+    eject: () => emulator.eject_tape(),
+  };
+}
+
 function renderDriveBar() {
   const now = performance.now();
   // Format du DOS du lecteur 0 : une disquette d'une autre famille aux lecteurs 1 à 3 est
@@ -1272,21 +1296,25 @@ function renderDriveBar() {
       const family = c ? diskFamily(diskGeometryOf(i)) : null;
       const clash = i > 0 && system && family && family !== system;
       return {
-        no: String(i), c, row: r, geo: c ? diskGeometry(i) : '',
+        no: String(i), c, eject: () => r.eject(), geo: c ? diskGeometry(i) : '',
         clash: clash ? t('bar.clash', { disk: t(`family.${family}`), system: t(`family.${system}`) }) : '',
       };
     }),
-    ...hardRows.map((r, u) => ({ no: `HD${u + 1}`, c: r.contents(), row: r, geo: hardGeometry(u), clash: '' })).filter((x) => x.c),
+    ...hardRows.map((r, u) => ({ no: `HD${u + 1}`, c: r.contents(), eject: () => r.eject(), geo: hardGeometry(u), clash: '' })).filter((x) => x.c),
   ].map((x) => {
     const a = lastAccess.get(x.no);
     return { ...x, access: a && now - a.at < ACCESS_SHOWN_MS ? a.text : '' };
   });
-  const state = JSON.stringify([document.documentElement.lang, !!emulator, chips.map(({ row, ...x }) => x)]);
+  const tape = tapeChip();
+  if (tape) chips.push(tape);
+  const state = JSON.stringify([document.documentElement.lang, !!emulator, chips]);
   if (state === driveBarState) return;
   driveBarState = state;
   driveBar.hidden = !emulator;
-  driveBar.replaceChildren(...chips.map(({ no, c, row, geo, clash, access }) => {
+  driveBar.replaceChildren(...chips.map(({ no, c, eject: ejectIt, tape, geo, clash, access }) => {
     const chip = element('div', 'drive-chip');
+    chip.classList.toggle('tape', tape !== undefined);
+    if (tape !== undefined) chip.style.setProperty('--progress', `${tape}%`);
     chip.classList.toggle('empty', !c);
     chip.classList.toggle('modified', !!c?.modified);
     chip.classList.toggle('active', !!access);
@@ -1294,18 +1322,21 @@ function renderDriveBar() {
     // Le corps ouvre la section Disquettes; le bouton éjecte.
     const main = element('button', 'chip-main');
     main.type = 'button';
-    main.title = [c ? c.name : t('bar.empty'), geo, clash, t('bar.open')].filter(Boolean).join('\n');
+    main.title = [c ? c.name : t('bar.empty'), geo, clash, tape === undefined && t('bar.open')].filter(Boolean).join('\n');
     const head = element('span', 'chip-head');
     head.append(element('span', 'no', no), element('span', 'file', c ? c.name : t('bar.empty')));
     main.append(head);
     if (geo) main.append(element('span', 'geo', geo));
     if (clash) main.append(element('span', 'clash-text', clash));
     if (access) main.append(element('span', 'access', access));
-    main.addEventListener('click', () => showPanel('disks'));
+    if (tape === undefined) main.addEventListener('click', () => showPanel('disks'));
     chip.append(main);
     if (c) {
       const eject = iconButton('eject', 'drive.eject');
-      eject.addEventListener('click', () => row.eject());
+      eject.addEventListener('click', () => {
+        ejectIt();
+        renderDriveBar();
+      });
       chip.append(eject);
     }
     return chip;

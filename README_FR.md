@@ -324,7 +324,10 @@ répondre à `MEM SIZE?` avec ENTRÉE.
   [www/programs/README.md](www/programs/README.md) avant d'en ajouter.
 - **« Load program (.CMD, .CAS, .BAS)… »** : n'importe quel programme de votre disque; rien
   n'est envoyé. Une cassette (`.CAS`) est chargée directement en mémoire : un programme
-  en langage machine est lancé, un programme BASIC est exécuté.
+  en langage machine est lancé, un programme BASIC est exécuté. La suite d'une cassette en
+  langage machine reste au magnétophone, lue à 500 bauds par l'entrée cassette, pour les
+  chargeurs à plusieurs étapes (comme FROGGER) : une case CAS sous l'écran montre
+  l'avancement et le temps qui reste.
 - **Copier-coller** : Ctrl+V sur l'écran, le bouton Coller de la barre d'outils, ou « Type
   text… », tape le texte au clavier du TRS-80 (par exemple un programme BASIC ou des
   commandes du DOS). Ctrl+C sur l'écran (rien de sélectionné dans la page), ou le bouton

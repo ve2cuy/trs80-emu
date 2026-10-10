@@ -23,6 +23,7 @@ mod font;
 mod hard;
 mod hires;
 mod serial;
+mod tape;
 mod sio;
 mod keyboard;
 pub mod ldosfs;
@@ -234,6 +235,9 @@ struct Board {
     hard: hard::Controller,
     /// Port série RS-232-C (UART, ports E8h-EBh), Model I, III et 4.
     serial: serial::Serial,
+    /// Magnétophone (entrée cassette à 500 bauds), et le dernier mot écrit sur ECh (Model III).
+    tape: tape::Tape,
+    ec_reg: u8,
     /// Carte graphique haute résolution Radio Shack (Model III et 4, ports 80h-83h), et
     /// si elle est branchée.
     hires: hires::HiRes,
@@ -449,6 +453,13 @@ impl Board {
             0xF0..=0xF3 if self.fdc.present() => self.fdc.read(port as u16, self.now),
             // Imprimante : prête (sélectionnée, pas occupée).
             0xF8..=0xFB => 0x30,
+            // Entrée cassette (bit 7 : bascule à 500 bauds; bit 0 : niveau) et mot du port
+            // ECh. La lecture acquitte les interruptions de la cassette.
+            0xFF => {
+                self.int_latch &= !0x03;
+                let flipflop = self.tape.read(self.now);
+                (self.ec_reg & 0x7E) | flipflop | self.tape.level()
+            }
             _ => 0xFF,
         }
     }
@@ -480,6 +491,10 @@ impl Board {
                 if m4 {
                     self.fast = val & 0x40 != 0;
                 }
+                // Bit 1 : moteur du magnétophone.
+                self.ec_reg = val;
+                let (now, hz) = (self.now, self.clock_hz());
+                self.tape.set_motor(val & 0x02 != 0, now, hz);
             }
             0xF0..=0xF3 => self.fdc.write(port as u16, val),
             // Lecteur (bits 0-3), face (bit 4), double densité (bit 7).
@@ -488,7 +503,10 @@ impl Board {
                 self.fdc.side = (val >> 4) & 1;
                 self.fdc.set_density(val & 0x80 != 0);
             }
-            0xFF => self.sound = val & 0x03,
+            0xFF => {
+                self.sound = val & 0x03;
+                self.tape.clear(self.now);
+            }
             _ => {}
         }
     }
@@ -574,6 +592,8 @@ impl Bus for Board {
             _ if (0xC0..=0xCF).contains(&(port as u8)) => self.hard.read(port as u8),
             _ if (0xE8..=0xEB).contains(&(port as u8)) => self.serial.read(port as u8),
             m if m.ports() => self.input3(port as u8),
+            // Model I, port FFh : entrée cassette (bit 7), 32 caractères par ligne (bit 6 à 0).
+            _ if port as u8 == 0xFF => (if self.wide { 0x3F } else { 0x7F }) | self.tape.read(self.now),
             _ => 0xFF,
         }
     }
@@ -602,6 +622,10 @@ impl Bus for Board {
         if port as u8 == 0xFF {
             self.wide = val & 0x08 != 0;
             self.sound = val & 0x03;
+            // Bit 2 : moteur du magnétophone; toute écriture remet la bascule d'entrée à 0.
+            let (now, hz) = (self.now, self.clock_hz());
+            self.tape.set_motor(val & 0x04 != 0, now, hz);
+            self.tape.clear(now);
         }
     }
 }
@@ -729,6 +753,8 @@ impl Trs80 {
             fdc,
             hard: hard::Controller::new(model == Model::II),
             serial: serial::Serial::new(),
+            tape: tape::Tape::default(),
+            ec_reg: 0,
             hires: hires::HiRes::new(),
             graphics_board: true,
             sio: sio::Sio::default(),
@@ -791,6 +817,9 @@ impl Trs80 {
         self.board.fdc.reset();
         self.board.hard.reset();
         self.board.hires.reset();
+        self.board.ec_reg = 0;
+        let now = self.cpu.cycles;
+        self.board.tape.set_motor(false, now, self.board.model.clock_hz());
         self.typer.cancel(&mut self.board.keyboard);
         self.board.keyboard.release_all();
     }
@@ -873,6 +902,12 @@ impl Trs80 {
                     Model::III | Model::IV => self.board.int_latch |= 0x04,
                     Model::II => self.board.rtc2 |= self.board.ff_reg & 0x20 != 0,
                 }
+            }
+            // Model III : fronts du signal de la cassette (interruptions, si autorisées).
+            if model.ports() && self.board.tape.motor {
+                self.board.tape.update(self.cpu.cycles);
+                let edges = self.board.tape.take_edges();
+                self.board.int_latch |= edges & self.board.int_mask & 0x03;
             }
             if model == Model::II {
                 // DMA : transfert dès que le périphérique est prêt; PIO : fin de commande.
@@ -1116,6 +1151,35 @@ impl Trs80 {
     /// Annule la frappe automatique en cours.
     /// Insère une image de disquette (JV1, JV3 ou DMK) dans le lecteur `drive` (0 à 3).
     /// Pour démarrer sur un DOS : disquette système dans le lecteur 0, puis [`Trs80::reset`].
+    /// Met une cassette au magnétophone, au début : un programme peut la lire (CLOAD,
+    /// SYSTEM, ou son propre chargeur) quand il met le moteur en marche.
+    pub fn insert_tape(&mut self, data: alloc::vec::Vec<u8>) {
+        self.tape_speed(&data);
+        self.board.tape.insert(data, 0);
+    }
+
+    /// Model III et 4 : la ROM lit à 1500 bauds ou à 500 bauds selon 4211h (réponse à
+    /// « Cass? »). Le magnétophone ne joue que du 500 bauds (amorce de 00h, synchro A5h) :
+    /// on met la ROM en basse vitesse.
+    fn tape_speed(&mut self, data: &[u8]) {
+        if self.board.model.ports() && data.iter().find(|&&b| b != 0) == Some(&0xA5) {
+            self.board.write(0x4211, 0);
+        }
+    }
+
+    pub fn eject_tape(&mut self) {
+        self.board.tape.eject();
+    }
+
+    /// Magnétophone : (octets lus, taille, moteur en marche), ou `None` sans cassette.
+    pub fn tape_progress(&self) -> Option<(usize, usize, bool)> {
+        let t = &self.board.tape;
+        t.loaded().then(|| {
+            let (pos, len) = t.progress();
+            (pos, len, t.motor)
+        })
+    }
+
     pub fn insert_disk(&mut self, drive: usize, image: alloc::vec::Vec<u8>) -> Result<&Disk, Error> {
         let disk = Disk::open(image).map_err(Error::Disk)?;
         let slot = &mut self.board.fdc.drives[drive % DRIVES];
@@ -1496,6 +1560,11 @@ impl Trs80 {
                     }
                 })
                 .map_err(Error::Cas)?;
+                // La suite de la cassette reste au magnétophone, pour les programmes qui la
+                // lisent eux-mêmes (chargeurs à plusieurs étapes).
+                let end = cas::system_end(data).map_err(Error::Cas)?;
+                self.board.tape.insert(data.to_vec(), end);
+                self.tape_speed(&data[end..]);
                 self.cpu.halted = false;
                 self.cpu.pc = entry;
                 Ok(Loaded::System(entry))
