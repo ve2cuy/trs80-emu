@@ -1,0 +1,63 @@
+# Programme du dépôt qui ne fonctionne pas dans l'émulateur : à vérifier, puis à retirer de
+# la liste présentée aux utilisateurs (ou à corriger). La fiche du programme, sous l'écran,
+# ouvre ce formulaire avec le programme, le fichier et le modèle déjà remplis.
+name: Programme qui ne fonctionne pas / Program does not work
+description: >-
+  Un programme du dépôt ne fonctionne pas dans l'émulateur. /
+  A program from the repository does not work in the emulator.
+title: "Ne fonctionne pas / Does not work: "
+labels: [broken-program]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        **Français** — Merci ! Nous essaierons le programme sur les Model I, III et 4; s'il ne fonctionne pas, il sera retiré de la liste présentée aux utilisateurs (ou l'émulateur sera corrigé), et nous vous répondrons ici.
+
+        **English** — Thank you! We will try the program on the Model I, III and 4; if it does not work, it will be removed from the list shown to users (or the emulator will be fixed), and we will reply here.
+  - type: input
+    id: program
+    attributes:
+      label: Programme / Program
+      description: Titre du programme tel qu'il paraît dans l'émulateur. / Title of the program as shown in the emulator.
+      placeholder: Fasteroids
+    validations:
+      required: true
+  - type: input
+    id: file
+    attributes:
+      label: Fichier du dépôt / Repository file
+      description: Chemin du fichier (rempli par l'émulateur). / File path (filled in by the emulator).
+      placeholder: cmd/model3/fstroids.cmd
+    validations:
+      required: true
+  - type: dropdown
+    id: model
+    attributes:
+      label: Modèle / Model
+      description: Modèle choisi dans l'émulateur. / Model chosen in the emulator.
+      multiple: true
+      options:
+        - Model I
+        - Model II
+        - Model III
+        - Model 4
+    validations:
+      required: true
+  - type: textarea
+    id: what
+    attributes:
+      label: Ce qui se passe / What happens
+      description: >-
+        Par exemple : écran figé, message d'erreur, retour à READY, caractères étranges. Une
+        capture d'écran aide beaucoup (glisser l'image ici). /
+        For example: frozen screen, error message, back to READY, odd characters. A
+        screenshot helps a lot (drag the image here).
+    validations:
+      required: true
+  - type: input
+    id: browser
+    attributes:
+      label: Fureteur / Browser
+      placeholder: Chrome 140, Firefox 145, Safari 19...
+    validations:
+      required: false

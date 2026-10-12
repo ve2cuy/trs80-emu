@@ -1,0 +1,521 @@
+# 🖥️ trs80-emu
+
+🇫🇷 [Version française](README_FR.md)
+
+An emulator of the **TRS-80 Model I, II, III and 4**, written in Rust, that runs in a
+web browser (WebAssembly).
+
+> Version 1.2: Level I and Level II BASIC, `.CMD` programs and `.CAS` cassettes,
+> **floppy disks** (LDOS, TRSDOS, NEWDOS...), **sound**, pasting text, and
+> **VE2CUY Invaders**, a game written in Z80 assembly for this project. New in 1.2:
+> **Model II, III and 4**, Radio Shack **hard disk**, **RS-232 and modem** (telnet BBS),
+> high-resolution **graphics board**, **Orchestra-85/90** sound, a **tape recorder**
+> (multi-stage loaders, Level I, 1500 baud, fast loading), a Z80 **assembler workshop**
+> with debugger, a categorized and searchable **repository**, and an **Admin** panel to
+> curate it. New in 1.3: **TRSDOS-II files** (TRSDOS 2.0 and 4.x, read and write, format,
+> print), **files of hard disks** with copies between diskettes and hard disks, the
+> **whole machine state** saved and resumed, the Model I **lowercase modification**, a
+> **color ANSI screen** for BBSes, a **printer** on old-style paper, a **command history**
+> and a **cheat sheet** of system commands, drive tools (compatible DOS, files, format).
+> See docs/conception.md (in French).
+
+**▶️ Try it online: <https://ve2cuy.github.io/trs80-emu/>**
+
+<p align="center">
+  <img src="docs/interface.png" alt="The emulator in its dark theme: side menu (Machine, Disks), LDOS 5.3.1 double density booted on the TRS-80 screen, and the card describing the disk" width="700">
+  <br><em>LDOS 5.3.1 double density booted from drive 0, with the side menu and the disk's card.</em>
+</p>
+
+### Screenshots
+
+<table>
+  <tr>
+    <td width="50%"><img src="docs/screenshots/model1-invaders.png" alt="VE2CUY Invaders running on the Model I"><br><sub><b>Model I</b> — VE2CUY Invaders, a game written in Z80 assembly for this project.</sub></td>
+    <td width="50%"><img src="docs/screenshots/model1-bbs.png" alt="LDOS LCOMM connected to a telnet BBS, with the Modem panel showing Online"><br><sub><b>Modem and BBS</b> — LDOS 5.3.1 and LCOMM call a telnet BBS (<code>ATDT bbs.electrodrome.net</code>).</sub></td>
+  </tr>
+  <tr>
+    <td width="50%"><img src="docs/screenshots/model3-graphics.png" alt="Lissajous curve and circle drawn on the 640 × 240 graphics board of the Model III"><br><sub><b>Model III</b> — the Radio Shack high-resolution graphics board (640 × 240), drawn from BASIC.</sub></td>
+    <td width="50%"><img src="docs/screenshots/model2-trsdos.png" alt="TRSDOS-II 2.0a booting on the Model II, light theme, drive bar with the disk geometry"><br><sub><b>Model II</b> — TRSDOS-II 2.0a boots; the drive bar shows each disk and its geometry.</sub></td>
+  </tr>
+  <tr>
+    <td width="50%"><img src="docs/screenshots/workshop.png" alt="Assembler workshop: Z80 source, debugger paused with registers and flags"><br><sub><b>Assembler workshop</b> — edit, assemble and debug Z80 code step by step under LDOS.</sub></td>
+    <td width="50%"><img src="docs/screenshots/tape-level1.png" alt="Level I tape loading from the repository, with the CAS progress chip"><br><sub><b>Tape recorder</b> — a Level I tape from the repository loads at 250 baud; the CAS chip shows the progress.</sub></td>
+  </tr>
+  <tr>
+    <td colspan="2"><img src="docs/screenshots/printer-test.png" alt="Printer panel: a BASIC test program printed on green-bar continuous paper"><br><sub><b>Printer</b> — <code>LPRINT</code> output on old-style continuous paper (green and white bands, tractor holes).</sub></td>
+  </tr>
+</table>
+
+## ROMs
+
+No ROM is hosted in this repository: they are © Tandy / Microsoft. The drop-down
+list on the page (`www/roms.json`) downloads them, when you choose
+one, from the third-party repository
+[kiwisincebirth/TRS-80-ROMS](https://github.com/kiwisincebirth/TRS-80-ROMS):
+
+| ROM | Download |
+| --- | --- |
+| Level II 1.3 and 1.2 (Tandy, official) | Direct, from a pinned commit, SHA-256 checksum verified |
+| Level I (Tandy, official, 4 KB) | Direct, same way; also downloaded by itself when you run a Level I tape |
+| Level II 1.3 with bug fixes, Enhanced Level II 1.4 (kiwisincebirth) | From their release `.tar` archive, which you download and then open in the page (GitHub does not let the browser download it by itself) |
+
+On the first visit, the emulator starts with Level II 1.3. You can also load your
+own file ("Load ROM file…"). Direct link: `?rom=level2-1.3`. The chosen ROM is kept
+in your browser.
+
+## Fonts
+
+The "Font" list changes how text is drawn: the original TRS-80 pixel font, or a
+fixed-width (monospace) font: retro (VT323, Press Start 2P, ...), modern (IBM Plex
+Mono, JetBrains Mono, ...) or installed on your system (Consolas, Courier New).
+Fonts are condensed to fit the narrow 64 × 16 grid; semigraphics are unchanged.
+Web fonts are downloaded from Google Fonts only when chosen. Direct link:
+`?font=vt323`.
+
+## Models
+
+The "Model" list (Machine section) chooses the computer; direct link `?model=3`:
+
+- **Model I**: Level II ROM (12 KB), expansion interface (40 Hz clock, floppy disks); or
+  the **Level I** BASIC ROM (4 KB), chosen in the ROM list or switched to by itself when a
+  Level I tape is run (and back to Level II for a Level II tape).
+  **Lowercase modification** (Machine section, on by default): the 8th video memory chip and
+  lowercase on screen (LDOS, word processors). Without it, as on the original Model I, bit 6
+  of the video memory does not exist: LDOS detects it and writes in capitals.
+- **Model III**: 14 KB ROM (Model III rev. C, downloaded from kiwisincebirth/TRS-80-ROMS),
+  lowercase, WD1793 floppy controller on ports F0h-F4h with NMI, 30 Hz clock. Tested with
+  TRSDOS 1.3.
+- **Model 4**: the Model III ROM plus 128 KB of RAM in banks, the four memory maps and the
+  80 × 24 screen (port 84h), 4 MHz and 60 Hz clock. TRSDOS 6 / LS-DOS boots in Model 4 mode
+  (tested with TRSDOS 6.2.1).
+- **Model II** (`?model=2`): a different machine. 2 KB boot ROM (not offered for download: load
+  your own with "Load ROM file…"), 64 KB of RAM, 80 × 24 screen with inverse video, ASCII keyboard
+  (Ctrl + letter gives control codes, End = BREAK), 4 MHz, 60 Hz clock on NMI, FD1791 controller
+  for 8-inch disks served by a Z80 DMA, mode 2 interrupts (DMA, CTC with its timers, PIO, SIO),
+  hard disk and RS-232 (see below). Disk images in IMD (ImageDisk) or DMK format. Tested with
+  TRSDOS-II 2.0a (it only accepts years 1980 to 1999), TRSDOS-II 4.2 and 4.4 (their boot
+  sector tests the memory, DMA, PIO and CTC) and TRSDOS-HD 4.0. 40-column mode (port FFh, bit
+  4: characters twice as wide), as in the printer warning of the Model II software demo.
+
+Not emulated yet: the 32 "business graphics" of the Model II (codes 04h-1Fh, shown as the
+letters 44h-5Fh; 00h-03h, the triangles of its logo, are emulated); the alternate character
+set of the Model III and 4
+(Katakana or international characters, port ECh bit 3): C0h-FFh always show the special
+characters. Model III and 4 system disks are
+not published here (copyright): put yours in `www/disks/local/` with `"model": 2`, `3` or `4`
+in `index.json`.
+
+## Interface
+
+- **Side menu**: Machine (ROM, expansion interface, sound, disk drive sounds), Programs,
+  Disks, My library, Repository, Display (font, theme), Keyboard, About. On a computer,
+  it can be reduced to a column of icons (round button on its edge); on a phone, it is
+  a drawer opened with ☰.
+- **Light and dark themes**: follows the system by default; choose in Display, or with
+  the sun / moon button at the top right.
+- **Languages**: English, French, Spanish and Simplified Chinese, chosen with the globe at
+  the top right (the browser's language by default). Direct link: `?lang=fr`. Texts are in
+  `www/i18n.js`; the program, disk and repository lists can translate their
+  fields in `"i18n": { "fr": { "description": "…" } }`.
+- **Preferences** (theme, menu, open sections, sound, Turbo, repository...) are kept
+  in the browser.
+- **Putting a disk in a drive**: the same "Put in…" command everywhere (disks of the Disks
+  section, My library, Repository), numbered like the drives: "Drive 0 — boot" restarts the
+  TRS-80 on the disk, drives 1 to 3 take data disks, HD1 / HD2 take hard disk images
+  (`.hdv`). Choosing a disk in a list only shows its card; nothing starts before "Put in…".
+- **Drive bar**: under the screen, what is in drives 0 to 3 and in the hard disks (● : the
+  DOS wrote on it), with their geometry (tracks, sides, sectors per track, size, density;
+  track 0 when it differs; cylinders and heads of a hard disk). During an access, the
+  operation and the track and sector (cylinder, head and sector of a hard disk) show for a
+  moment. Each disk has an eject button; a click elsewhere opens the Disks section. A disk
+  in drive 1, 2 or 3 whose format the DOS in drive 0 cannot read shows in red, with both
+  formats (TRSDOS-II 2.0 and 4.x, TRSDOS 1.3 / 2.7DD, LDOS / LS-DOS / TRSDOS 6).
+  - **DOS of each disk**, read from its directory: TRSDOS 2.3, LDOS 5.x, TRSDOS 6.x,
+    LS-DOS 6.3, NEWDOS/80, DOSPLUS, TRSDOS 1.3, TRSDOS-II, and whether it is a **system**
+    disk (it boots) or a **data** disk.
+  - **Start a compatible DOS** (drive 0 holding a disk without a system): the disk moves to
+    drive 1 and a DOS that reads it boots from drive 0 (LDOS 5.3.1, TRSDOS 2.3, TRSDOS 1.3,
+    TRSDOS 6.2.1 or TRSDOS-II, depending on the model and the disk).
+  - **Files**: list the files of the disk (LDOS family, TRSDOS 1.3, TRSDOS-II 2.0 and 4.x),
+    download them, add files from your computer, copy them to another drive, delete them.
+    **Hard disks** have a Files button too (HD1 / HD2 chip of the drive bar), and files copy
+    from diskettes to hard disks and back: LDOS 5.3, LS-DOS and TRSDOS 6 (Model I, III and 4,
+    disks formatted by RSFORM), TRSDOS-HD and TRSDOS-II 4.x (Model II). Between TRSDOS-II
+    disks a copied program stays a program (a copy from TRSDOS 2.0 to 4.x runs, as with FCOPY).
+  - **Format**: a blank data disk, exactly as the DOS FORMAT command would make it (same
+    directory structures), after confirmation: TRSDOS 2.3 and LDOS 5.3 single or double
+    density (Model I), LDOS 5.3 and TRSDOS 1.3 (Model III), TRSDOS 6.2 and LS-DOS 6.3, one
+    or two sides (Model 4), TRSDOS-II 2.0 and TRSDOS-II 4.x / TRSDOS-HD (Model II).
+- **Program card**: under the screen, the name of the program or disk being run, with
+  its description when known (built-in list, repository, or the name and copyright
+  records of a `.CMD` file).
+- **Disk drive sounds** (Machine): the motor hum and the steps of the head, synthesized
+  from the controller's activity.
+- **Drag and drop** a disk, program or BASIC listing onto the screen to run it.
+
+### My library
+
+Disks, programs (`.CMD`, `.CAS`) and BASIC listings (`.BAS`, text or tokenized) can be
+kept in the browser (IndexedDB, on this device only; nothing is uploaded): "Add files…",
+the "Keep" button of a drive (with the changes made by the DOS) or of the "Type text"
+panel, or automatically for the files you open ("Keep the files I open"). From the
+library: put a disk in a drive ("Put in…"), Run a program, download or delete.
+
+### Hard disk
+
+The Disks section has two hard disks (HD1 and HD2): the Radio Shack interface, a Western
+Digital WD1010 controller on ports C0h-CFh, as supported by the MISOSYS **RSHARD** drivers
+and by FreHD cards. Images use the Reed format (`.hdv`) of xtrs, trs80gp and FreHD; "New"
+creates an empty 10 MB disk (306 cylinders, 4 heads), "Download" saves it with its files.
+The disk stays connected when the TRS-80 restarts or changes between Model I, III and 4.
+
+The DOS needs the RSHARD driver: the disk "RSHARD hard disk drivers" (Disks list, inserted
+in drive 1) has RSHARD5/RSFORM5 for LDOS 5.3 and RSHARD6/RSFORM6 for LS-DOS / TRSDOS 6.
+
+```
+SYSTEM (DRIVE=2,DISABLE,DRIVER="RSHARD5")    ENTER everywhere, except "partition's number of heads": 4
+RSFORM5 :2 (NAME="RIGID1",MPW="PASSWORD")     format (Y), no locked-out track (N)
+DIR :2
+```
+
+- On the Model I, the driver disk is double density: boot LDOS 5.3.1 double density to read it.
+- Keep 4 heads: with 2 heads, RSFORM5 ends with "DATA RECORD NOT FOUND DURING WRITE" (it writes
+  to a 3rd head; xtrs behaves the same).
+- Not emulated, as in xtrs: multi-sector commands and the controller's DMA (the RSHARD drivers
+  do not use them).
+
+Tested with LDOS 5.3.1 on the Model I (double-density disk) and Model III, and TRSDOS 6.2.1
+on the Model 4. Save the configuration with `SYSTEM (SYSGEN)` (LDOS 5.3 has no SYSGEN program) or
+`SYSGEN` (TRSDOS 6) so that the driver loads at boot, then keep the system disk and the hard
+disk in My library (or download them) to keep a copy.
+
+**Session restore** (switch "Keep disks after reload", Machine section, on by default): the
+disks and hard disks in the drives, with their changes (SYSGEN, copied files…), are saved in
+the browser for each model. When the page is reloaded, or when you come back to that model,
+they are put back in the drives and the TRS-80 restarts on drive 0.
+
+**Machine state** (Machine section): **Save** keeps the whole TRS-80 in the browser, one
+state per model: processor, memory, screen, controllers, the disks and hard disks with
+their changes, the tape and its position. **Resume** puts the machine back exactly where it
+was, even in the middle of a program or a disk operation (it switches to the state's model
+if needed). The arrows download the state as a `.t80s` file and open one. The ROM is not in
+the state: resuming needs the same ROM.
+
+**Model II**: the same WD1010 controller, with what the Model II adds: 512-byte sectors, an
+interface CTC (ports C4h-C7h) whose channel 0 interrupts at the end of each command, data
+moved by the Z80 DMA, and a boot ROM that tries the hard disk before the diskettes. The system
+is **TRSDOS-HD** (Tandy, not provided): "New" creates an 8.4 MB disk (256 cylinders, 4 heads);
+the boot ROM then shows `BOOT ERROR HN` (unformatted disk): press ESC to boot the TRSDOS-HD
+diskette, then `INIT` formats the hard disk (drive 4) and copies the system onto it. The
+Model II then boots from the hard disk (`TRSDOS-HD Ready`, `DIR :4`). A Model II hard disk
+image does not go to the other models, and vice versa.
+
+<p align="center"><img src="docs/screenshots/M2-Init-HD.png" width="70%" alt="TRSDOS-HD INIT formatting the Model II hard disk, drive bar with HD1"><br>
+<sub>TRSDOS-HD: <code>INIT</code> formats the hard disk (drive 4); the HD1 chip shows the access.</sub></p>
+
+**TRSDOS-II 4.4** (Tandy, not provided) formats the hard disk itself:
+
+1. Section Disks: put the TRSDOS-II 4.4 diskette in drive 0, then "New" for HD1.
+2. Restart. The boot ROM shows `BOOT ERROR HN`: press ESC to boot the diskette, then enter the
+   date (`10/09/1986`, years 1980 to 1999) and the time (`12.00.00`).
+3. Format the hard disk (drive 4) and copy the system onto it; to the media error map question
+   (`Enter Cylinder,Head or "DONE"`), answer `DONE`:
+
+   ```
+   FORMAT :4 HDS=4 CYL=256 {ABS}
+   ```
+
+   About ten seconds in the emulator (half an hour on the real machine): `Disk Format
+   Successfully Completed`, 36 system files copied.
+4. Restart: the Model II now boots from the hard disk (`TRSDOS-II Ready`). `FILES :4 {SYS}`
+   lists the system, `DIR :4` the user files, and the diskette stays drive 0
+   (`COPY HELLO:4 TO :0` copies a file to it).
+
+**Diskettes under TRSDOS-HD and TRSDOS-II 4.x**: they use 512-byte sectors, TRSDOS 2.0 256-byte
+ones. Started from the hard disk (TRSDOS-HD or 4.4), the Model II refuses the TRSDOS 2.0
+diskettes (`ERROR 39`, "Illegal I/O Attempt"; the TRSDOS-HD installation diskette is one of
+them). `FCOPY`, the utility made for that, copies between the two: `FCOPY :0 {DIR}` lists a
+TRSDOS 2.0 diskette, `FCOPY :0 TO :4 {ALL}` copies all its files to the hard disk (answer `Y`).
+`FORMAT :1 {ABS}` prepares a diskette in the 4.x format.
+
+Without FCOPY, the page copies too: the Files button of the drive bar (drive 0 here, a TRSDOS
+2.0 diskette) copies the chosen files to the hard disk (HD1, TRSDOS-II 4.x), programs
+included, which stay programs.
+
+<p align="center"><img src="docs/screenshots/Copy-between-disk.png" width="70%" alt="Files window of drive 0 (TRSDOS-II 2.0): files checked, Copy to HD1 (TRSDOS-II 4.x)"><br>
+<sub>Files of drive 0 (TRSDOS 2.0): the checked files are copied to HD1 (TRSDOS-II 4.x).</sub></p>
+
+With a hard disk present, the boot ROM always starts from it: **press ESC at startup** to boot
+a diskette instead. Commands must be typed in capitals. `HELP` (for example `HELP COPY`)
+describes each command. Tried in the emulator: format, boot from the hard disk, BASIC `SAVE`
+on drive 4, `COPY` to the diskette.
+
+### Graphics board (Model III and 4)
+
+The Radio Shack high-resolution graphics board (26-1125 for the Model III, 26-1126 for the
+Model 4) is connected by default (switch "Graphics board (640 × 240)", Machine section):
+640 × 240 points, 32 KB of memory on ports 80h-83h (X, Y, data with automatic advance, mode),
+plus the Model 4 scroll registers 8Ch-8Dh, as in xtrs. When a program turns the graphics on,
+the screen shows the 640 × 240 image with the text over it (exclusive or). Tested with BASICG
+01.01.00 under TRSDOS 6.2.1 (not provided): put the BASICG disk in drive 1, `BASICG`, then
+`SCREEN 0`, `CLR`, `CIRCLE (320,120),100`, `LINE (0,0)-(639,239)`. Also tested with BASICG 1.0
+under TRSDOS 1.3 on the Model III, which shows the graphics while a program runs and goes back
+to the text as soon as it prints (READY): `10 SCREEN 0:CLR:CIRCLE (320,120),100`,
+`20 GOTO 20`, `RUN`.
+
+### Orchestra sound board
+
+The Orchestra-90 (Model III and 4, ports 79h left and 75h right) and Orchestra-85 (Model I,
+ports B9h and B5h) of Software Affair: two 8-bit converters, mixed with the 1-bit speaker
+(mono). Tested with ORCH90 under LDOS 5.3.1 on the Model III (not provided): `ORCH90`, `N`
+(normal clock; `Y` on a Model 4 at 4 MHz), `4` voices, `N`, then BREAK and `G GYPSY:1` (read,
+score and play a music file).
+
+### Modem and BBS (RS-232)
+
+The RS-232 serial port (UART on ports E8h-EBh on the Model I, III and 4; port A of the Z80 SIO,
+ports F4h-F7h, on the Model II) is connected to a virtual
+Hayes modem that reaches BBSes over telnet, through a WebSocket relay
+(`server/telnet-relay`), since a browser cannot open telnet
+connections. The Modem section lists about 850 BBSes (`www/bbs.json`, from
+<https://www.telnetbbsguide.com/bbs/list/brief/>): choose one, then **Dial** types
+`ATDT host[:port]` on the TRS-80, in LCOMM or COMM. The relay allows the same list.
+
+```
+SET *KI KI
+SET *CL RS232T (BAUD=2400,WORD=8,PARITY=OFF)               Model III
+SET *CL RS232R (BAUD=2400,WORD=8,PARITY=OFF,BREAK=255)     Model I
+LCOMM *CL
+ATDT bbs.electrodrome.net                                   in LCOMM: CONNECT, then the BBS
+```
+
+TRSDOS 6.2.1 (Model 4, 80 columns):
+
+```
+SET *CL COM/DVR
+SETCOM (BAUD=2400,WORD=8,PARITY=OFF)
+COMM *CL
+ATDT bbs.electrodrome.net
+```
+
+
+`+++` (with a pause before and after) returns to the modem's command mode, `ATO` goes back
+online, `ATH` or the Hang up button (Modem section) ends the call. The modem removes the ANSI
+sequences (colors, cursor) that the TRS-80 cannot display (switch in the Modem section). On the
+Model I, `BREAK=255` works around a flaw of the LDOS 5.3.1 RS232R driver, which otherwise loses
+every received character. Tested with LDOS 5.3.1 (Model I and III) and TRSDOS 6.2.1 (Model 4).
+
+**Color screen (ANSI)** (switch in the Modem section): while connected, the screen shows the
+BBS in color, as the ANSI terminal of a PC would (80 × 25, 16 colors, CP437 frames and
+blocks, cursor moves); keep typing on the TRS-80 in its terminal program. It receives what the
+BBS sends before any filtering and answers its terminal query (ESC6n), so BBSes detect an
+ANSI terminal. The TRS-80 screen comes back at hang-up.
+
+<table>
+  <tr>
+    <td width="50%"><img src="docs/screenshots/Color-BBS.png" alt="32-Bit BBS welcome screen in color on the Model II, ANSI graphics"><br><sub>Model II and OMNITERM: the welcome screen of 32-Bit BBS in color.</sub></td>
+    <td width="50%"><img src="docs/screenshots/Color-BBS-2.png" alt="Aleco Experience BBS menu in color on the Model II"><br><sub>The menu of Aleco Experience BBS, with its colors and its status bar.</sub></td>
+  </tr>
+</table>
+
+Model II: start a terminal program on channel A (tested with OMNITERM 1.10 on TRSDOS-II 4.2,
+not provided), then `ATDT bbs.electrodrome.net`. The line speed comes from the CTC, as on the
+real machine: OMNITERM starts at 300 baud (change it in its settings to go faster), and a
+program that cannot display as fast as the line receives loses characters, as it would on
+the real Model II.
+
+### External repository
+
+Files can come from your device (Load…, Insert…, My library) or from a repository on the
+Web, by default `https://ve2cuy.com/trs80`, which can be changed in the Repository section.
+It has six folders, `rom/`, `disk/`, `cmd/`, `bas/`, `asm/` (assembly sources, opened in the
+workshop) and `cas/` (cassettes), each with an `index.json` listing
+its files, in the same format as [`www/disks/index.json`:
+
+```json
+[
+  { "file": "invaders.cmd", "title": "VE2CUY Invaders", "year": 2026, "authors": "VE2CUY",
+    "description": "…", "controls": "Arrows and space", "license": "…" },
+  "other.cmd"
+]
+```
+
+Only `file` is required (a plain file name is also accepted). `model` (a number or a list)
+limits a file to some models, and `category` (`games`, `education`, `finance`, `office`,
+`programming`, `utilities`, `graphics`, `music`, `communications`, `science`, `systems`,
+`demo`, `other`) feeds the category filter; a search field also filters by title, name and
+description. The default repository holds about 20,000 files sorted this way. The server must allow
+cross-origin requests (CORS header `Access-Control-Allow-Origin: *`), since the page is
+served from another address.
+
+Files are sorted by model: `model` gives the model (1, 2, 3, 4, or a list such as `[3, 4]`)
+and the Repository section lists only the files of the chosen model ("All models" shows them
+all). The default repository keeps one subfolder per model, named in `file`:
+
+```
+rom/index.json    rom/model1/level2.rom    rom/model3/model3.rom    ...
+disk/index.json   disk/model1/ldos-531.dsk disk/model2/trsdos20a-m2.imd ...
+```
+
+```json
+[{ "file": "model3/trsdos13-m3.dsk", "model": 3, "title": "TRSDOS 1.3 (Model III)" }]
+```
+
+### Scripts blocked (Brave, NoScript…)
+
+The page needs JavaScript and WebAssembly. When scripts are blocked, the screen explains
+what to do, in four languages: in **Brave**, click the lion icon in the address bar and
+turn Shields down for the site (or turn off "Block scripts"), then reload. A download
+stopped by a content blocker (the ROM, a repository file) is also reported as such.
+
+## Running the emulator locally (release 1.3)
+
+No compilation needed: download the ready-to-run archive and you only need
+**Python 3** and a web browser.
+
+1. Download `trs80-emu-1.3.0.zip` from the
+   [releases page](https://github.com/ve2cuy/trs80-emu/releases/latest) and unzip it.
+2. Start it:
+   - **Windows**: double-click `start.bat`;
+   - **macOS / Linux**: `./start.sh` in a terminal;
+   - **any system**: `python serve.py` in the folder, then open <http://localhost:8080>.
+3. The page opens; the Level II 1.3 ROM is downloaded automatically the first time
+   (or copy your own ROM to `rom/level2.rom` to work offline).
+
+To stop it, close the server window (or press Ctrl+C). Details, including your own
+disks in `disks/local/`: `README-LOCAL.md`, in the archive
+(dist/README-LOCAL.md).
+
+### Programs
+
+- **Built-in list**: VE2CUY Invaders (source) and games whose
+  author allowed redistribution (Sea Dragon, Armored Patrol). Read
+  www/programs/README.md (in French) before adding one.
+- **"Load program (.CMD, .CAS, .BAS)…"**: any program from your disk; nothing is uploaded.
+  A cassette (`.CAS`) is loaded directly into memory: a machine-language tape is
+  started, a BASIC tape is run. The rest of a machine-language tape stays in the tape
+  recorder, read at 500 baud through the cassette port, for multi-stage loaders (such as
+  FROGGER): a CAS chip under the screen shows the progress and the time left. With
+  "Fast tape loading" (on by default), the whole machine runs as fast as the browser allows
+  while the tape motor turns: a 3-minute tape loads in a few seconds.
+  - **Level I tapes** (250 baud) need the Level I BASIC ROM (4 KB, offered in the ROM
+    list): the Model I switches to it by itself, types CLOAD, then RUN for a BASIC
+    program; a Level II tape switches back to Level II.
+  - Model III **1500-baud** tapes (including those stored as a raw bit stream) are
+    converted; a block with a bad checksum is loaded anyway, as the ROM does.
+  - An **EDTASM source** tape opens in the assembler workshop; a **data tape** is put in
+    the tape recorder, for the program that reads it.
+- **Admin** (Settings): with the repository's password, checked by the server, the card
+  under the screen offers to test the current file on the Model I, III and 4 (a
+  thumbnail of each screen after 5 s), to remove it from the list shown to users (it goes
+  to a "To validate" list) or put it back, and to change its category. Server side:
+  server/admin/README.md (in French). The card also tells a
+  rights holder how to ask for a program's removal (GitHub issues).
+- **Copy and paste**: Ctrl+V on the screen, the Paste button of the toolbar, or "Type
+  text…", types the text on the TRS-80 keyboard (for example a BASIC program or DOS
+  commands). Ctrl+C on the screen (nothing selected in the page), or the Copy button,
+  copies the screen text.
+- Direct link to a program: `?program=ve2cuy-invaders`.
+
+TRSDOS file calls are replaced by minimal routines: programs made for floppy disk
+start, but nothing is saved.
+
+### Disks
+
+- **"Disks for this model"**: LDOS 5.3.1, freely redistributable, in single density and as a complete
+  double-density system (see www/disks/README.md).
+  At boot, enter a date from its era, e.g. `10/08/91`. Direct link: `?disk=ldos-531`.
+- **Local disks** (development): disks you may not publish (e.g. TRSDOS) go in
+  `www/disks/local/`; this folder is ignored by Git and its disks appear in "Boot a
+  model" marked "local" (with `python serve.py`).
+- **Disk lists**: after adding or removing images in `www/disks/` or `www/disks/local/`,
+  run `python www/disks/make_index.py`. It updates both `index.json` files (new images
+  get an entry, entries of missing images are removed, existing titles and
+  descriptions are kept). Only put images you may redistribute in `www/disks/`.
+- **Drives 0 to 3**: "Insert…" any JV1, JV3, DMK or IMD image, "Blank" for an unformatted disk
+  (format it from the DOS, e.g. `FORMAT :1`), "Eject", and "Save" to download the disk
+  (a reformatted disk or a DMK or IMD image is saved as JV3). Drive 0 is the boot drive: inserting a disk
+  there restarts the TRS-80 on it.
+- WD1771 controller of the Model I expansion interface, plus the **Percom and Radio
+  Shack double-density doublers** (WD1791). Tested: LDOS 5.3.1, TRSDOS 2.1, 2.3 and
+  2.7DD, NEWDOS 3.0, NEWDOS/80, DOSPLUS 3.5, DBLDOS 4.2. Formatting works. As on the real
+  machine, a disk whose track 0 is double density cannot boot.
+
+### Sound
+
+The Model I has no sound chip: programs toggle the cassette output (port FFh), as
+VE2CUY Invaders does. The emulator turns it into audio (WebAudio). Sound starts at
+the first key press or click (a browser rule); untick "Sound" to mute.
+
+### Keyboard
+
+| TRS-80 | PC |
+| --- | --- |
+| ENTER | Enter |
+| BREAK | Esc or End |
+| CLEAR | Home or Delete |
+| ← (backspace) | Backspace or Left arrow |
+| → (tab) | Tab or Right arrow |
+
+Type symbols as you would on a PC (`"`, `*`, `+`, ...): the emulator handles the
+TRS-80 Shift key, whose layout is different.
+
+On a tablet or phone, tap the screen (or "⌨ Keyboard") to show the on-screen keyboard;
+buttons under the screen give BREAK, CLEAR, the arrows and ENTER, plus ESC, F1 and F2 on the
+Model II (OMNITERM, BBSes) and F1 to F3 on the Model 4.
+
+**Cheat sheet** (book button of the toolbar): the system commands of each DOS (LDOS 5.3,
+TRSDOS 6.2 / LS-DOS 6.3, TRSDOS 1.3, TRSDOS 2.3, TRSDOS-II, BASIC) by topic: drives
+(`SYSTEM (DRIVE=2,ENABLE)`, `SYSGEN`...), files, hard disk, serial port (RS-232), printer.
+It opens on the DOS in drive 0; a click types the command on the TRS-80, without ENTER,
+to adapt it. Each command was tried with the real DOS in the emulator.
+
+**Printer**: what the TRS-80 prints (`LPRINT`, `LLIST`, `LIST file (P)`, `COPY file *PR`,
+`PRINT`...) shows under the screen controls, on old-style continuous paper (green and
+white bands, tractor holes, a fold every 66 lines or at a form feed), with Copy,
+Download (.txt), Tear off (clear) and Hide. Model I: the expansion interface printer
+(37E8h); Model III and 4: port F8h; Model II: the PIO port B (TRSDOS 2.0: `LIST file PRT`, TRSDOS-II 4.x: `LIST file {PRT}`, `DIR {PRT}`).
+
+**Command history**, as in bash: each line typed at the keyboard and validated with ENTER
+(at the DOS prompt, in BASIC...) is kept in the browser, for each model (the last 100,
+without duplicates). **Ctrl+↑** and **Ctrl+↓** recall them: the current line is erased
+(←) and the command typed again, without ENTER, ready to be edited or run. The arrows
+alone stay the TRS-80's. The History button of the toolbar lists them, to type or run
+one, or to clear the history.
+
+Model II: its CAPS key starts pressed, since TRSDOS-II only accepts commands in upper case
+(`dir` gives `ERROR 31`); Caps Lock toggles it, to type lower case in a terminal program.
+
+### Z80 assembler
+
+The `</>` button at the top right opens a development environment next to the TRS-80 screen:
+
+- **Editor** with syntax colors and line numbers. Syntax of the assemblers of the time
+  (EDTASM, zmac): labels in column 1 or ending with `:`, `ORG`, `EQU`, `DB`/`DEFB`,
+  `DW`/`DEFW`, `DS`/`DEFS`, `END start`; numbers `4467H`, `0x4467`, `$4467`, `%1010`, `'A'`.
+  All documented Z80 instructions; the output is identical to zmac's (tested on every
+  instruction and on VE2CUY Invaders).
+- **Assemble** (F9): each error is explained, and a **Fix** button proposes the corrected
+  line when it can: misspelled instruction or symbol, hexadecimal number without a leading
+  digit (`FFH` → `0FFH`), `JR` too far (→ `JP`), invalid operands (with the valid forms),
+  Model III address of an LDOS service, missing `ORG`...
+- **LDOS services** without definitions: `CALL @DSPLY`, `@TIME`, `@DATE`, `@EXIT`, `@KEY`,
+  file services (`@FSPEC`, `@INIT`, `@OPEN`, `@READ`, `@WRITE`, `@CLOSE`...) and ROM routines
+  are predefined, with the addresses of LDOS 5.3.1 on the Model I (verified by the tests
+  under LDOS). The list is in the environment; a program's own `EQU` takes precedence.
+- **Run** (F5) or **Debug**: the program is loaded and started like a DOS command; its `RET`
+  or `JP @EXIT` returns to LDOS (or to BASIC without a disk). Click a line number to set a
+  **breakpoint**; **Step** (F10) runs one instruction and steps over calls to LDOS and the
+  ROM. The **registers**, flags, the stack and the bytes at PC and (HL) are shown at each step.
+- **Open / Save** on the disk of the chosen drive: `NAME/ASM` (source, also EDTASM format
+  when reading) and `NAME/CMD` (program, runnable from LDOS: `NAME`). The single-density
+  LDOS system disk is full: use the double-density one, or a data disk.
+
+## License
+
+[Apache License 2.0](LICENSE). Third-party files (ZEXDOC/ZEXALL, the public-domain
+games, LDOS) keep their own terms: see [NOTICE](NOTICE). TRS-80 ROMs are not included.
+
+## Author
+
+Alain Boudreault (VE2CUY) — [ve2cuy.github.io](https://ve2cuy.github.io/)

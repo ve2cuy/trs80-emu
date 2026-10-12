@@ -1,0 +1,114 @@
+[
+  {
+    "id": "level2-1.3",
+    "title": "Level II BASIC 1.3 (Tandy, official)",
+    "source": "url",
+    "url": "https://raw.githubusercontent.com/kiwisincebirth/TRS-80-ROMS/736bcba36c606cb766eb8932977198c7d22889f7/test-roms/M1L2_1.3.bin",
+    "sha256": "5515d95d7c19058400a2e91c6930bb557035db5ce093bd96fd017f795c346776",
+    "i18n": {
+      "fr": {
+        "title": "Level II BASIC 1.3 (Tandy, officielle)"
+      },
+      "es": {
+        "title": "Level II BASIC 1.3 (Tandy, oficial)"
+      },
+      "zh": {
+        "title": "Level II BASIC 1.3（Tandy 官方）"
+      }
+    },
+    "model": 1
+  },
+  {
+    "id": "level2-1.2",
+    "title": "Level II BASIC 1.2 (Tandy, official)",
+    "source": "url",
+    "url": "https://raw.githubusercontent.com/kiwisincebirth/TRS-80-ROMS/736bcba36c606cb766eb8932977198c7d22889f7/test-roms/M1L2_1.2.bin",
+    "sha256": "3cd3824d2ac2743750d2179951ed812794302b885ccb4f98aa2579b352c4b00e",
+    "i18n": {
+      "fr": {
+        "title": "Level II BASIC 1.2 (Tandy, officielle)"
+      },
+      "es": {
+        "title": "Level II BASIC 1.2 (Tandy, oficial)"
+      },
+      "zh": {
+        "title": "Level II BASIC 1.2（Tandy 官方）"
+      }
+    },
+    "model": 1
+  },
+  {
+    "id": "level2-1.3p",
+    "title": "Level II BASIC 1.3 with bug fixes (kiwisincebirth)",
+    "source": "tar",
+    "member": "MDL1REV3P.bin",
+    "i18n": {
+      "fr": {
+        "title": "Level II BASIC 1.3 avec correctifs (kiwisincebirth)"
+      },
+      "es": {
+        "title": "Level II BASIC 1.3 con correcciones (kiwisincebirth)"
+      },
+      "zh": {
+        "title": "Level II BASIC 1.3 修正版（kiwisincebirth）"
+      }
+    },
+    "model": 1
+  },
+  {
+    "id": "level2-1.4",
+    "title": "Enhanced Level II BASIC 1.4 (kiwisincebirth)",
+    "source": "tar",
+    "member": "MDL1REV4.bin",
+    "i18n": {
+      "fr": {
+        "title": "Enhanced Level II BASIC 1.4 (kiwisincebirth)"
+      },
+      "es": {
+        "title": "Enhanced Level II BASIC 1.4 (kiwisincebirth)"
+      },
+      "zh": {
+        "title": "Enhanced Level II BASIC 1.4（kiwisincebirth）"
+      }
+    },
+    "model": 1
+  },
+  {
+    "id": "level1",
+    "title": "Level I BASIC (Tandy, official)",
+    "source": "url",
+    "url": "https://raw.githubusercontent.com/kiwisincebirth/TRS-80-ROMS/736bcba36c606cb766eb8932977198c7d22889f7/test-roms/M1L1.bin",
+    "sha256": "74040b583672571038c8239695148194b073333cc7808c952cfecf2a78a20f8c",
+    "i18n": {
+      "fr": {
+        "title": "Level I BASIC (Tandy, officielle)"
+      },
+      "es": {
+        "title": "Level I BASIC (Tandy, oficial)"
+      },
+      "zh": {
+        "title": "Level I BASIC（Tandy 官方）"
+      }
+    },
+    "model": 1
+  },
+  {
+    "id": "model3-revc",
+    "model": 3,
+    "title": "Model III ROM rev. C (Tandy, official)",
+    "source": "url",
+    "url": "https://raw.githubusercontent.com/kiwisincebirth/TRS-80-ROMS/736bcba36c606cb766eb8932977198c7d22889f7/test-roms/Model3-RevC-2EF8.bin",
+    "sha256": "beeb3741175a8b8706cc384d5b2534ebf32e383662864054e5a0ce4d861a43bb",
+    "i18n": {
+      "fr": {
+        "title": "ROM du Model III rév. C (Tandy, officielle)"
+      },
+      "es": {
+        "title": "ROM del Model III rev. C (Tandy, oficial)"
+      },
+      "zh": {
+        "title": "Model III ROM C 版（Tandy 官方）"
+      }
+    }
+  }
+]

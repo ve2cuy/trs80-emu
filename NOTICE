@@ -1,0 +1,47 @@
+trs80-emu
+Copyright 2026 Alain Boudreault (VE2CUY)
+
+Licensed under the Apache License, Version 2.0 (see the LICENSE file).
+
+-------------------------------------------------------------------------------
+Third-party files included in this repository keep their own terms (see the
+README.md next to them). They are not covered by the Apache License.
+
+- crates/z80/tests/zex/zexdoc.com, zexall.com
+    Z80 Instruction Exerciser, (c) 1994 Frank D. Cringle, GNU GPL version 2.
+
+- www/programs/seadragon.cmd, www/programs/armored-patrol.cmd
+    Wayne Westmoreland & Terry Gilman, released into the public domain by
+    Wayne Westmoreland in 1995 (see www/programs/WESTMORELAND-README.TXT).
+
+- www/disks/ldos-531.dsk, www/disks/ldos-531-dd.dsk, www/disks/ldos-531-m3.dsk,
+  www/disks/rshard.dsk
+    LDOS 5.3.1 for the Model I and Model III, Copyright 1991 MISOSYS, Inc.;
+    RSHARD hard disk drivers, Copyright 1987 MISOSYS, Inc. The double-density disk
+    is a copy of LDOS made with LDOS itself (FORMAT, BACKUP, SYSGEN, SOLE).
+    Distribution notice, as published at https://tim-mann.org/misosys.html :
+
+    "Roy Soltoff holds copyright or distribution rights to the software
+    and documentation in the list below.  Roy grants free permission to
+    everyone to download and use this software and documentation and to
+    redistribute it to others, provided this notice is retained.  All
+    other rights are reserved.  Specific exceptions apply to files marked
+    with an asterisk (*) and are detailed within those files.  Hartforth
+    is available with the permission of Andrew Graham.  LDOS/LS-DOS are
+    available with the permission of William Schroeder."
+
+- www/disks/trsdos20a-m2.imd
+    TRSDOS-II 2.0a for the Model II, Copyright 1981 Tandy Corporation.
+    Provided for experimentation with the Model II emulation.
+
+- crates/trs80/src/hard.rs, crates/trs80/src/serial.rs
+    Hard disk controller, Reed image format and RS-232 UART registers modelled on
+    xtrs (trs_hard.c, reed.h, trs_uart.h), Copyright (c) 2000-2020 Timothy P. Mann,
+    MIT license.
+
+- crates/trs80/src/hires.rs
+    Radio Shack high-resolution graphics board registers (ports 80h-83h, 8Ch-8Eh)
+    modelled on xtrs (trs_xinterface.c, Grafyx / Radio Shack support), Copyright (c)
+    1996-2020 Timothy P. Mann, MIT license.
+
+TRS-80 ROMs are NOT included: they are (c) Tandy / Microsoft.

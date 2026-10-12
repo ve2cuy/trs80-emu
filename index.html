@@ -1,0 +1,626 @@
+<!doctype html>
+<html lang="en" class="no-js">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>TRS-80 Model I</title>
+  <meta name="color-scheme" content="light dark">
+  <script>
+    // Thème choisi, appliqué avant l'affichage pour éviter un éclair de l'autre thème.
+    try {
+      const theme = JSON.parse(localStorage.getItem('trs80-prefs') ?? '{}').theme;
+      if (theme === 'light' || theme === 'dark') document.documentElement.dataset.theme = theme;
+    } catch { /* stockage indisponible */ }
+    // Scripts permis : le message « scripts bloqués » reste caché pendant le chargement.
+    // S'il n'est toujours pas prêt après 12 s (module ou WebAssembly bloqué, fureteur trop
+    // ancien), main.js n'a pas démarré : le message s'affiche, dans la langue du fureteur.
+    document.documentElement.classList.replace('no-js', 'js-loading');
+    setTimeout(() => {
+      const root = document.documentElement;
+      if (root.classList.contains('js-ready')) return;
+      root.classList.replace('js-loading', 'js-failed');
+      let lang = (navigator.language || 'en').slice(0, 2);
+      try { lang = JSON.parse(localStorage.getItem('trs80-prefs') ?? '{}').lang || lang; } catch { /* rien */ }
+      const blocks = document.querySelectorAll('.js-required p[lang]');
+      if ([...blocks].some((p) => p.lang === lang)) blocks.forEach((p) => { p.hidden = p.lang !== lang; });
+    }, 12000);
+  </script>
+  <link rel="stylesheet" href="style.css?v=faf38e39">
+</head>
+<body>
+  <!-- Icônes (traits de 24 × 24, couleur du texte) -->
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <defs>
+      <symbol id="i-chevron" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></symbol>
+      <symbol id="i-cpu" viewBox="0 0 24 24"><rect x="7" y="7" width="10" height="10" rx="1.5"/><path d="M10 3v4M14 3v4M10 17v4M14 17v4M3 10h4M3 14h4M17 10h4M17 14h4"/></symbol>
+      <symbol id="i-tape" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="8.5" cy="11" r="2"/><circle cx="15.5" cy="11" r="2"/><path d="M8.5 13h7M7 19l1.5-3h7L17 19"/></symbol>
+      <symbol id="i-disk" viewBox="0 0 24 24"><path d="M5 3h11l5 5v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z"/><path d="M7 3v5h8V3M7 21v-7h10v7"/></symbol>
+      <symbol id="i-folder" viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></symbol>
+      <symbol id="i-folder-plus" viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M12 10v6M9 13h6"/></symbol>
+      <symbol id="i-monitor" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="13" rx="2"/><path d="M8 21h8M12 17v4"/></symbol>
+      <symbol id="i-keyboard" viewBox="0 0 24 24"><rect x="2" y="6" width="20" height="12" rx="2"/><path d="M6 10h.01M10 10h.01M14 10h.01M18 10h.01M7 14h10"/></symbol>
+      <symbol id="i-book" viewBox="0 0 24 24"><path d="M4 5a2 2 0 0 1 2-2h13v16H6a2 2 0 0 0-2 2z"/><path d="M4 21V5M8 7h7M8 11h7"/></symbol>
+      <symbol id="i-printer" viewBox="0 0 24 24"><path d="M7 9V3h10v6"/><rect x="3" y="9" width="18" height="8" rx="2"/><path d="M7 14h10v7H7z"/></symbol>
+      <symbol id="i-history" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 2.6-6.4L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l3 2"/></symbol>
+      <symbol id="i-files" viewBox="0 0 24 24"><path d="M9 3h7l4 4v11H9z"/><path d="M16 3v4h4M5 7v14h11M12 11h5M12 14h5"/></symbol>
+      <symbol id="i-format" viewBox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.3-5.6L20 8.5"/><path d="M20 3.5v5h-5"/><circle cx="12" cy="12" r="2.2"/></symbol>
+      <symbol id="i-power" viewBox="0 0 24 24"><path d="M12 3v8"/><path d="M6.6 6.6a8 8 0 1 0 10.8 0"/></symbol>
+      <symbol id="i-lock" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></symbol>
+      <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></symbol>
+      <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></symbol>
+      <symbol id="i-moon" viewBox="0 0 24 24"><path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"/></symbol>
+      <symbol id="i-menu" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"/></symbol>
+      <symbol id="i-download" viewBox="0 0 24 24"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></symbol>
+      <symbol id="i-upload" viewBox="0 0 24 24"><path d="M12 15V4M7 9l5-5 5 5M5 20h14"/></symbol>
+      <symbol id="i-trash" viewBox="0 0 24 24"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></symbol>
+      <symbol id="i-play" viewBox="0 0 24 24"><path d="M7 4l13 8-13 8z"/></symbol>
+      <symbol id="i-reset" viewBox="0 0 24 24"><path d="M4 12a8 8 0 1 0 2.3-5.7L4 8.6M4 4v4.6h4.6"/></symbol>
+      <symbol id="i-eject" viewBox="0 0 24 24"><path d="M12 5l7 8H5zM5 18h14"/></symbol>
+      <symbol id="i-file" viewBox="0 0 24 24"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6"/></symbol>
+      <symbol id="i-basic" viewBox="0 0 24 24"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6M8 13h8M8 17h5"/></symbol>
+      <symbol id="i-text" viewBox="0 0 24 24"><path d="M4 7V5h16v2M12 5v14M9 19h6"/></symbol>
+      <symbol id="i-code" viewBox="0 0 24 24"><path d="M8 7l-5 5 5 5M16 7l5 5-5 5M14 4l-4 16"/></symbol>
+      <symbol id="i-globe" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/></symbol>
+      <symbol id="i-cloud" viewBox="0 0 24 24"><path d="M7 18h10.5a4.5 4.5 0 0 0 .6-8.96A6 6 0 0 0 6.3 10.1 4 4 0 0 0 7 18z"/></symbol>
+      <symbol id="i-paste" viewBox="0 0 24 24"><rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4V3h6v1M9 11h6M9 15h4"/></symbol>
+      <symbol id="i-copy" viewBox="0 0 24 24"><rect x="8" y="8" width="12" height="13" rx="2"/><path d="M16 8V5a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h2"/></symbol>
+      <symbol id="i-modem" viewBox="0 0 24 24"><rect x="3" y="12" width="18" height="7" rx="2"/><path d="M7 16h.01M11 16h.01M8 8a6 6 0 0 1 8 0M10.5 10.5a2.5 2.5 0 0 1 3 0"/></symbol>
+      <symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></symbol>
+    </defs>
+  </svg>
+
+  <div id="app" class="app">
+    <aside id="sidebar" class="sidebar" aria-label="Emulator menu" data-i18n-aria="menu.label">
+      <div class="sb-header">
+        <div class="logo" aria-hidden="true">
+          <!-- Blocs semi-graphiques 2 × 3 du TRS-80 -->
+          <svg viewBox="0 0 24 24"><g fill="currentColor" stroke="none">
+            <rect x="5" y="4" width="6" height="4.5" rx="1"/><rect x="13" y="9.75" width="6" height="4.5" rx="1"/>
+            <rect x="5" y="15.5" width="6" height="4.5" rx="1"/><rect x="13" y="15.5" width="6" height="4.5" rx="1" opacity=".45"/>
+            <rect x="13" y="4" width="6" height="4.5" rx="1" opacity=".45"/><rect x="5" y="9.75" width="6" height="4.5" rx="1" opacity=".45"/>
+          </g></svg>
+        </div>
+        <div class="sb-title">
+          <strong class="machine-name">TRS-80 Model I</strong>
+          <span data-i18n="app.byline">Emulator by VE2CUY</span>
+        </div>
+        <button id="sb-collapse" type="button" class="sb-collapse" aria-label="Collapse the menu" title="Collapse the menu">
+          <svg class="icon"><use href="#i-chevron"/></svg>
+        </button>
+        <button id="sb-close" type="button" class="icon-button sb-close" aria-label="Close the menu" data-i18n-aria="menu.close">
+          <svg class="icon"><use href="#i-x"/></svg>
+        </button>
+      </div>
+
+      <nav class="nav">
+        <p class="nav-heading" data-i18n="nav.emulator">Emulator</p>
+
+        <div class="nav-group">
+          <button type="button" class="nav-item" aria-expanded="false" aria-controls="panel-machine" data-tip="Machine" data-i18n-tip="nav.machine">
+            <svg class="chev"><use href="#i-chevron"/></svg>
+            <svg class="icon"><use href="#i-cpu"/></svg>
+            <span class="label" data-i18n="nav.machine">Machine</span>
+          </button>
+          <div id="panel-machine" class="nav-panel" hidden>
+            <label class="field"><span data-i18n="model.label">Model</span>
+              <select id="model-list">
+                <option value="1" data-i18n="model.1">TRS-80 Model I</option>
+                <option value="2" data-i18n="model.2">TRS-80 Model II</option>
+                <option value="3" data-i18n="model.3">TRS-80 Model III</option>
+                <option value="4" data-i18n="model.4">TRS-80 Model 4</option>
+              </select>
+            </label>
+            <label class="field"><span data-i18n="rom.label">ROM</span>
+              <select id="rom-list"><option value="" data-i18n="choose">Choose…</option></select>
+            </label>
+            <div class="row">
+              <label class="button secondary"><span data-i18n="rom.load">Load ROM file…</span>
+                <input id="rom-file" type="file" accept=".rom,.bin,application/octet-stream" hidden>
+              </label>
+              <button type="button" class="secondary with-icon" data-repo="rom">
+                <svg class="icon"><use href="#i-cloud"/></svg><span data-i18n="repo.from">From repository</span></button>
+            </div>
+            <div id="rom-tar" class="info-box" hidden>
+              <span data-i18n-html="rom.tar1"></span>
+              <span data-i18n-html="rom.tar2"></span>
+              <span><span data-i18n="rom.tar3a">2. Open the archive here;</span>
+                <strong id="rom-tar-member"></strong> <span data-i18n="rom.tar3b">will be extracted from it:</span></span>
+              <label class="button"><span data-i18n="rom.tarOpen">Open .tar archive…</span>
+                <input id="tar-file" type="file" accept=".tar,application/x-tar" hidden>
+              </label>
+            </div>
+            <label class="switch" title="Model I expansion interface: 40 Hz clock interrupt, used by some programs" data-i18n-title="opt.expansion.tip">
+              <input id="expansion" type="checkbox" checked><span class="knob"></span><span data-i18n="opt.expansion">Expansion interface (40 Hz)</span></label>
+            <label class="switch" title="Model I lowercase modification: 8th video memory chip and a character generator with lowercase" data-i18n-title="opt.lowercase.tip">
+              <input id="lowercase" type="checkbox" checked><span class="knob"></span><span data-i18n="opt.lowercase">Lowercase modification</span></label>
+            <label class="switch" title="Radio Shack high-resolution graphics board, 640 × 240 (Model III and 4): BASICG, GRON..." data-i18n-title="opt.hires.tip">
+              <input id="hires" type="checkbox" checked><span class="knob"></span><span data-i18n="opt.hires">Graphics board (640 × 240)</span></label>
+            <label class="switch" title="While the tape recorder motor runs, emulate as fast as possible: a 3-minute tape loads in a few seconds" data-i18n-title="opt.fastTape.tip">
+              <input id="fast-tape" type="checkbox" checked><span class="knob"></span><span data-i18n="opt.fastTape">Fast tape loading</span></label>
+            <label class="switch" title="Sound from the cassette output (port FFh), like the real machine" data-i18n-title="opt.sound.tip">
+              <input id="sound" type="checkbox" checked><span class="knob"></span><span data-i18n="opt.sound">Sound</span></label>
+            <label class="switch" title="Imitate the floppy drives: motor hum and head steps" data-i18n-title="opt.drive.tip">
+              <input id="drive-sound" type="checkbox"><span class="knob"></span><span data-i18n="opt.drive">Disk drive sounds</span></label>
+            <label class="switch" title="Keep the disks and hard disks in the drives, with their changes, when the page is reloaded" data-i18n-title="opt.session.tip">
+              <input id="keep-session" type="checkbox" checked><span class="knob"></span><span data-i18n="opt.session">Keep disks after reload</span></label>
+            <div class="field state-box">
+              <span data-i18n="state.label">Machine state</span>
+              <div class="row">
+                <button id="state-save" type="button" class="secondary" data-i18n="state.save" title="Save the whole machine in this browser" data-i18n-title="state.save.tip">Save</button>
+                <button id="state-restore" type="button" class="secondary" data-i18n="state.restore" title="Put the machine back in the saved state" data-i18n-title="state.restore.tip">Resume</button>
+                <button id="state-download" type="button" class="icon-button" title="Download the state (.t80s file)" data-i18n-title="state.download"><svg class="icon"><use href="#i-download"/></svg></button>
+                <label class="icon-button" title="Open a state file (.t80s)" data-i18n-title="state.open"><svg class="icon"><use href="#i-upload"/></svg>
+                  <input id="state-file" type="file" accept=".t80s" hidden></label>
+              </div>
+              <span id="state-info" class="hint"></span>
+            </div>
+            <details class="more">
+              <summary data-i18n="more">More information</summary>
+              <p class="hint" data-i18n-html="rom.hint">ROMs in the list are downloaded from
+              <a href="https://github.com/kiwisincebirth/TRS-80-ROMS" target="_blank" rel="noopener">kiwisincebirth/TRS-80-ROMS</a>
+              when you choose them. They are © Tandy / Microsoft.</p>
+            </details>
+          </div>
+        </div>
+
+        <div class="nav-group">
+          <button type="button" class="nav-item" aria-expanded="false" aria-controls="panel-programs" data-tip="Programs" data-i18n-tip="nav.programs">
+            <svg class="chev"><use href="#i-chevron"/></svg>
+            <svg class="icon"><use href="#i-tape"/></svg>
+            <span class="label" data-i18n="nav.programs">Programs</span>
+          </button>
+          <div id="panel-programs" class="nav-panel" hidden>
+            <label class="field"><span data-i18n="prog.run">Run a program</span>
+              <select id="program-list" disabled><option value="" data-i18n="choose">Choose…</option></select>
+            </label>
+            <label id="cmd-button" class="button secondary disabled"><span data-i18n="prog.load">Load program (.CMD, .CAS, .BAS)…</span>
+              <input id="cmd-file" type="file" accept=".cmd,.cas,.bas,.txt" hidden disabled>
+            </label>
+            <div class="row">
+              <button type="button" class="secondary with-icon" data-repo="cmd">
+                <svg class="icon"><use href="#i-cloud"/></svg><span data-i18n="prog.repo">Programs</span></button>
+              <button type="button" class="secondary with-icon" data-repo="bas">
+                <svg class="icon"><use href="#i-cloud"/></svg><span data-i18n="prog.repoBasic">BASIC</span></button>
+              <button id="type-button" type="button" class="secondary" disabled data-i18n="type.button">Type text…</button>
+            </div>
+            <div id="type-panel" class="type-panel" hidden>
+              <label for="type-text" class="hint" data-i18n="type.label">Text to type on the TRS-80 keyboard, for example a
+                BASIC program. You can also paste with Ctrl+V on the screen.</label>
+              <textarea id="type-text" rows="8" spellcheck="false" placeholder="10 PRINT &quot;HELLO&quot;&#10;20 GOTO 10&#10;RUN"></textarea>
+              <div class="row">
+                <button id="type-send" type="button" data-i18n="type.send">Type it</button>
+                <button id="type-stop" type="button" class="secondary" data-i18n="type.stop">Stop</button>
+                <button id="type-keep" type="button" class="secondary" title="Save this text in your library as a .BAS file"
+                        data-i18n="type.keep" data-i18n-title="type.keep.tip">Keep</button>
+              </div>
+            </div>
+            <p id="programs-hint" class="hint" data-i18n="prog.hint">Load the Level II ROM first.</p>
+          </div>
+        </div>
+
+        <div class="nav-group">
+          <button type="button" class="nav-item" aria-expanded="false" aria-controls="panel-disks" data-tip="Disks" data-i18n-tip="nav.disks">
+            <svg class="chev"><use href="#i-chevron"/></svg>
+            <svg class="icon"><use href="#i-disk"/></svg>
+            <span class="label" data-i18n="nav.disks">Disks</span>
+          </button>
+          <div id="panel-disks" class="nav-panel" hidden>
+            <label class="field"><span data-i18n="disk.boot">Disks for this model</span>
+              <select id="disk-list" disabled><option value="" data-i18n="choose">Choose…</option></select>
+            </label>
+            <div id="disk-detail" class="lib-item" hidden></div>
+            <button type="button" class="secondary with-icon" data-repo="disk">
+              <svg class="icon"><use href="#i-cloud"/></svg><span data-i18n="disk.repo">Disks from repository</span></button>
+            <div id="drives" class="drives"></div>
+            <div id="hard-section">
+              <p class="sub-heading" data-i18n="hd.title">Hard disks</p>
+              <div id="hard-drives" class="drives"></div>
+              <details class="more">
+                <summary data-i18n="more">More information</summary>
+                <p id="hd-hint" class="hint" data-i18n-html="hd.hint"></p>
+              </details>
+            </div>
+            <details class="more">
+              <summary data-i18n="more">More information</summary>
+              <p class="hint" data-i18n="disk.hint">Drive 0 is the boot drive: inserting a disk there restarts the TRS-80 on it.
+              JV1, JV3 and DMK images, single or double density. As on a real Model I, track 0
+              must be single density to boot.</p>
+            </details>
+          </div>
+        </div>
+
+        <div class="nav-group">
+          <button type="button" class="nav-item" aria-expanded="false" aria-controls="panel-library" data-tip="My library" data-i18n-tip="nav.library">
+            <svg class="chev"><use href="#i-chevron"/></svg>
+            <svg class="icon"><use href="#i-folder"/></svg>
+            <span class="label" data-i18n="nav.library">My library</span>
+            <span id="library-count" class="badge" hidden></span>
+          </button>
+          <div id="panel-library" class="nav-panel" hidden>
+            <label class="button secondary"><span data-i18n="lib.add">Add files…</span>
+              <input id="library-file" type="file" multiple accept=".dsk,.dmk,.jv1,.jv3,.imd,.hdv,.cmd,.cas,.bas,.txt" hidden>
+            </label>
+            <label class="switch"><input id="keep-files" type="checkbox" checked><span class="knob"></span><span data-i18n="lib.keepOpen">Keep the files I open</span></label>
+            <ul id="library-list" class="library"></ul>
+            <p id="library-empty" class="hint" data-i18n="lib.empty">Disks, programs (.CMD, .CAS) and BASIC listings (.BAS)
+              you keep are stored in this browser, on this device only. Nothing is uploaded.</p>
+            <p id="library-usage" class="hint"></p>
+          </div>
+        </div>
+
+        <div class="nav-group">
+          <button type="button" class="nav-item" aria-expanded="false" aria-controls="panel-repo" data-tip="Repository" data-i18n-tip="nav.repo">
+            <svg class="chev"><use href="#i-chevron"/></svg>
+            <svg class="icon"><use href="#i-cloud"/></svg>
+            <span class="label" data-i18n="nav.repo">Repository</span>
+          </button>
+          <div id="panel-repo" class="nav-panel" hidden>
+            <fieldset class="field segmented six">
+              <legend data-i18n="repo.legend">Files from the external repository</legend>
+              <label><input type="radio" name="repo-kind" value="rom" checked><span data-i18n="repo.rom">ROM</span></label>
+              <label><input type="radio" name="repo-kind" value="disk"><span data-i18n="repo.disk">Disks</span></label>
+              <label><input type="radio" name="repo-kind" value="cmd"><span data-i18n="repo.cmd">CMD</span></label>
+              <label><input type="radio" name="repo-kind" value="bas"><span data-i18n="repo.bas">BASIC</span></label>
+              <label><input type="radio" name="repo-kind" value="asm"><span data-i18n="repo.asm">ASM</span></label>
+              <label><input type="radio" name="repo-kind" value="cas"><span data-i18n="repo.cas">CAS</span></label>
+            </fieldset>
+            <label class="switch"><input id="repo-all" type="checkbox"><span class="knob"></span><span data-i18n="repo.all">All models</span></label>
+            <select id="repo-cat" aria-label="Category" data-i18n-aria="repo.cat"></select>
+            <input id="repo-search" type="search" spellcheck="false" autocomplete="off" placeholder="Search" data-i18n-placeholder="repo.search">
+            <select id="repo-select" aria-label="File" data-i18n-aria="repo.pick"></select>
+            <p id="repo-legend" class="hint repo-legend" hidden></p>
+            <div id="repo-detail" class="lib-item repo-detail empty"></div>
+            <p id="repo-status" class="hint"></p>
+            <details class="repo-settings">
+              <summary data-i18n="repo.address">Repository address</summary>
+              <div class="type-panel">
+                <input id="repo-url" type="url" spellcheck="false" autocomplete="off">
+                <div class="row">
+                  <button id="repo-save" type="button" data-i18n="repo.use">Use</button>
+                  <button id="repo-default" type="button" class="secondary" data-i18n="repo.default">Default</button>
+                </div>
+                <p class="hint" data-i18n-html="repo.help"></p>
+                <p class="hint" data-i18n-html="repo.helpModels"></p>
+              </div>
+            </details>
+          </div>
+        </div>
+
+        <div class="nav-group" id="modem-group">
+          <button type="button" class="nav-item" aria-expanded="false" aria-controls="panel-modem" data-tip="Modem" data-i18n-tip="nav.modem">
+            <svg class="chev"><use href="#i-chevron"/></svg>
+            <svg class="icon"><use href="#i-modem"/></svg>
+            <span class="label" data-i18n="nav.modem">Modem</span>
+          </button>
+          <div id="panel-modem" class="nav-panel" hidden>
+            <p id="modem-status" class="modem-status"></p>
+            <button id="modem-hangup" type="button" class="secondary" data-i18n="modem.hangup" disabled>Hang up</button>
+            <p class="sub-heading" data-i18n="modem.list">BBS list</p>
+            <input id="bbs-filter" type="search" spellcheck="false" autocomplete="off" placeholder="Search" data-i18n-placeholder="modem.search">
+            <select id="bbs-select" aria-label="BBS" size="6"></select>
+            <div class="row">
+              <button id="bbs-dial" type="button" data-i18n="modem.dial" disabled>Dial</button>
+            </div>
+            <p id="bbs-info" class="hint"></p>
+            <label class="switch" title="Remove the ANSI sequences (colors, cursor) and replace the graphics characters, which the TRS-80 cannot display" data-i18n-title="modem.filter.tip">
+              <input id="modem-filter" type="checkbox" checked><span class="knob"></span><span data-i18n="modem.filter">Filter ANSI sequences</span></label>
+            <label class="switch" title="While connected, the screen shows the BBS in color (ANSI terminal, 80 × 25); the TRS-80 screen comes back at hang-up" data-i18n-title="modem.color.tip">
+              <input id="modem-color" type="checkbox"><span class="knob"></span><span data-i18n="modem.color">Color screen (ANSI)</span></label>
+            <details class="more">
+              <summary data-i18n="more">More information</summary>
+              <p id="modem-help" class="hint" data-i18n-html="modem.help"></p>
+            </details>
+            <details class="repo-settings">
+              <summary data-i18n="modem.relay">Telnet relay address</summary>
+              <div class="type-panel">
+                <input id="modem-relay" type="url" spellcheck="false" autocomplete="off">
+                <div class="row">
+                  <button id="modem-relay-save" type="button" data-i18n="repo.use">Use</button>
+                  <button id="modem-relay-default" type="button" class="secondary" data-i18n="repo.default">Default</button>
+                </div>
+                <p class="hint" data-i18n-html="modem.relayHelp"></p>
+              </div>
+            </details>
+          </div>
+        </div>
+
+        <p class="nav-heading" data-i18n="nav.settings">Settings</p>
+
+        <div class="nav-group">
+          <button type="button" class="nav-item" aria-expanded="false" aria-controls="panel-display" data-tip="Display" data-i18n-tip="nav.display">
+            <svg class="chev"><use href="#i-chevron"/></svg>
+            <svg class="icon"><use href="#i-monitor"/></svg>
+            <span class="label" data-i18n="nav.display">Display</span>
+          </button>
+          <div id="panel-display" class="nav-panel" hidden>
+            <label class="field"><span data-i18n="display.font">Font</span>
+              <select id="font-list"></select>
+            </label>
+            <fieldset class="field segmented">
+              <legend data-i18n="display.theme">Theme</legend>
+              <label><input type="radio" name="theme" value="system" checked><span data-i18n="theme.system">System</span></label>
+              <label><input type="radio" name="theme" value="light"><span data-i18n="theme.light">Light</span></label>
+              <label><input type="radio" name="theme" value="dark"><span data-i18n="theme.dark">Dark</span></label>
+            </fieldset>
+          </div>
+        </div>
+
+        <div class="nav-group">
+          <button type="button" class="nav-item" aria-expanded="false" aria-controls="panel-keyboard" data-tip="Keyboard" data-i18n-tip="nav.keyboard">
+            <svg class="chev"><use href="#i-chevron"/></svg>
+            <svg class="icon"><use href="#i-keyboard"/></svg>
+            <span class="label" data-i18n="nav.keyboard">Keyboard</span>
+          </button>
+          <div id="panel-keyboard" class="nav-panel" hidden>
+            <table class="keys">
+              <tr><th>TRS-80</th><th data-i18n="keys.pc">PC</th></tr>
+              <tr><td>ENTER</td><td data-i18n="keys.enter">Enter</td></tr>
+              <tr><td>BREAK</td><td data-i18n="keys.break">Esc or End</td></tr>
+              <tr><td>CLEAR</td><td data-i18n="keys.clear">Home or Delete</td></tr>
+              <tr><td data-i18n="keys.left">← (backspace)</td><td data-i18n="keys.leftPc">Backspace or Left arrow</td></tr>
+              <tr><td data-i18n="keys.right">→ (tab)</td><td data-i18n="keys.rightPc">Tab or Right arrow</td></tr>
+              <tr><td>↑ ↓</td><td data-i18n="keys.upDown">Up and Down arrows</td></tr>
+            </table>
+            <details class="more">
+              <summary data-i18n="more">More information</summary>
+              <p class="hint" data-i18n="keys.symbols">Type symbols as you would on a PC: the emulator handles the TRS-80 Shift
+              key, whose layout is different.</p>
+              <p class="hint" data-i18n="keys.touch">On a tablet or phone, tap the screen (or “⌨ Keyboard”) to show the
+              on-screen keyboard; the buttons under the screen give BREAK, CLEAR, the arrows and ENTER.</p>
+            </details>
+          </div>
+        </div>
+
+        <div class="nav-group">
+          <button type="button" class="nav-item" aria-expanded="false" aria-controls="panel-admin" data-tip="Admin" data-i18n-tip="nav.admin">
+            <svg class="chev"><use href="#i-chevron"/></svg>
+            <svg class="icon"><use href="#i-lock"/></svg>
+            <span class="label" data-i18n="nav.admin">Admin</span>
+          </button>
+          <div id="panel-admin" class="nav-panel" hidden>
+            <form id="admin-login" class="admin-login">
+              <input type="text" name="username" value="admin" autocomplete="username" hidden>
+              <label class="field"><span data-i18n="admin.password">Password</span>
+                <input id="admin-password" type="password" autocomplete="current-password" spellcheck="false"></label>
+              <button type="submit" class="secondary"><span data-i18n="admin.login">Log in</span></button>
+            </form>
+            <div id="admin-tools" class="admin-tools" hidden>
+              <p class="hint" data-i18n="admin.connected">Admin mode: the description under the screen shows the actions for the file you run from the repository.</p>
+              <div class="lib-actions">
+                <button id="admin-test" type="button" class="secondary"><span data-i18n="admin.test">Test on M1, M3 and M4</span></button>
+                <span class="spacer"></span>
+                <button id="admin-logout" type="button" class="secondary"><span data-i18n="admin.logout">Log out</span></button>
+              </div>
+              <p id="admin-pending-title" class="admin-heading"></p>
+              <select id="admin-pending" aria-label="To validate" data-i18n-aria="admin.pendingList"></select>
+              <div class="lib-actions">
+                <button id="admin-pending-run" type="button" class="secondary"><span data-i18n="admin.run">Run</span></button>
+                <button id="admin-pending-restore" type="button" class="secondary"><span data-i18n="admin.restore">Put back in the list</span></button>
+              </div>
+            </div>
+            <p id="admin-status" class="hint" role="status"></p>
+          </div>
+        </div>
+
+        <div class="nav-group">
+          <button type="button" class="nav-item" aria-expanded="false" aria-controls="panel-about" data-tip="About" data-i18n-tip="nav.about">
+            <svg class="chev"><use href="#i-chevron"/></svg>
+            <svg class="icon"><use href="#i-info"/></svg>
+            <span class="label" data-i18n="nav.about">About</span>
+          </button>
+          <div id="panel-about" class="nav-panel" hidden>
+            <p class="hint" data-i18n="about.version">Version 1.2 · Written in Rust and WebAssembly · Apache 2.0 license.</p>
+            <p class="hint"><a href="https://github.com/ve2cuy/trs80-emu" target="_blank" rel="noopener" data-i18n="about.source">GitHub (issues, releases)</a> ·
+              <a href="https://ve2cuy.github.io/blog/" target="_blank" rel="noopener" data-i18n="about.blog">VE2CUY's blog</a></p>
+            <p class="hint" data-i18n="about.roms">TRS-80 ROMs are © Tandy / Microsoft and are not part of this project.</p>
+          </div>
+        </div>
+      </nav>
+
+      <div class="sb-footer">
+        <span class="label">v1.3.1</span>
+      </div>
+    </aside>
+    <div id="backdrop" class="backdrop" hidden></div>
+
+    <main class="content">
+      <header class="toolbar">
+        <button id="menu-button" type="button" class="icon-button menu-button" aria-label="Open the menu" data-i18n-aria="menu.open" aria-controls="sidebar">
+          <svg class="icon"><use href="#i-menu"/></svg>
+        </button>
+        <h1 class="machine-name">TRS-80 Model I</h1>
+        <div class="toolbar-actions">
+          <span id="speed" class="speed" title="Emulated CPU speed" data-i18n-title="speed.tip"></span>
+          <label class="switch compact" title="Run ten times faster" data-i18n-title="turbo.tip"><input id="turbo" type="checkbox"><span class="knob"></span><span data-i18n="turbo">Turbo</span></label>
+          <button id="reset" type="button" class="secondary with-icon" disabled>
+            <svg class="icon"><use href="#i-reset"/></svg><span data-i18n="reset">Reset</span></button>
+          <button id="paste-button" type="button" class="icon-button" title="Paste text (Ctrl+V)" data-i18n-title="clip.paste"
+                  aria-label="Paste text" data-i18n-aria="clip.paste" disabled>
+            <svg class="icon"><use href="#i-paste"/></svg>
+          </button>
+          <button id="copy-button" type="button" class="icon-button" title="Copy the screen text" data-i18n-title="clip.copy"
+                  aria-label="Copy the screen text" data-i18n-aria="clip.copy" disabled>
+            <svg class="icon"><use href="#i-copy"/></svg>
+          </button>
+          <button id="cheat-button" type="button" class="icon-button" title="Cheat sheet: DOS commands" data-i18n-title="cheat.tip"
+                  aria-label="Cheat sheet" data-i18n-aria="cheat.tip">
+            <svg class="icon"><use href="#i-book"/></svg>
+          </button>
+          <button id="history-button" type="button" class="icon-button" title="Command history (Ctrl+↑ / Ctrl+↓)" data-i18n-title="history.tip"
+                  aria-label="Command history" data-i18n-aria="history.tip" disabled>
+            <svg class="icon"><use href="#i-history"/></svg>
+          </button>
+          <span class="toolbar-sep" aria-hidden="true"></span>
+          <button id="ide-toggle" type="button" class="icon-button" title="Z80 assembler" data-i18n-title="ide.toggle"
+                  aria-label="Z80 assembler" data-i18n-aria="ide.toggle" aria-pressed="false">
+            <svg class="icon"><use href="#i-code"/></svg>
+          </button>
+          <!-- Langue : liste native du fureteur, cachée sous un bouton compact (globe et code). -->
+          <label class="lang-picker" title="Language" data-i18n-title="display.lang">
+            <svg class="icon"><use href="#i-globe"/></svg>
+            <span id="lang-code">EN</span>
+            <select id="lang-list" aria-label="Language" data-i18n-aria="display.lang"></select>
+          </label>
+          <button id="theme-toggle" type="button" class="icon-button" title="Light / dark" data-i18n-title="theme.toggle"
+                  aria-label="Switch between light and dark themes" data-i18n-aria="theme.toggle.aria">
+            <svg class="icon icon-sun"><use href="#i-sun"/></svg>
+            <svg class="icon icon-moon"><use href="#i-moon"/></svg>
+          </button>
+        </div>
+      </header>
+
+      <div class="workspace">
+      <!-- Atelier d'assemblage Z80 (ide.js), affiché par le bouton </> de la barre du haut. -->
+      <section id="ide" class="ide" hidden aria-labelledby="ide-title">
+        <h2 id="ide-title" class="visually-hidden" data-i18n="ide.toggle">Z80 assembler</h2>
+        <div class="ide-bar">
+          <label class="ide-name" title="File name on the disk" data-i18n-title="ide.nameTip">
+            <input id="ide-name" maxlength="8" spellcheck="false" autocomplete="off" aria-label="Name" data-i18n-aria="ide.name"><span>/ASM</span>
+          </label>
+          <label class="ide-drive" title="Disk where files are opened and saved" data-i18n-title="ide.driveTip">
+            <svg class="icon"><use href="#i-disk"/></svg>
+            <select id="ide-drive" aria-label="Drive" data-i18n-aria="ide.driveTip">
+              <option value="0">:0</option><option value="1">:1</option><option value="2">:2</option><option value="3">:3</option>
+            </select>
+          </label>
+          <button id="ide-open" type="button" class="secondary" data-i18n="ide.open">Open…</button>
+          <button id="ide-save" type="button" class="secondary" data-i18n="ide.save">Save</button>
+          <span class="ide-gap"></span>
+          <button id="ide-asm" type="button" class="secondary" title="F9" data-i18n="ide.assemble">Assemble</button>
+          <button id="ide-run" type="button" title="F5" data-i18n="ide.run">Run</button>
+          <button id="ide-debug" type="button" class="secondary" data-i18n="ide.debug">Debug</button>
+        </div>
+        <div id="ide-files" class="ide-files" hidden></div>
+        <div class="editor">
+          <div class="gutter-wrap"><div id="ide-gutter" class="gutter" title="Breakpoint" data-i18n-title="ide.breakpointTip"></div></div>
+          <div class="code-area">
+            <div id="ide-highlight" class="code-highlight" aria-hidden="true"></div>
+            <textarea id="ide-source" class="code-input" spellcheck="false" wrap="off" autocomplete="off"
+                      autocapitalize="off" aria-label="Z80 source" data-i18n-aria="ide.sourceLabel"></textarea>
+          </div>
+        </div>
+        <div class="ide-output">
+          <p id="ide-summary" class="ide-summary"></p>
+          <ul id="ide-messages" class="ide-messages"></ul>
+        </div>
+        <div class="ide-more">
+          <button id="ide-new" type="button" class="secondary" data-i18n="ide.new">New</button>
+          <label class="button secondary"><span data-i18n="ide.loadLocal">Open from this device…</span>
+            <input id="ide-local" type="file" accept=".asm,.z80,.src,.txt,.mac" hidden>
+          </label>
+          <button id="ide-dl-asm" type="button" class="secondary" data-i18n="ide.downloadAsm">Download source</button>
+          <button id="ide-dl-cmd" type="button" class="secondary" data-i18n="ide.downloadCmd">Download .CMD</button>
+        </div>
+        <details class="ide-help">
+          <summary data-i18n="ide.help">LDOS services and ROM routines</summary>
+          <p class="hint" data-i18n="ide.helpSyntax"></p>
+          <table class="svc-table"><tbody id="ide-svc"></tbody></table>
+        </details>
+      </section>
+
+      <div class="stage">
+        <div id="monitor" class="monitor">
+          <canvas id="screen" width="1536" height="1152" tabindex="0"
+                  aria-label="TRS-80 screen: click, then type on your keyboard" data-i18n-aria="screen.aria"></canvas>
+          <div id="overlay" class="overlay">
+            <!-- Affiché sans JavaScript (aucune traduction possible : les quatre langues). -->
+            <div class="js-required" role="alert">
+              <p lang="en"><strong>The emulator cannot start: this browser blocks the page's scripts.</strong>
+                Allow JavaScript for this site, then reload the page. <em>Brave:</em> click the lion icon
+                in the address bar and turn Shields down for this site (or turn off “Block scripts”).
+                NoScript, uBlock Origin or another blocker: allow this site.</p>
+              <p lang="fr"><strong>L’émulateur ne peut pas démarrer : le fureteur bloque les scripts de la page.</strong>
+                Autorisez JavaScript pour ce site, puis rechargez la page. <em>Brave :</em> cliquez sur
+                l’icône du lion dans la barre d’adresse et désactivez les boucliers pour ce site (ou
+                « Bloquer les scripts »). NoScript, uBlock Origin ou un autre bloqueur : autorisez ce site.</p>
+              <p lang="es"><strong>El emulador no puede iniciarse: el navegador bloquea los scripts de la página.</strong>
+                Permita JavaScript para este sitio y recargue la página. <em>Brave:</em> haga clic en el
+                icono del león en la barra de direcciones y desactive los escudos para este sitio (o
+                «Bloquear scripts»). NoScript, uBlock Origin u otro bloqueador: permita este sitio.</p>
+              <p lang="zh"><strong>模拟器无法启动：浏览器阻止了本页面的脚本。</strong>
+                请允许此网站运行 JavaScript，然后重新加载页面。<em>Brave：</em>点击地址栏中的狮子图标，
+                为此网站关闭护盾（或关闭“阻止脚本”）。使用 NoScript、uBlock Origin 等拦截器时，请允许此网站。</p>
+            </div>
+            <p id="overlay-start" data-i18n-html="overlay.start">To start, choose a <strong>Level II ROM</strong> in the Machine menu,
+              or load your own ROM file (12 KB).</p>
+            <button id="overlay-menu" type="button" data-i18n="overlay.menu">Open the Machine menu</button>
+            <p class="small" data-i18n="overlay.legal">TRS-80 ROMs are © Tandy / Microsoft and are not part of this project.
+              The ROM stays in your browser and is never uploaded.</p>
+            <p id="error" class="error" role="alert"></p>
+          </div>
+          <div id="drop-hint" class="drop-hint" hidden data-i18n="drop">Drop a disk, program or BASIC listing</div>
+          <!-- Tablettes : le clavier virtuel n'apparaît que pour un champ de texte. -->
+          <textarea id="touch-input" aria-hidden="true" tabindex="-1" autocomplete="off"
+                    autocorrect="off" autocapitalize="off" spellcheck="false"></textarea>
+        </div>
+
+        <div id="touch-keys" class="touch-keys" aria-label="TRS-80 keys for touch screens" data-i18n-aria="touch.aria">
+          <button type="button" id="touch-keyboard" class="secondary" data-i18n="touch.keyboard">⌨ Keyboard</button>
+          <button type="button" class="secondary" data-key="End">BREAK</button>
+          <button type="button" class="secondary" data-key="Escape" data-models="2">ESC</button>
+          <button type="button" class="secondary" data-key="F1" data-models="2 4">F1</button>
+          <button type="button" class="secondary" data-key="F2" data-models="2 4">F2</button>
+          <button type="button" class="secondary" data-key="F3" data-models="4">F3</button>
+          <button type="button" class="secondary" data-key="Home">CLEAR</button>
+          <button type="button" class="secondary" data-key="ArrowUp">↑</button>
+          <button type="button" class="secondary" data-key="ArrowDown">↓</button>
+          <button type="button" class="secondary" data-key="ArrowLeft">←</button>
+          <button type="button" class="secondary" data-key="ArrowRight">→</button>
+          <button type="button" class="secondary" data-key="Enter">ENTER</button>
+        </div>
+        <!-- Ce qui est dans chaque lecteur (un clic ouvre la section Disquettes). -->
+        <div id="drive-bar" class="drive-bar" role="group" aria-label="Drives" data-i18n-aria="bar.aria"></div>
+        <!-- Programme ou disquette en cours : nom et description -->
+        <section id="now-info" class="now-info" aria-live="polite" hidden>
+          <svg id="now-icon" class="icon"><use href="#i-file"/></svg>
+          <div class="now-text">
+            <strong id="now-title"></strong>
+            <span id="now-sub" class="now-sub"></span>
+            <div id="now-lines"></div>
+            <div id="now-admin" class="now-admin" hidden></div>
+          </div>
+          <button id="now-close" type="button" class="icon-button small" aria-label="Hide" title="Hide"
+                  data-i18n-aria="now.hide" data-i18n-title="now.hide">
+            <svg class="icon"><use href="#i-x"/></svg>
+          </button>
+        </section>
+        <p id="status" class="status" role="status"></p>
+        <!-- Imprimante : ce que le TRS-80 imprime, sur du papier en continu d'époque. -->
+        <section id="printer" class="printer" hidden aria-labelledby="printer-title">
+          <header class="printer-head">
+            <svg class="icon"><use href="#i-printer"/></svg>
+            <strong id="printer-title" data-i18n="printer.title">Printer</strong>
+            <span id="printer-count" class="printer-count"></span>
+            <span class="spacer"></span>
+            <button id="printer-copy" type="button" class="icon-button small" title="Copy the printed text" data-i18n-title="printer.copy"
+                    aria-label="Copy the printed text" data-i18n-aria="printer.copy"><svg class="icon"><use href="#i-copy"/></svg></button>
+            <button id="printer-save" type="button" class="icon-button small" title="Download the printout (.txt)" data-i18n-title="printer.save"
+                    aria-label="Download the printout" data-i18n-aria="printer.save"><svg class="icon"><use href="#i-download"/></svg></button>
+            <button id="printer-clear" type="button" class="icon-button small" title="Tear off the paper (clear)" data-i18n-title="printer.clear"
+                    aria-label="Clear the printout" data-i18n-aria="printer.clear"><svg class="icon"><use href="#i-trash"/></svg></button>
+            <button id="printer-hide" type="button" class="icon-button small" title="Hide (shows again at the next printout)" data-i18n-title="printer.hide"
+                    aria-label="Hide the printer" data-i18n-aria="printer.hide"><svg class="icon"><use href="#i-x"/></svg></button>
+          </header>
+          <div id="printer-feed" class="printer-feed"></div>
+        </section>
+        <!-- Débogueur : commandes et registres (mode atelier). -->
+        <section id="ide-regs" class="ide-regs" hidden>
+          <div class="ide-debugbar">
+            <button id="ide-step" type="button" class="secondary" title="F10" disabled><span data-i18n="ide.step">Step</span></button>
+            <button id="ide-continue" type="button" class="secondary" title="F5" disabled><span data-i18n="ide.continue">Continue</span></button>
+            <button id="ide-stop" type="button" class="secondary" disabled><span data-i18n="ide.stop">Stop</span></button>
+          </div>
+          <p id="ide-state" class="ide-state" aria-live="polite"></p>
+          <div id="ide-reg-grid" class="reg-grid"></div>
+          <div id="ide-flags" class="flags"></div>
+          <div id="ide-mem" class="mem"></div>
+        </section>
+      </div>
+      </div>
+    </main>
+  </div>
+  <script type="module" src="main.js?v=faf38e39"></script>
+  <!-- Fenêtre des disquettes : formatage, fichiers (remplie par main.js). -->
+  <dialog id="disk-dialog" class="dialog"></dialog>
+</body>
+</html>
